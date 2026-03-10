@@ -1,0 +1,365 @@
+{
+ "actions": [],
+ "autoname": "field:event_short_code",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "event_name",
+  "event_short_code",
+  "col_break_1",
+  "category",
+  "business_type",
+  "section_organizer",
+  "organizer_name",
+  "description",
+  "col_break_2",
+  "logo",
+  "banner",
+  "section_dates",
+  "start_date",
+  "end_date",
+  "col_break_3",
+  "setup_start_date",
+  "dismantle_date",
+  "section_venue",
+  "venue_name",
+  "city",
+  "country",
+  "col_break_4",
+  "visitor_capacity",
+  "exhibitor_capacity",
+  "section_status",
+  "status",
+  "col_break_5",
+  "is_published",
+  "section_facilities",
+  "has_wifi",
+  "has_ac",
+  "has_food_court",
+  "col_break_6",
+  "has_atm",
+  "has_first_aid",
+  "has_fire_safety",
+  "col_break_7",
+  "has_security",
+  "has_drinking_water",
+  "has_prayer_room",
+  "section_parking",
+  "parking_cars",
+  "parking_trucks",
+  "col_break_8",
+  "washrooms_male",
+  "washrooms_female",
+  "washrooms_accessible"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Information"
+  },
+  {
+   "fieldname": "event_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Event Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "event_short_code",
+   "fieldtype": "Data",
+   "label": "Event Short Code",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Unique code used in URL. Example: EXPO2025"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Category",
+   "options": "\nTrade Fair\nExpo\nConference\nSeminar\nProduct Launch",
+   "reqd": 1
+  },
+  {
+   "fieldname": "business_type",
+   "fieldtype": "Data",
+   "label": "Business Type / Industry",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_organizer",
+   "fieldtype": "Section Break",
+   "label": "Organizer Details"
+  },
+  {
+   "fieldname": "organizer_name",
+   "fieldtype": "Data",
+   "label": "Organizer Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Description"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "logo",
+   "fieldtype": "Attach Image",
+   "label": "Event Logo"
+  },
+  {
+   "fieldname": "banner",
+   "fieldtype": "Attach Image",
+   "label": "Banner Image"
+  },
+  {
+   "fieldname": "section_dates",
+   "fieldtype": "Section Break",
+   "label": "Event Dates"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "setup_start_date",
+   "fieldtype": "Date",
+   "label": "Setup Start Date"
+  },
+  {
+   "fieldname": "dismantle_date",
+   "fieldtype": "Date",
+   "label": "Dismantle Date"
+  },
+  {
+   "fieldname": "section_venue",
+   "fieldtype": "Section Break",
+   "label": "Venue Details"
+  },
+  {
+   "fieldname": "venue_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Venue Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "city",
+   "fieldtype": "Data",
+   "label": "City"
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Link",
+   "label": "Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "col_break_4",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "visitor_capacity",
+   "fieldtype": "Int",
+   "label": "Visitor Capacity"
+  },
+  {
+   "fieldname": "exhibitor_capacity",
+   "fieldtype": "Int",
+   "label": "Exhibitor Capacity"
+  },
+  {
+   "fieldname": "section_status",
+   "fieldtype": "Section Break",
+   "label": "Status & Publishing"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nUpcoming\nOngoing\nCompleted\nCancelled",
+   "default": "Draft",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_break_5",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_published",
+   "fieldtype": "Check",
+   "label": "Published on Website",
+   "default": 0
+  },
+  {
+   "fieldname": "section_facilities",
+   "fieldtype": "Section Break",
+   "label": "Facilities Available"
+  },
+  {
+   "fieldname": "has_wifi",
+   "fieldtype": "Check",
+   "label": "Wi-Fi Available",
+   "default": 0
+  },
+  {
+   "fieldname": "has_ac",
+   "fieldtype": "Check",
+   "label": "Air Conditioning",
+   "default": 0
+  },
+  {
+   "fieldname": "has_food_court",
+   "fieldtype": "Check",
+   "label": "Food Court",
+   "default": 0
+  },
+  {
+   "fieldname": "col_break_6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "has_atm",
+   "fieldtype": "Check",
+   "label": "ATM",
+   "default": 0
+  },
+  {
+   "fieldname": "has_first_aid",
+   "fieldtype": "Check",
+   "label": "First Aid / Medical Room",
+   "default": 0
+  },
+  {
+   "fieldname": "has_fire_safety",
+   "fieldtype": "Check",
+   "label": "Fire Safety",
+   "default": 0
+  },
+  {
+   "fieldname": "col_break_7",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "has_security",
+   "fieldtype": "Check",
+   "label": "Security",
+   "default": 0
+  },
+  {
+   "fieldname": "has_drinking_water",
+   "fieldtype": "Check",
+   "label": "Drinking Water",
+   "default": 0
+  },
+  {
+   "fieldname": "has_prayer_room",
+   "fieldtype": "Check",
+   "label": "Prayer Room",
+   "default": 0
+  },
+  {
+   "fieldname": "section_parking",
+   "fieldtype": "Section Break",
+   "label": "Parking & Washrooms"
+  },
+  {
+   "fieldname": "parking_cars",
+   "fieldtype": "Int",
+   "label": "Car Parking Capacity"
+  },
+  {
+   "fieldname": "parking_trucks",
+   "fieldtype": "Int",
+   "label": "Truck Loading Area Count"
+  },
+  {
+   "fieldname": "col_break_8",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "washrooms_male",
+   "fieldtype": "Int",
+   "label": "Male Washrooms"
+  },
+  {
+   "fieldname": "washrooms_female",
+   "fieldtype": "Int",
+   "label": "Female Washrooms"
+  },
+  {
+   "fieldname": "washrooms_accessible",
+   "fieldtype": "Int",
+   "label": "Accessible Washrooms"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Event",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Expo Admin",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Event Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "read": 1,
+   "role": "All"
+  }
+ ],
+ "search_fields": "event_name,venue_name,status",
+ "sort_field": "start_date",
+ "sort_order": "ASC",
+ "states": [],
+ "title_field": "event_name",
+ "track_changes": 1
+}
