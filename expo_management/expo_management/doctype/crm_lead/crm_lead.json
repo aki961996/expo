@@ -1,0 +1,42 @@
+{
+ "actions": [],
+ "autoname": "CRM-LEAD-.YYYY.-.#####",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "fields": [
+  {"fieldname": "lead_name", "fieldtype": "Data", "label": "Lead Name", "reqd": 1, "in_list_view": 1},
+  {"fieldname": "company", "fieldtype": "Data", "label": "Company", "in_list_view": 1},
+  {"fieldname": "expo_event", "fieldtype": "Link", "label": "Expo Event", "options": "Expo Event", "in_standard_filter": 1},
+  {"fieldname": "col_break_1", "fieldtype": "Column Break"},
+  {"fieldname": "contact_number", "fieldtype": "Data", "label": "Contact Number", "in_list_view": 1},
+  {"fieldname": "email", "fieldtype": "Data", "label": "Email"},
+  {"fieldname": "country", "fieldtype": "Link", "label": "Country", "options": "Country"},
+  {"fieldname": "section_details", "fieldtype": "Section Break", "label": "Lead Details"},
+  {"fieldname": "product_interest", "fieldtype": "Small Text", "label": "Product Interest"},
+  {"fieldname": "lead_source", "fieldtype": "Select", "label": "Lead Source", "options": "Scan\nManual\nImport\nMeeting\nWebsite\nReferral", "in_list_view": 1, "in_standard_filter": 1},
+  {"fieldname": "lead_rating", "fieldtype": "Select", "label": "Lead Rating", "options": "Hot\nWarm\nCold", "in_list_view": 1, "in_standard_filter": 1},
+  {"fieldname": "col_break_2", "fieldtype": "Column Break"},
+  {"fieldname": "assigned_staff", "fieldtype": "Link", "label": "Assigned Staff", "options": "User"},
+  {"fieldname": "follow_up_date", "fieldtype": "Date", "label": "Follow-up Date", "in_list_view": 1},
+  {"fieldname": "section_exhibitor", "fieldtype": "Section Break", "label": "Exhibitor Info"},
+  {"fieldname": "exhibitor", "fieldtype": "Link", "label": "Exhibitor", "options": "Exhibitor Profile", "in_standard_filter": 1},
+  {"fieldname": "exhibitor_name", "fieldtype": "Data", "label": "Exhibitor Name", "fetch_from": "exhibitor.exhibitor_name", "read_only": 1},
+  {"fieldname": "section_notes", "fieldtype": "Section Break", "label": "Notes"},
+  {"fieldname": "notes", "fieldtype": "Text Editor", "label": "Notes"}
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "CRM Lead",
+ "naming_rule": "Series",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin", "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Event Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "Exhibitor", "read": 1, "write": 1, "create": 1, "if_owner": 1}
+ ],
+ "title_field": "lead_name",
+ "track_changes": 1
+}

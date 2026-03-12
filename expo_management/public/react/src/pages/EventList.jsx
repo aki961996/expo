@@ -1,61 +1,41 @@
 import { useState, useEffect, useCallback } from 'react'
 import EventCard from '../components/EventCard'
-import FilterBar from '../components/FilterBar'
 import { getPublishedEvents } from '../api/frappe'
 
-// ── Mock data for development (remove when Frappe is connected) ──
+const STATUSES   = ['All', 'Upcoming', 'Ongoing', 'Completed']
+const CATEGORIES = ['All', 'Trade Fair', 'Expo', 'Conference', 'Product Launch', 'Seminar']
+
+const USE_MOCK = false
+
 const MOCK = [
   {
-    name: 'KIE2025', event_name: 'Kerala Industrial Expo 2025', event_short_code: 'KIE2025',
-    category: 'Trade Fair', business_type: 'Manufacturing & Industry',
-    organizer_name: 'Kerala Chambers of Commerce',
-    start_date: '2025-09-10', end_date: '2025-09-14',
+    name: 'KTE2026', event_name: 'Kerala Tech Expo 2026', event_short_code: 'KTE2026',
+    category: 'Trade Fair', business_type: 'Information Technology',
+    organizer_name: 'Kerala IT Mission',
+    start_date: '2026-04-10', end_date: '2026-04-14',
     venue_name: 'Rajiv Gandhi Indoor Stadium', city: 'Kochi',
-    status: 'Upcoming', exhibitor_count: 348, visitor_capacity: 50000,
+    status: 'Upcoming', visitor_capacity: 50000, exhibitor_capacity: 500,
+    has_wifi: 1, has_ac: 1, has_food_court: 1, has_atm: 1, has_first_aid: 1,
   },
   {
-    name: 'SITS2025', event_name: 'South India Tech Summit 2025', event_short_code: 'SITS2025',
-    category: 'Conference', business_type: 'Information Technology',
-    organizer_name: 'TechHub South India',
-    start_date: '2025-11-20', end_date: '2025-11-22',
-    venue_name: 'Hitex Exhibition Centre', city: 'Hyderabad',
-    status: 'Upcoming', exhibitor_count: 112, visitor_capacity: 15000,
-  },
-  {
-    name: 'AFEC2025', event_name: 'Agri-Food Expo Coimbatore 2025', event_short_code: 'AFEC2025',
-    category: 'Expo', business_type: 'Agriculture & Food Processing',
-    organizer_name: 'Tamil Nadu Agri Board',
-    start_date: '2025-08-05', end_date: '2025-08-08',
-    venue_name: 'CODISSIA Trade Fair Complex', city: 'Coimbatore',
-    status: 'Ongoing', exhibitor_count: 280, visitor_capacity: 30000,
-  },
-  {
-    name: 'BEXP2025', event_name: 'Bangalore Build Expo 2025', event_short_code: 'BEXP2025',
+    name: 'BCON2026', event_name: 'Bangalore Build & Construction Expo', event_short_code: 'BCON2026',
     category: 'Expo', business_type: 'Construction & Real Estate',
     organizer_name: 'CREDAI Karnataka',
-    start_date: '2025-07-15', end_date: '2025-07-18',
+    start_date: '2026-03-11', end_date: '2026-03-15',
     venue_name: 'BIEC Convention Centre', city: 'Bangalore',
-    status: 'Completed', exhibitor_count: 420, visitor_capacity: 40000,
+    status: 'Ongoing', visitor_capacity: 40000, exhibitor_capacity: 400,
+    has_wifi: 1, has_ac: 1, has_food_court: 1, has_atm: 1, has_prayer_room: 1,
   },
   {
-    name: 'CHEM2025', event_name: 'ChemTech India 2025', event_short_code: 'CHEM2025',
-    category: 'Trade Fair', business_type: 'Chemicals & Pharma',
-    organizer_name: 'FICCI Mumbai',
-    start_date: '2025-12-08', end_date: '2025-12-11',
-    venue_name: 'Bombay Exhibition Centre', city: 'Mumbai',
-    status: 'Upcoming', exhibitor_count: 190, visitor_capacity: 25000,
-  },
-  {
-    name: 'AUTO2026', event_name: 'Auto Expo South 2026', event_short_code: 'AUTO2026',
-    category: 'Expo', business_type: 'Automotive',
-    organizer_name: 'SIAM Tamil Nadu',
-    start_date: '2026-02-20', end_date: '2026-02-24',
-    venue_name: 'Chennai Trade Centre', city: 'Chennai',
-    status: 'Upcoming', exhibitor_count: 510, visitor_capacity: 80000,
+    name: 'SIFS2026', event_name: 'South India Food Summit 2026', event_short_code: 'SIFS2026',
+    category: 'Expo', business_type: 'Food & Beverage',
+    organizer_name: 'FSSAI South India',
+    start_date: '2026-05-10', end_date: '2026-05-13',
+    venue_name: 'CODISSIA Trade Fair Complex', city: 'Coimbatore',
+    status: 'Upcoming', visitor_capacity: 30000, exhibitor_capacity: 300,
+    has_wifi: 1, has_ac: 1, has_food_court: 1,
   },
 ]
-
-const USE_MOCK = false //Set false when Frappe API is ready
 
 export default function EventList() {
   const [events, setEvents]     = useState([])
@@ -65,152 +45,336 @@ export default function EventList() {
   const [search, setSearch]     = useState('')
   const [status, setStatus]     = useState('All')
   const [category, setCategory] = useState('All')
+  const [searchFocused, setSearchFocused] = useState(false)
 
   const load = useCallback(async () => {
-    setLoading(true)
-    setError(null)
+    setLoading(true); setError(null)
     try {
       if (USE_MOCK) {
-        await new Promise(r => setTimeout(r, 500)) // simulate network
+        await new Promise(r => setTimeout(r, 600))
         let data = [...MOCK]
         if (status !== 'All')   data = data.filter(e => e.status === status)
         if (category !== 'All') data = data.filter(e => e.category === category)
         if (search) data = data.filter(e =>
           e.event_name.toLowerCase().includes(search.toLowerCase()) ||
-          e.city.toLowerCase().includes(search.toLowerCase()) ||
-          e.organizer_name.toLowerCase().includes(search.toLowerCase())
+          e.city.toLowerCase().includes(search.toLowerCase())
         )
-        setEvents(data)
-        setTotal(data.length)
+        setEvents(data); setTotal(data.length)
       } else {
         const res = await getPublishedEvents({ status, category, search })
-        setEvents(res.events || [])
-        setTotal(res.total ?? 0)
+        setEvents(res.events || []); setTotal(res.total ?? 0)
       }
-    } catch (e) {
-      setError(e.message)
-    } finally {
-      setLoading(false)
-    }
+    } catch (e) { setError(e.message) }
+    finally { setLoading(false) }
   }, [status, category, search])
 
   useEffect(() => { load() }, [load])
 
   return (
-    <div>
+    <div style={{ minHeight: '100vh', background: '#080808' }}>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=DM+Sans:wght@400;500&display=swap');
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #080808; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        @keyframes slideDown { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.3} }
+        @keyframes bgMove {
+          0%   { background-position: 0% 50%; }
+          50%  { background-position: 100% 50%; }
+          100% { background-position: 0% 50%; }
+        }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #0F0F0F; }
+        ::-webkit-scrollbar-thumb { background: #2F2F2F; border-radius: 3px; }
+      `}</style>
+
+      {/* ── NAVBAR ── */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
+        padding: '0 2rem', height: 60,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        background: 'rgba(8,8,8,0.85)',
+        backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid #1A1A1A',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 28, height: 28, borderRadius: 7,
+            background: 'linear-gradient(135deg, #F59E0B, #EF4444)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+              <rect x="3" y="3" width="7" height="7" rx="1" fill="white" />
+              <rect x="14" y="3" width="7" height="7" rx="1" fill="white" opacity="0.6" />
+              <rect x="3" y="14" width="7" height="7" rx="1" fill="white" opacity="0.6" />
+              <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3" />
+            </svg>
+          </div>
+          <span style={{
+            fontFamily: 'Bricolage Grotesque, sans-serif',
+            fontWeight: 800, fontSize: '1rem',
+            letterSpacing: '-0.03em', color: '#F5F5F5',
+          }}>
+            ExpoMgmt
+          </span>
+        </div>
+
+        <button style={{
+          padding: '7px 18px', borderRadius: 8,
+          background: '#F59E0B', border: 'none',
+          fontFamily: 'DM Sans, sans-serif',
+          fontSize: '0.82rem', fontWeight: 600,
+          color: '#000', cursor: 'pointer',
+          letterSpacing: '0.01em',
+        }}>
+          Exhibitor Login
+        </button>
+      </nav>
+
       {/* ── HERO ── */}
       <section style={{
-        paddingTop: '100px', paddingBottom: '4rem',
-        background: 'linear-gradient(180deg, var(--cream2) 0%, var(--cream) 100%)',
-        borderBottom: '1px solid var(--border)',
+        paddingTop: 140, paddingBottom: 80,
+        paddingLeft: '2rem', paddingRight: '2rem',
+        maxWidth: 1200, margin: '0 auto',
+        position: 'relative',
       }}>
-        <div className="container">
-          {/* Tag */}
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-            padding: '0.3rem 0.9rem', borderRadius: 100,
-            background: 'var(--orange-bg)', border: '1px solid #F5C8B0',
-            fontSize: '0.75rem', fontWeight: 700, color: 'var(--orange)',
-            letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '1.5rem',
+        {/* Background glow */}
+        <div style={{
+          position: 'absolute', top: 60, left: '50%',
+          transform: 'translateX(-50%)',
+          width: 600, height: 300,
+          background: 'radial-gradient(ellipse, #F59E0B08 0%, transparent 70%)',
+          pointerEvents: 'none',
+        }} />
+
+        {/* Live tag */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '5px 14px', borderRadius: 100,
+          border: '1px solid #F59E0B30',
+          background: '#F59E0B10',
+          marginBottom: 28,
+          animation: 'slideDown 0.5s ease both',
+        }}>
+          <span style={{
+            width: 7, height: 7, borderRadius: '50%',
+            background: '#F59E0B',
+            animation: 'pulse 2s infinite',
+            boxShadow: '0 0 8px #F59E0B',
+          }} />
+          <span style={{
+            fontSize: '0.72rem', fontWeight: 700,
+            color: '#F59E0B', letterSpacing: '0.1em',
           }}>
-            <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--orange)', animation: 'pulse 2s infinite' }} />
-            Live Events Platform
-          </div>
-
-          <h1 className="display" style={{ fontSize: 'clamp(2.8rem, 5vw, 4.5rem)', color: 'var(--ink)', marginBottom: '1rem' }}>
-            India's Premier<br />
-            <span style={{ color: 'var(--orange)' }}>Expo & Trade Fair</span><br />
-            Directory
-          </h1>
-          <p style={{ fontSize: '1.1rem', color: 'var(--ink3)', maxWidth: 520, lineHeight: 1.7 }}>
-            Discover, explore, and participate in top industry expos, trade fairs and conferences across India.
-          </p>
-
-          {/* Quick stats */}
-          <div style={{ display: 'flex', gap: '2.5rem', marginTop: '2.5rem', flexWrap: 'wrap' }}>
-            {[['500+', 'Exhibitors'], ['50K+', 'Visitors Annually'], ['12', 'Cities']].map(([v, l]) => (
-              <div key={l}>
-                <div className="display" style={{ fontSize: '1.8rem', color: 'var(--ink)' }}>{v}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--ink3)', marginTop: '0.1rem' }}>{l}</div>
-              </div>
-            ))}
-          </div>
+            INDIA'S EXPO PLATFORM
+          </span>
         </div>
-      </section>
 
-      {/* ── EVENTS SECTION ── */}
-      <section style={{ padding: '3rem 0 5rem' }}>
-        <div className="container">
-          <FilterBar
-            search={search} setSearch={setSearch}
-            status={status} setStatus={setStatus}
-            category={category} setCategory={setCategory}
-            total={total}
-          />
+        {/* Headline */}
+        <h1 style={{
+          fontFamily: 'Bricolage Grotesque, sans-serif',
+          fontWeight: 800,
+          fontSize: 'clamp(3rem, 7vw, 5.5rem)',
+          letterSpacing: '-0.04em',
+          lineHeight: 1.0,
+          color: '#F5F5F5',
+          marginBottom: 24,
+          animation: 'fadeIn 0.6s ease 0.1s both',
+        }}>
+          Discover<br />
+          <span style={{
+            background: 'linear-gradient(135deg, #F59E0B 0%, #EF4444 50%, #A855F7 100%)',
+            backgroundSize: '200% 200%',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            animation: 'bgMove 4s ease infinite',
+          }}>
+            India's Best
+          </span><br />
+          Trade Expos
+        </h1>
 
-          {loading ? (
-            <LoadingGrid />
-          ) : error ? (
-            <ErrorState message={error} onRetry={load} />
-          ) : events.length === 0 ? (
-            <EmptyState />
-          ) : (
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-              gap: '1.5rem',
-            }}>
-              {events.map((ev, i) => <EventCard key={ev.name} event={ev} index={i} />)}
+        <p style={{
+          fontSize: '1.05rem', color: '#6B7280',
+          maxWidth: 480, lineHeight: 1.7,
+          marginBottom: 48,
+          fontFamily: 'DM Sans, sans-serif',
+          animation: 'fadeIn 0.6s ease 0.2s both',
+        }}>
+          Explore, connect and book stalls at premier industry expos, trade fairs and conferences across India.
+        </p>
+
+        {/* Stats row */}
+        <div style={{
+          display: 'flex', gap: 40, flexWrap: 'wrap',
+          animation: 'fadeIn 0.6s ease 0.3s both',
+          marginBottom: 56,
+        }}>
+          {[['500+', 'Exhibitors'], ['50K+', 'Annual Visitors'], ['12', 'Cities']].map(([v, l]) => (
+            <div key={l}>
+              <div style={{
+                fontFamily: 'Bricolage Grotesque, sans-serif',
+                fontWeight: 800, fontSize: '2rem',
+                color: '#F5F5F5', letterSpacing: '-0.03em',
+              }}>{v}</div>
+              <div style={{ fontSize: '0.78rem', color: '#4B5563', marginTop: 2, letterSpacing: '0.04em' }}>{l}</div>
             </div>
-          )}
+          ))}
+        </div>
+
+        {/* ── SEARCH + FILTERS ── */}
+        <div style={{ animation: 'fadeIn 0.6s ease 0.35s both' }}>
+          {/* Search */}
+          <div style={{
+            position: 'relative', marginBottom: 16, maxWidth: 560,
+          }}>
+            <svg style={{
+              position: 'absolute', left: 16, top: '50%',
+              transform: 'translateY(-50%)', pointerEvents: 'none',
+              color: searchFocused ? '#F59E0B' : '#4B5563',
+              transition: 'color 0.2s',
+            }} width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search events, cities, industries…"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={() => setSearchFocused(true)}
+              onBlur={() => setSearchFocused(false)}
+              style={{
+                width: '100%',
+                padding: '13px 16px 13px 46px',
+                background: '#0F0F0F',
+                border: `1.5px solid ${searchFocused ? '#F59E0B50' : '#1F1F1F'}`,
+                borderRadius: 12,
+                fontSize: '0.9rem',
+                color: '#F5F5F5',
+                outline: 'none',
+                fontFamily: 'DM Sans, sans-serif',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+                boxShadow: searchFocused ? '0 0 0 3px #F59E0B10' : 'none',
+              }}
+            />
+          </div>
+
+          {/* Filter chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {/* Status */}
+            <div style={{ display: 'flex', gap: 6 }}>
+              {STATUSES.map(s => (
+                <FilterChip key={s} label={s} active={status === s}
+                  activeColor={s === 'Ongoing' ? '#00FF87' : s === 'Upcoming' ? '#60A5FA' : '#F59E0B'}
+                  onClick={() => setStatus(s)} />
+              ))}
+            </div>
+            <div style={{ width: 1, height: 20, background: '#1F1F1F' }} />
+            {/* Category */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {CATEGORIES.map(c => (
+                <FilterChip key={c} label={c} active={category === c}
+                  activeColor="#F59E0B"
+                  onClick={() => setCategory(c)} />
+              ))}
+            </div>
+            {total != null && (
+              <span style={{
+                marginLeft: 'auto', fontSize: '0.75rem',
+                color: '#4B5563', fontFamily: 'DM Sans, sans-serif',
+              }}>
+                {total} event{total !== 1 ? 's' : ''}
+              </span>
+            )}
+          </div>
         </div>
       </section>
 
-      <style>{`
-        @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
-        @keyframes shimmer {
-          0% { background-position: -400px 0 }
-          100% { background-position: 400px 0 }
-        }
-      `}</style>
+      {/* ── EVENTS GRID ── */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem 6rem' }}>
+        {loading ? (
+          <SkeletonGrid />
+        ) : error ? (
+          <ErrorState message={error} onRetry={load} />
+        ) : events.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+            gap: 20,
+          }}>
+            {events.map((ev, i) => <EventCard key={ev.name} event={ev} index={i} />)}
+          </div>
+        )}
+      </section>
     </div>
   )
 }
 
-function LoadingGrid() {
+// ── Filter Chip ───────────────────────────────────────────────
+function FilterChip({ label, active, activeColor, onClick }) {
+  const [hov, setHov] = useState(false)
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '1.5rem' }}>
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        padding: '5px 13px', borderRadius: 100,
+        border: `1px solid ${active ? activeColor + '60' : hov ? '#2F2F2F' : '#1A1A1A'}`,
+        background: active ? activeColor + '15' : hov ? '#141414' : 'transparent',
+        color: active ? activeColor : hov ? '#9CA3AF' : '#4B5563',
+        fontSize: '0.75rem', fontWeight: 600,
+        cursor: 'pointer', transition: 'all 0.18s ease',
+        fontFamily: 'DM Sans, sans-serif',
+        letterSpacing: '0.02em',
+      }}
+    >
+      {active && <span style={{ marginRight: 5, fontSize: '0.55rem' }}>●</span>}
+      {label}
+    </button>
+  )
+}
+
+// ── Skeleton ──────────────────────────────────────────────────
+function SkeletonGrid() {
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
       {[...Array(6)].map((_, i) => (
-        <div key={i} style={{ borderRadius: 'var(--radius)', overflow: 'hidden', border: '1.5px solid var(--border)' }}>
-          <div style={{ height: 140, background: 'linear-gradient(90deg, var(--cream2) 25%, var(--border) 50%, var(--cream2) 75%)', backgroundSize: '400px', animation: 'shimmer 1.4s infinite' }} />
-          <div style={{ padding: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {[120, 80, 100].map((w, j) => (
-              <div key={j} style={{ height: 14, width: `${w}px`, borderRadius: 6, background: 'linear-gradient(90deg, var(--cream2) 25%, var(--border) 50%, var(--cream2) 75%)', backgroundSize: '400px', animation: 'shimmer 1.4s infinite' }} />
+        <div key={i} style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid #1A1A1A', background: '#0F0F0F' }}>
+          <div style={{ height: 200, background: 'linear-gradient(90deg, #141414 25%, #1A1A1A 50%, #141414 75%)', backgroundSize: '400px', animation: 'shimmer 1.4s infinite' }} />
+          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[180, 120, 140].map((w, j) => (
+              <div key={j} style={{ height: 12, width: w, borderRadius: 6, background: 'linear-gradient(90deg, #141414 25%, #1A1A1A 50%, #141414 75%)', backgroundSize: '400px', animation: 'shimmer 1.4s infinite' }} />
             ))}
           </div>
         </div>
       ))}
+      <style>{`@keyframes shimmer{0%{background-position:-400px 0}100%{background-position:400px 0}}`}</style>
     </div>
   )
 }
 
 function EmptyState() {
   return (
-    <div style={{ textAlign: 'center', padding: '6rem 2rem' }}>
-      <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔍</div>
-      <h3 className="display" style={{ fontSize: '1.5rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>No events found</h3>
-      <p style={{ color: 'var(--ink3)' }}>Try adjusting your filters or search term</p>
+    <div style={{ textAlign: 'center', padding: '8rem 2rem', color: '#4B5563' }}>
+      <div style={{ fontSize: '4rem', marginBottom: 16, opacity: 0.3 }}>◎</div>
+      <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontSize: '1.5rem', color: '#6B7280', fontWeight: 700, marginBottom: 8 }}>No events found</h3>
+      <p style={{ fontSize: '0.88rem' }}>Try adjusting your filters or search</p>
     </div>
   )
 }
 
 function ErrorState({ message, onRetry }) {
   return (
-    <div style={{ textAlign: 'center', padding: '6rem 2rem' }}>
-      <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>⚠️</div>
-      <h3 className="display" style={{ fontSize: '1.5rem', color: 'var(--ink)', marginBottom: '0.5rem' }}>Something went wrong</h3>
-      <p style={{ color: 'var(--ink3)', marginBottom: '1.5rem' }}>{message}</p>
-      <button onClick={onRetry} style={{ padding: '0.6rem 1.5rem', borderRadius: 8, background: 'var(--ink)', color: 'white', border: 'none', fontWeight: 600 }}>
+    <div style={{ textAlign: 'center', padding: '8rem 2rem' }}>
+      <div style={{ fontSize: '3rem', marginBottom: 16 }}>⚠</div>
+      <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontSize: '1.5rem', color: '#F87171', fontWeight: 700, marginBottom: 8 }}>{message}</h3>
+      <button onClick={onRetry} style={{ marginTop: 16, padding: '10px 24px', borderRadius: 8, background: '#F59E0B', border: 'none', fontWeight: 600, cursor: 'pointer', color: '#000' }}>
         Try Again
       </button>
     </div>

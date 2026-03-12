@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "autoname": "field:hall_code",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "hall_name", "hall_code", "expo_event", "col_break_1",
+  "hall_type", "area", "ceiling_height", "power_capacity",
+  "col_break_2", "price", "floor_plan",
+  "section_stall_dimensions", "stall_dimensions"
+ ],
+ "fields": [
+  {
+   "fieldname": "hall_name",
+   "fieldtype": "Data",
+   "label": "Hall Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "hall_code",
+   "fieldtype": "Data",
+   "label": "Hall Code",
+   "reqd": 1,
+   "unique": 1,
+   "description": "Example: HALL-A"
+  },
+  {
+   "fieldname": "expo_event",
+   "fieldtype": "Link",
+   "label": "Expo Event",
+   "options": "Expo Event",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "hall_type",
+   "fieldtype": "Select",
+   "label": "Hall Type",
+   "options": "AC\nNon-AC\nOutdoor\nSemi-Outdoor",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "area",
+   "fieldtype": "Float",
+   "label": "Total Area (sq ft)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ceiling_height",
+   "fieldtype": "Float",
+   "label": "Ceiling Height (ft)"
+  },
+  {
+   "fieldname": "power_capacity",
+   "fieldtype": "Data",
+   "label": "Power Capacity (KW)"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Full Hall Price (if full-hall booking)"
+  },
+  {
+   "fieldname": "floor_plan",
+   "fieldtype": "Attach Image",
+   "label": "Floor Plan Upload"
+  },
+  {
+   "fieldname": "section_stall_dimensions",
+   "fieldtype": "Section Break",
+   "label": "Stall Dimension Categories"
+  },
+  {
+   "fieldname": "stall_dimensions",
+   "fieldtype": "Table",
+   "label": "Stall Dimensions",
+   "options": "Expo Stall Dimension"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Hall",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Event Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "All",           "read": 1}
+ ],
+ "sort_field": "hall_name",
+ "sort_order": "ASC",
+ "title_field": "hall_name",
+ "track_changes": 1
+}

@@ -1,0 +1,165 @@
+{
+ "actions": [],
+ "autoname": "format:{expo_event}-{stall_number}",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "stall_number", "expo_event", "expo_hall",
+  "col_break_1",
+  "stall_type", "dimension_label", "status",
+  "section_pricing",
+  "base_price", "final_price", "col_break_2", "tax_percent", "deposit",
+  "section_hold",
+  "hold_expiry", "booked_by",
+  "section_map",
+  "map_x", "map_y", "col_break_3", "map_width", "map_height"
+ ],
+ "fields": [
+  {
+   "fieldname": "stall_number",
+   "fieldtype": "Data",
+   "label": "Stall Number",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Example: A-101, B-205"
+  },
+  {
+   "fieldname": "expo_event",
+   "fieldtype": "Link",
+   "label": "Expo Event",
+   "options": "Expo Event",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "expo_hall",
+   "fieldtype": "Link",
+   "label": "Hall",
+   "options": "Expo Hall",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stall_type",
+   "fieldtype": "Select",
+   "label": "Stall Type",
+   "options": "Standard\nCorner\nIsland\nEntry\nPremium",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "dimension_label",
+   "fieldtype": "Data",
+   "label": "Dimension",
+   "description": "Example: 3x3, 6x6"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nHold\nBooked\nBlocked",
+   "default": "Available",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "section_pricing",
+   "fieldtype": "Section Break",
+   "label": "Pricing"
+  },
+  {
+   "fieldname": "base_price",
+   "fieldtype": "Currency",
+   "label": "Base Price"
+  },
+  {
+   "fieldname": "final_price",
+   "fieldtype": "Currency",
+   "label": "Final Price (incl. premium)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_percent",
+   "fieldtype": "Percent",
+   "label": "Tax %",
+   "default": "18"
+  },
+  {
+   "fieldname": "deposit",
+   "fieldtype": "Currency",
+   "label": "Deposit"
+  },
+  {
+   "fieldname": "section_hold",
+   "fieldtype": "Section Break",
+   "label": "Hold / Booking Info"
+  },
+  {
+   "fieldname": "hold_expiry",
+   "fieldtype": "Datetime",
+   "label": "Hold Expiry",
+   "description": "Auto-set when status=Hold. Released after 15 min."
+  },
+  {
+   "fieldname": "booked_by",
+   "fieldtype": "Link",
+   "label": "Booked By (Exhibitor)",
+   "options": "Exhibitor Profile"
+  },
+  {
+   "fieldname": "section_map",
+   "fieldtype": "Section Break",
+   "label": "Map Coordinates (for layout)"
+  },
+  {
+   "fieldname": "map_x",
+   "fieldtype": "Float",
+   "label": "X Position (px)"
+  },
+  {
+   "fieldname": "map_y",
+   "fieldtype": "Float",
+   "label": "Y Position (px)"
+  },
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "map_width",
+   "fieldtype": "Float",
+   "label": "Width (px)"
+  },
+  {
+   "fieldname": "map_height",
+   "fieldtype": "Float",
+   "label": "Height (px)"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Stall",
+ "naming_rule": "Expression (will fail if blank)",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Event Manager", "read": 1, "write": 1},
+  {"role": "All",           "read": 1}
+ ],
+ "title_field": "stall_number",
+ "track_changes": 1
+}

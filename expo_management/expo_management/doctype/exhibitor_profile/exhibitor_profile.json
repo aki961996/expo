@@ -1,0 +1,169 @@
+{
+ "actions": [],
+ "autoname": "field:email",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "section_basic",
+  "exhibitor_name", "company_name", "industry",
+  "col_break_1",
+  "gst_number", "annual_turnover", "status",
+  "section_contact",
+  "contact_number", "email", "website",
+  "col_break_2",
+  "communication_address", "company_logo",
+  "section_profile",
+  "product_categories", "description",
+  "col_break_3",
+  "expo_event", "account_manager", "frappe_user"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_basic",
+   "fieldtype": "Section Break",
+   "label": "Basic Details"
+  },
+  {
+   "fieldname": "exhibitor_name",
+   "fieldtype": "Data",
+   "label": "Exhibitor Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "industry",
+   "fieldtype": "Data",
+   "label": "Business Type / Industry",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gst_number",
+   "fieldtype": "Data",
+   "label": "GST Number"
+  },
+  {
+   "fieldname": "annual_turnover",
+   "fieldtype": "Select",
+   "label": "Annual Turnover",
+   "options": "\nBelow 1 Cr\n1-5 Cr\n5-25 Cr\n25-100 Cr\nAbove 100 Cr"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Active\nPending Approval\nBlacklisted\nInactive",
+   "default": "Pending Approval",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact Information"
+  },
+  {
+   "fieldname": "contact_number",
+   "fieldtype": "Phone",
+   "label": "Contact Number",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "email",
+   "fieldtype": "Data",
+   "label": "Email Address",
+   "options": "Email",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Website",
+   "options": "URL"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "communication_address",
+   "fieldtype": "Small Text",
+   "label": "Communication Address"
+  },
+  {
+   "fieldname": "company_logo",
+   "fieldtype": "Attach Image",
+   "label": "Company Logo"
+  },
+  {
+   "fieldname": "section_profile",
+   "fieldtype": "Section Break",
+   "label": "Company Profile"
+  },
+  {
+   "fieldname": "product_categories",
+   "fieldtype": "Small Text",
+   "label": "Product Categories"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text Editor",
+   "label": "Company Description"
+  },
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expo_event",
+   "fieldtype": "Link",
+   "label": "Expo Event",
+   "options": "Expo Event",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "account_manager",
+   "fieldtype": "Link",
+   "label": "Account Manager",
+   "options": "User"
+  },
+  {
+   "fieldname": "frappe_user",
+   "fieldtype": "Link",
+   "label": "Frappe Login User",
+   "options": "User",
+   "description": "Linked Frappe account for mobile app login"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Exhibitor Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Event Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "Exhibitor",     "read": 1, "write": 1, "if_owner": 1}
+ ],
+ "search_fields": "exhibitor_name,company_name,email",
+ "title_field": "company_name",
+ "track_changes": 1
+}

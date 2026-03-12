@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "autoname": "field:service_name",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "service_name", "expo_event", "category",
+  "col_break_1",
+  "charge_type", "price", "tax_percent",
+  "col_break_2",
+  "is_mandatory", "cutoff_date",
+  "section_details",
+  "description", "image",
+  "section_vendor",
+  "vendor_name", "vendor_contact"
+ ],
+ "fields": [
+  {
+   "fieldname": "service_name",
+   "fieldtype": "Data",
+   "label": "Service Name",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "E.g. Additional Power Load, Booth Fabrication, Extra Chairs"
+  },
+  {
+   "fieldname": "expo_event",
+   "fieldtype": "Link",
+   "label": "Expo Event",
+   "options": "Expo Event",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "category",
+   "fieldtype": "Select",
+   "label": "Category",
+   "options": "Electricity\nFurniture\nBranding\nIT\nLogistics\nSecurity\nOther",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "charge_type",
+   "fieldtype": "Select",
+   "label": "Charge Type",
+   "options": "One-time\nPer Day\nPer Sq Ft\nPer Stall",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Price",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "tax_percent",
+   "fieldtype": "Percent",
+   "label": "Tax %",
+   "default": "18"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "is_mandatory",
+   "fieldtype": "Check",
+   "label": "Mandatory Service",
+   "default": 0,
+   "description": "If checked, exhibitor must take this service"
+  },
+  {
+   "fieldname": "cutoff_date",
+   "fieldtype": "Date",
+   "label": "Order Cutoff Date",
+   "description": "Last date to order this service"
+  },
+  {
+   "fieldname": "section_details",
+   "fieldtype": "Section Break",
+   "label": "Details"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Small Text",
+   "label": "Description"
+  },
+  {
+   "fieldname": "image",
+   "fieldtype": "Attach Image",
+   "label": "Service Image"
+  },
+  {
+   "fieldname": "section_vendor",
+   "fieldtype": "Section Break",
+   "label": "Vendor Assignment"
+  },
+  {
+   "fieldname": "vendor_name",
+   "fieldtype": "Data",
+   "label": "Vendor Name"
+  },
+  {
+   "fieldname": "vendor_contact",
+   "fieldtype": "Phone",
+   "label": "Vendor Contact"
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Service",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
+  {"role": "Event Manager", "read": 1, "write": 1, "create": 1},
+  {"role": "All",           "read": 1}
+ ],
+ "title_field": "service_name",
+ "track_changes": 1
+}

@@ -1,0 +1,162 @@
+{
+ "actions": [],
+ "autoname": "SB-.YYYY.-.#####",
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_submittable": 1,
+ "field_order": [
+  "expo_event", "exhibitor", "exhibitor_name",
+  "col_break_1",
+  "stall", "stall_number", "booking_date",
+  "section_payment",
+  "payment_status", "base_amount", "tax_amount",
+  "col_break_2",
+  "total_amount", "deposit_paid", "balance_due",
+  "section_services",
+  "services",
+  "section_invoice",
+  "invoice_number", "invoice_file"
+ ],
+ "fields": [
+  {
+   "fieldname": "expo_event",
+   "fieldtype": "Link",
+   "label": "Expo Event",
+   "options": "Expo Event",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "exhibitor",
+   "fieldtype": "Link",
+   "label": "Exhibitor",
+   "options": "Exhibitor Profile",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "exhibitor_name",
+   "fieldtype": "Data",
+   "label": "Exhibitor Name",
+   "fetch_from": "exhibitor.exhibitor_name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "stall",
+   "fieldtype": "Link",
+   "label": "Stall",
+   "options": "Expo Stall",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "stall_number",
+   "fieldtype": "Data",
+   "label": "Stall Number",
+   "fetch_from": "stall.stall_number",
+   "read_only": 1
+  },
+  {
+   "fieldname": "booking_date",
+   "fieldtype": "Datetime",
+   "label": "Booking Date",
+   "default": "now",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Details"
+  },
+  {
+   "fieldname": "payment_status",
+   "fieldtype": "Select",
+   "label": "Payment Status",
+   "options": "Pending\nPartial\nPaid\nRefunded",
+   "default": "Pending",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "base_amount",
+   "fieldtype": "Currency",
+   "label": "Base Amount"
+  },
+  {
+   "fieldname": "tax_amount",
+   "fieldtype": "Currency",
+   "label": "Tax Amount (GST)"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_amount",
+   "fieldtype": "Currency",
+   "label": "Total Amount",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "deposit_paid",
+   "fieldtype": "Currency",
+   "label": "Deposit Paid"
+  },
+  {
+   "fieldname": "balance_due",
+   "fieldtype": "Currency",
+   "label": "Balance Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_services",
+   "fieldtype": "Section Break",
+   "label": "Services Booked"
+  },
+  {
+   "fieldname": "services",
+   "fieldtype": "Table",
+   "label": "Services",
+   "options": "Booking Service Item"
+  },
+  {
+   "fieldname": "section_invoice",
+   "fieldtype": "Section Break",
+   "label": "Invoice"
+  },
+  {
+   "fieldname": "invoice_number",
+   "fieldtype": "Data",
+   "label": "Proforma Invoice No.",
+   "read_only": 1
+  },
+  {
+   "fieldname": "invoice_file",
+   "fieldtype": "Attach",
+   "label": "Invoice PDF",
+   "read_only": 1
+  }
+ ],
+ "links": [],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Stall Booking",
+ "naming_rule": "Series",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1, "submit": 1, "cancel": 1},
+  {"role": "Finance",       "read": 1, "write": 1, "submit": 1},
+  {"role": "Event Manager", "read": 1, "write": 1},
+  {"role": "Exhibitor",     "read": 1, "if_owner": 1}
+ ],
+ "title_field": "exhibitor_name",
+ "track_changes": 1
+}

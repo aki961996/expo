@@ -1,0 +1,108 @@
+{
+ "actions": [],
+ "creation": "2026-03-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "istable": 1,
+ "field_order": [
+  "dimension_label", "width", "depth", "area",
+  "col_break_1",
+  "base_price", "corner_premium", "island_premium",
+  "col_break_2",
+  "tax_percent", "deposit",
+  "col_break_3",
+  "total_stalls", "available_stalls"
+ ],
+ "fields": [
+  {
+   "fieldname": "dimension_label",
+   "fieldtype": "Data",
+   "label": "Label",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Example: 3x3, 6x6, 9x9"
+  },
+  {
+   "fieldname": "width",
+   "fieldtype": "Float",
+   "label": "Width (ft)",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "depth",
+   "fieldtype": "Float",
+   "label": "Depth (ft)",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "area",
+   "fieldtype": "Float",
+   "label": "Area (sq ft)",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "base_price",
+   "fieldtype": "Currency",
+   "label": "Base Price / sq ft",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "corner_premium",
+   "fieldtype": "Percent",
+   "label": "Corner Premium %",
+   "default": "0"
+  },
+  {
+   "fieldname": "island_premium",
+   "fieldtype": "Percent",
+   "label": "Island Premium %",
+   "default": "0"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_percent",
+   "fieldtype": "Percent",
+   "label": "Tax %",
+   "default": "18"
+  },
+  {
+   "fieldname": "deposit",
+   "fieldtype": "Currency",
+   "label": "Deposit Amount"
+  },
+  {
+   "fieldname": "col_break_3",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "total_stalls",
+   "fieldtype": "Int",
+   "label": "Total Stalls",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "available_stalls",
+   "fieldtype": "Int",
+   "label": "Available",
+   "read_only": 1,
+   "in_list_view": 1
+  }
+ ],
+ "modified": "2026-03-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Stall Dimension",
+ "owner": "Administrator"
+}
