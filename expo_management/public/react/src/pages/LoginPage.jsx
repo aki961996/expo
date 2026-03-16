@@ -9,16 +9,16 @@ export default function LoginPage() {
   const location = useLocation()
   const { sendOtp, verifyOtp } = useAuth()
 
-  // ✅ Login കഴിഞ്ഞ് redirect ചെയ്യേണ്ട path
   const redirectTo = location.state?.redirect || '/dashboard'
 
-  const [step, setStep]       = useState(STEPS.MOBILE)
-  const [mobile, setMobile]   = useState('')
-  const [otp, setOtp]         = useState(['', '', '', '', '', ''])
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-  const [timer, setTimer]     = useState(0)
-  const [devOtp, setDevOtp]   = useState('')
+  const [step, setStep]           = useState(STEPS.MOBILE)
+  const [mobile, setMobile]       = useState('')
+  const [otp, setOtp]             = useState(['', '', '', '', '', ''])
+  const [loading, setLoading]     = useState(false)
+  const [error, setError]         = useState('')
+  const [timer, setTimer]         = useState(0)
+  const [devOtp, setDevOtp]       = useState('')
+  const [redirecting, setRedirecting] = useState(false)   // ← dashboard loader
 
   const otpRefs   = useRef([])
   const mobileRef = useRef()
@@ -93,8 +93,10 @@ export default function LoginPage() {
     try {
       const res = await verifyOtp(mobile.replace(/\s/g, ''), otpValue)
       if (res.success) {
-        // ✅ Event page-ൽ നിന്ന് വന്നാൽ തിരിച്ചു പോകും, അല്ലെങ്കിൽ dashboard
-        navigate(redirectTo, { replace: true })
+        setRedirecting(true)                              // ← loader on
+        setTimeout(() => {
+          navigate(redirectTo, { replace: true })
+        }, 1200)
       } else {
         setError(res.message || 'Invalid OTP')
         setOtp(['', '', '', '', '', ''])
@@ -116,14 +118,66 @@ export default function LoginPage() {
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Sans:wght@400;500;600&display=swap');
-        @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes pulse  { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes spin   { to{transform:rotate(360deg)} }
+        @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
+        @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes spin     { to{transform:rotate(360deg)} }
+        @keyframes scaleIn  { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
         * { box-sizing: border-box; }
         input::placeholder { color: #374151; }
         input:focus { outline: none; }
       `}</style>
 
+      {/* ── Dashboard redirect loader ── */}
+      {redirecting && (
+        <div style={{
+          position: 'fixed', inset: 0, background: '#080808',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, animation: 'fadeIn 0.2s ease both',
+        }}>
+          {/* Amber ring spinner */}
+          <div style={{ position: 'relative', width: 56, height: 56, marginBottom: 24 }}>
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '50%',
+              border: '2px solid #F59E0B15',
+            }} />
+            <div style={{
+              position: 'absolute', inset: 0,
+              borderRadius: '50%',
+              border: '2px solid transparent',
+              borderTopColor: '#F59E0B',
+              animation: 'spin 0.75s linear infinite',
+            }} />
+            {/* Centre dot */}
+            <div style={{
+              position: 'absolute', top: '50%', left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: 8, height: 8, borderRadius: '50%',
+              background: '#F59E0B',
+              animation: 'pulse 1.2s ease-in-out infinite',
+            }} />
+          </div>
+
+          <p style={{
+            fontFamily: 'Bricolage Grotesque, sans-serif',
+            fontWeight: 800, fontSize: '1.1rem',
+            color: '#F5F5F5', letterSpacing: '-0.03em',
+            margin: 0, animation: 'scaleIn 0.3s ease both',
+          }}>
+            Taking you in…
+          </p>
+          <p style={{
+            fontSize: '0.78rem', color: '#374151',
+            marginTop: 8, animation: 'scaleIn 0.35s ease both',
+          }}>
+            Welcome back
+          </p>
+        </div>
+      )}
+
+      {/* Ambient glow */}
       <div style={{
         position: 'absolute', top: '30%', left: '50%',
         transform: 'translateX(-50%)',
@@ -132,6 +186,7 @@ export default function LoginPage() {
         pointerEvents: 'none',
       }} />
 
+      {/* Card */}
       <div style={{
         width: '100%', maxWidth: 400,
         background: '#0F0F0F', border: '1px solid #1A1A1A',
@@ -142,20 +197,23 @@ export default function LoginPage() {
         <div style={{ height: 2, background: 'linear-gradient(90deg, transparent, #F59E0B, transparent)' }} />
 
         <div style={{ padding: '2rem 2rem 2.5rem' }}>
+
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '2rem' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3" y="3" width="7" height="7" rx="1" fill="white" />
-                <rect x="14" y="3" width="7" height="7" rx="1" fill="white" opacity="0.6" />
-                <rect x="3" y="14" width="7" height="7" rx="1" fill="white" opacity="0.6" />
+                <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white" />
+                <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6" />
+                <rect x="3"  y="14" width="7" height="7" rx="1" fill="white" opacity="0.6" />
                 <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3" />
               </svg>
             </div>
-            <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: '#F5F5F5' }}>ExpoMgmt</span>
+            <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: '#F5F5F5' }}>
+              ExpoMgmt
+            </span>
           </div>
 
-          {/* ✅ Redirect hint — event page-ൽ നിന്ന് വന്നാൽ */}
+          {/* Redirect hint */}
           {location.state?.redirect && (
             <div style={{
               padding: '8px 12px', borderRadius: 8, marginBottom: 16,
@@ -178,7 +236,7 @@ export default function LoginPage() {
             ))}
           </div>
 
-          {/* STEP 1: Mobile */}
+          {/* ── STEP 1: Mobile ── */}
           {step === STEPS.MOBILE && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
               <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: '#F5F5F5', marginBottom: 6 }}>
@@ -236,7 +294,6 @@ export default function LoginPage() {
 
               <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
                 <span style={{ fontSize: '0.82rem', color: '#4B5563' }}>New exhibitor? </span>
-                {/* ✅ Register-ലേക്കും redirect state pass ചെയ്യുക */}
                 <button
                   onClick={() => navigate('/register', { state: location.state })}
                   style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#F59E0B', fontWeight: 600, cursor: 'pointer', padding: 0 }}
@@ -247,7 +304,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* STEP 2: OTP */}
+          {/* ── STEP 2: OTP ── */}
           {step === STEPS.OTP && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
               <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: '#F5F5F5', marginBottom: 6 }}>
@@ -269,7 +326,8 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }} onPaste={handleOtpPaste}>
+              {/* OTP boxes — fixed with flex: '1 1 0' + minWidth: 0 */}
+              <div style={{ display: 'flex', gap: 8, marginBottom: 16, width: '100%' }} onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
                   <input
                     key={i}
@@ -279,7 +337,9 @@ export default function LoginPage() {
                     onChange={e => handleOtpChange(i, e.target.value)}
                     onKeyDown={e => handleOtpKeyDown(i, e)}
                     style={{
-                      flex: 1, height: 54, textAlign: 'center',
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      height: 54, textAlign: 'center',
                       fontSize: '1.4rem', fontWeight: 700, color: '#F5F5F5',
                       background: digit ? '#F59E0B15' : '#141414',
                       border: `1.5px solid ${digit ? '#F59E0B50' : error ? '#F87171' : '#1F1F1F'}`,
@@ -325,6 +385,7 @@ export default function LoginPage() {
               </div>
             </div>
           )}
+
         </div>
       </div>
 
@@ -342,7 +403,6 @@ export default function LoginPage() {
         onMouseEnter={e => e.currentTarget.style.color = '#9CA3AF'}
         onMouseLeave={e => e.currentTarget.style.color = '#4B5563'}
       >
-        {/* ✅ Event page-ൽ നിന്ന് വന്നാൽ "Back to Event" കാണിക്കുക */}
         ← {location.state?.redirect ? 'Back to Event' : 'Back to Events'}
       </button>
     </div>
