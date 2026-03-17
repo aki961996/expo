@@ -51,6 +51,11 @@ function getFrappeImageUrl(path) {
 function getInitials(name = '') {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
+function getYoutubeEmbed(url) {
+  if (!url) return null
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/))([^&\s]+)/)
+  return match ? `https://www.youtube.com/embed/${match[1]}` : null
+}
 
 export default function EventDetail() {
   const { code }    = useParams()
@@ -61,6 +66,7 @@ export default function EventDetail() {
   const [detail, setDetail]       = useState(null)
   const [loading, setLoading]     = useState(true)
   const [activeTab, setActiveTab] = useState('halls')
+  const [boothModal, setBoothModal] = useState(null)   // ← selected exhibitor for modal
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -69,6 +75,13 @@ export default function EventDetail() {
       .then(d => { setDetail(d); setLoading(false) })
       .catch(() => setLoading(false))
   }, [code])
+
+  // Close modal on Escape
+  useEffect(() => {
+    const handler = e => { if (e.key === 'Escape') setBoothModal(null) }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
 
   const handleBookStall = () => {
     if (!exhibitor) {
@@ -122,11 +135,21 @@ export default function EventDetail() {
         @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin      { to{transform:rotate(360deg)} }
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+        @keyframes modalIn   { from{opacity:0;transform:translateY(24px) scale(0.97)} to{opacity:1;transform:translateY(0) scale(1)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F0F; }
         ::-webkit-scrollbar-thumb { background: #2F2F2F; border-radius: 3px; }
       `}</style>
+
+      {/* ── DIGITAL BOOTH MODAL ── */}
+      {boothModal && (
+        <DigitalBoothModal
+          ex={boothModal}
+          accent={accent}
+          onClose={() => setBoothModal(null)}
+        />
+      )}
 
       {/* ── NAVBAR ── */}
       <nav style={{
@@ -159,8 +182,6 @@ export default function EventDetail() {
               <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#00FF87', letterSpacing: '0.1em' }}>LIVE NOW</span>
             </div>
           )}
-
-          {/* Book a Stall button — login check */}
           <button
             onClick={handleBookStall}
             style={{
@@ -275,11 +296,32 @@ export default function EventDetail() {
                 {services.map((svc, i) => <ServiceCard key={i} svc={svc} />)}
               </div>
             )}
+
+            {/* ── EXHIBITORS TAB ── */}
             {activeTab === 'exhibitors' && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-                {exhibitors.map((ex, i) => <ExhibitorChip key={i} ex={ex} accent={accent} />)}
+              <div>
+                {/* Summary line */}
+                <div style={{ fontSize: '0.75rem', color: '#4B5563', marginBottom: 14 }}>
+                  <span style={{ color: accent, fontWeight: 700 }}>
+                    {exhibitors.filter(e => e.has_digital_booth).length}
+                  </span>
+                  {' '}of {exhibitors.length} exhibitors have a digital booth —{' '}
+                  <span style={{ color: '#6B7280' }}>click to explore</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {exhibitors.map((ex, i) => (
+                    <ExhibitorRow
+                      key={i}
+                      ex={ex}
+                      accent={accent}
+                      onOpenBooth={() => setBoothModal(ex)}
+                    />
+                  ))}
+                </div>
               </div>
             )}
+
             {activeTab === 'facilities' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
                 {facilities.map(([, icon, label]) => <FacilityCard key={label} icon={icon} label={label} accent={accent} />)}
@@ -293,7 +335,6 @@ export default function EventDetail() {
         {/* SIDEBAR */}
         <div style={{ position: 'sticky', top: 76, animation: 'fadeIn 0.5s ease 0.2s both' }}>
           <div style={{ background: '#0F0F0F', border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden', boxShadow: `0 0 40px ${accent}08` }}>
-            {/* Price */}
             <div style={{ padding: '22px 22px 18px', background: `linear-gradient(135deg, ${accent}15, transparent)`, borderBottom: '1px solid #1A1A1A' }}>
               <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>STARTING FROM</div>
               <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em' }}>
@@ -302,7 +343,6 @@ export default function EventDetail() {
               <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>per stall · excl. GST</div>
             </div>
 
-            {/* Stats */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
               {[[availStalls, 'Available'], [totalStalls, 'Total'], [halls.length, 'Halls']].map(([v, l], i) => (
                 <div key={l} style={{ padding: '14px 10px', textAlign: 'center', borderRight: i < 2 ? '1px solid #1A1A1A' : 'none' }}>
@@ -312,7 +352,6 @@ export default function EventDetail() {
               ))}
             </div>
 
-            {/* Dates */}
             <div style={{ padding: '16px 22px', borderBottom: '1px solid #1A1A1A' }}>
               {[['Opens', event.start_date], ['Closes', event.end_date], event.setup_start_date ? ['Setup', event.setup_start_date] : null].filter(Boolean).map(([label, date]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #141414' }}>
@@ -322,7 +361,6 @@ export default function EventDetail() {
               ))}
             </div>
 
-            {/* CTA */}
             <div style={{ padding: 20 }}>
               <button
                 onClick={handleBookStall}
@@ -356,7 +394,6 @@ export default function EventDetail() {
                   {' '}to book a stall
                 </p>
               )}
-
               {exhibitor && (
                 <p style={{ fontSize: '0.7rem', color: '#374151', textAlign: 'center', marginTop: 10 }}>
                   Free to register · Secure payment
@@ -365,7 +402,6 @@ export default function EventDetail() {
             </div>
           </div>
 
-          {/* Quick facts */}
           <div style={{ marginTop: 14, background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 14, padding: 16 }}>
             <div style={{ fontSize: '0.65rem', color: '#374151', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>EVENT DETAILS</div>
             {[['Venue', event.venue_name], ['City', `${event.city}, ${event.country || 'India'}`], ['Visitors', event.visitor_capacity?.toLocaleString()], ['Exhibitors', event.exhibitor_capacity], ['Industry', event.business_type]].map(([k, v]) => v ? (
@@ -380,6 +416,266 @@ export default function EventDetail() {
     </div>
   )
 }
+
+// ─────────────────────────────────────────────────────────────
+// EXHIBITOR ROW — replaces ExhibitorChip
+// ─────────────────────────────────────────────────────────────
+function ExhibitorRow({ ex, accent, onOpenBooth }) {
+  const [hov, setHov] = useState(false)
+  const hasBooth = !!ex.has_digital_booth
+
+  return (
+    <div
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        gap: 14, padding: '14px 16px', borderRadius: 12,
+        background: hov ? (hasBooth ? accent + '08' : '#111') : '#0F0F0F',
+        border: `1px solid ${hov ? (hasBooth ? accent + '40' : '#2A2A2A') : '#1A1A1A'}`,
+        transition: 'all 0.2s',
+      }}
+    >
+      {/* Left: avatar + info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+          background: hasBooth ? accent + '20' : '#1A1A1A',
+          border: `1px solid ${hasBooth ? accent + '40' : '#2A2A2A'}`,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800,
+          fontSize: '0.85rem', color: hasBooth ? accent : '#4B5563',
+        }}>
+          {ex.company_name?.charAt(0)}
+        </div>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#E5E7EB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {ex.company_name}
+          </div>
+          <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 1 }}>{ex.industry}</div>
+          {hasBooth && ex.booth_tagline && (
+            <div style={{ fontSize: '0.7rem', color: accent, marginTop: 3, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              "{ex.booth_tagline}"
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Right: booth badge or no-booth msg */}
+      {hasBooth ? (
+        <button
+          onClick={onOpenBooth}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 14px', borderRadius: 8, border: 'none',
+            background: accent + '20', color: accent,
+            fontSize: '0.75rem', fontWeight: 700,
+            cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
+            flexShrink: 0, transition: 'background 0.2s',
+            whiteSpace: 'nowrap',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = accent + '35'}
+          onMouseLeave={e => e.currentTarget.style.background = accent + '20'}
+        >
+          <span style={{ fontSize: '0.8rem' }}>🏪</span>
+          View Digital Booth
+        </button>
+      ) : (
+        <span style={{
+          fontSize: '0.68rem', color: '#2A2A2A', fontWeight: 500,
+          padding: '5px 10px', borderRadius: 6,
+          background: '#141414', border: '1px solid #1F1F1F',
+          flexShrink: 0, whiteSpace: 'nowrap',
+        }}>
+          No booth yet
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// DIGITAL BOOTH MODAL
+// ─────────────────────────────────────────────────────────────
+function DigitalBoothModal({ ex, accent, onClose }) {
+  const bannerImg  = getFrappeImageUrl(ex.booth_banner)
+  const embedUrl   = getYoutubeEmbed(ex.booth_video_url)
+  const products   = ex.booth_products ? ex.booth_products.split(',').map(p => p.trim()).filter(Boolean) : []
+
+  return (
+    <div
+      onClick={e => { if (e.target === e.currentTarget) onClose() }}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(0,0,0,0.85)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1.5rem',
+        backdropFilter: 'blur(8px)',
+      }}
+    >
+      <div style={{
+        width: '100%', maxWidth: 640,
+        background: '#0F0F0F', border: `1px solid ${accent}30`,
+        borderRadius: 20, overflow: 'hidden',
+        animation: 'modalIn 0.3s ease both',
+        maxHeight: '90vh', overflowY: 'auto',
+      }}>
+        {/* Booth Banner */}
+        <div style={{ position: 'relative', height: 160, background: `linear-gradient(135deg, ${accent}20, #141414)`, overflow: 'hidden' }}>
+          {bannerImg && (
+            <img src={bannerImg} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }}
+              onError={e => e.target.style.display = 'none'} />
+          )}
+          {/* Top accent line */}
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
+
+          {/* Close btn */}
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', top: 14, right: 14,
+              width: 32, height: 32, borderRadius: '50%',
+              background: 'rgba(0,0,0,0.6)', border: '1px solid #2A2A2A',
+              color: '#9CA3AF', fontSize: '0.9rem',
+              cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >✕</button>
+
+          {/* Digital Booth badge */}
+          <div style={{
+            position: 'absolute', top: 14, left: 14,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '4px 12px', borderRadius: 100,
+            background: accent + '25', border: `1px solid ${accent}40`,
+            fontSize: '0.65rem', fontWeight: 700, color: accent, letterSpacing: '0.08em',
+          }}>
+            🏪 DIGITAL BOOTH
+          </div>
+
+          {/* Company avatar */}
+          <div style={{
+            position: 'absolute', bottom: -28, left: 24,
+            width: 56, height: 56, borderRadius: 14,
+            background: '#0F0F0F', border: `2px solid ${accent}50`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800,
+            fontSize: '1.2rem', color: accent,
+          }}>
+            {ex.company_name?.charAt(0)}
+          </div>
+        </div>
+
+        {/* Content */}
+        <div style={{ padding: '40px 24px 24px' }}>
+          {/* Header */}
+          <div style={{ marginBottom: 20 }}>
+            <h2 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.5rem', color: '#F5F5F5', letterSpacing: '-0.03em', marginBottom: 4 }}>
+              {ex.company_name}
+            </h2>
+            <div style={{ fontSize: '0.78rem', color: '#4B5563', marginBottom: ex.booth_tagline ? 8 : 0 }}>{ex.industry}</div>
+            {ex.booth_tagline && (
+              <div style={{ fontSize: '0.88rem', color: accent, fontStyle: 'italic', opacity: 0.9 }}>
+                "{ex.booth_tagline}"
+              </div>
+            )}
+          </div>
+
+          {/* Description */}
+          {ex.booth_description && (
+            <div style={{ marginBottom: 20 }}>
+              <BoothSection title="About" accent={accent} />
+              <div style={{ fontSize: '0.85rem', color: '#9CA3AF', lineHeight: 1.8 }}
+                dangerouslySetInnerHTML={{ __html: ex.booth_description }} />
+            </div>
+          )}
+
+          {/* Products */}
+          {products.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <BoothSection title="Products & Services" accent={accent} />
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {products.map((p, i) => (
+                  <span key={i} style={{
+                    padding: '5px 12px', borderRadius: 100,
+                    background: accent + '15', border: `1px solid ${accent}25`,
+                    fontSize: '0.75rem', color: accent, fontWeight: 500,
+                  }}>{p}</span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Video */}
+          {embedUrl && (
+            <div style={{ marginBottom: 20 }}>
+              <BoothSection title="Product Demo" accent={accent} />
+              <div style={{ borderRadius: 12, overflow: 'hidden', border: `1px solid ${accent}20` }}>
+                <iframe
+                  src={embedUrl}
+                  width="100%" height="240"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  style={{ display: 'block' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Contact row */}
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', paddingTop: 16, borderTop: '1px solid #1A1A1A' }}>
+            {ex.booth_website && (
+              <a href={ex.booth_website} target="_blank" rel="noopener noreferrer" style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 8,
+                background: accent + '15', border: `1px solid ${accent}30`,
+                fontSize: '0.78rem', color: accent, fontWeight: 600,
+                textDecoration: 'none', transition: 'background 0.2s',
+              }}>
+                🌐 Website
+              </a>
+            )}
+            {ex.booth_contact_email && (
+              <a href={`mailto:${ex.booth_contact_email}`} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 8,
+                background: '#1A1A1A', border: '1px solid #2A2A2A',
+                fontSize: '0.78rem', color: '#9CA3AF', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                ✉️ {ex.booth_contact_email}
+              </a>
+            )}
+            {ex.booth_contact_phone && (
+              <a href={`tel:${ex.booth_contact_phone}`} style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '8px 16px', borderRadius: 8,
+                background: '#1A1A1A', border: '1px solid #2A2A2A',
+                fontSize: '0.78rem', color: '#9CA3AF', fontWeight: 500,
+                textDecoration: 'none',
+              }}>
+                📞 {ex.booth_contact_phone}
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BoothSection({ title, accent }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+      <div style={{ width: 3, height: 14, borderRadius: 2, background: accent }} />
+      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', letterSpacing: '0.08em' }}>{title.toUpperCase()}</span>
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────
+// OTHER COMPONENTS (unchanged)
+// ─────────────────────────────────────────────────────────────
 
 function HeroPill({ icon, text }) {
   return (
@@ -470,22 +766,6 @@ function ServiceCard({ svc }) {
         <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '1rem' }}>₹{svc.price?.toLocaleString()}</div>
         <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 2 }}>+{svc.tax_percent}% GST</div>
         {svc.is_mandatory && <div style={{ fontSize: '0.62rem', color: '#F87171', fontWeight: 700, marginTop: 3 }}>MANDATORY</div>}
-      </div>
-    </div>
-  )
-}
-
-function ExhibitorChip({ ex, accent }) {
-  const [hov, setHov] = useState(false)
-  return (
-    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 14px', borderRadius: 10, background: hov ? accent + '10' : '#0F0F0F', border: `1px solid ${hov ? accent + '40' : '#1A1A1A'}`, cursor: 'pointer', transition: 'all 0.2s' }}>
-      <div style={{ width: 30, height: 30, borderRadius: '50%', background: accent + '20', border: `1px solid ${accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.75rem', color: accent, flexShrink: 0 }}>
-        {ex.company_name?.charAt(0)}
-      </div>
-      <div>
-        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#E5E7EB' }}>{ex.company_name}</div>
-        <div style={{ fontSize: '0.68rem', color: '#4B5563' }}>{ex.industry}</div>
       </div>
     </div>
   )

@@ -16,7 +16,19 @@
   "section_profile",
   "product_categories", "description",
   "col_break_3",
-  "expo_event", "account_manager", "frappe_user"
+  "expo_event", "account_manager", "frappe_user",
+  "section_digital_booth",
+  "has_digital_booth",
+  "col_break_booth_1",
+  "booth_tagline",
+  "booth_products",
+  "booth_website",
+  "booth_video_url",
+  "col_break_booth_2",
+  "booth_contact_email",
+  "booth_contact_phone",
+  "booth_banner",
+  "booth_description"
  ],
  "fields": [
   {
@@ -149,10 +161,87 @@
    "label": "Frappe Login User",
    "options": "User",
    "description": "Linked Frappe account for mobile app login"
+  },
+  {
+   "fieldname": "section_digital_booth",
+   "fieldtype": "Section Break",
+   "label": "Digital Booth",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "has_digital_booth",
+   "fieldtype": "Check",
+   "label": "Has Digital Booth",
+   "default": 0,
+   "in_list_view": 0,
+   "description": "Enable to show a digital booth on the event page"
+  },
+  {
+   "fieldname": "col_break_booth_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "booth_tagline",
+   "fieldtype": "Small Text",
+   "label": "Booth Tagline",
+   "depends_on": "has_digital_booth",
+   "description": "Short catchy line shown under company name"
+  },
+  {
+   "fieldname": "booth_products",
+   "fieldtype": "Small Text",
+   "label": "Products / Services",
+   "depends_on": "has_digital_booth",
+   "description": "Comma-separated list: e.g. SaaS, Mobile Apps, AI Tools"
+  },
+  {
+   "fieldname": "booth_website",
+   "fieldtype": "Data",
+   "label": "Booth Website",
+   "options": "URL",
+   "depends_on": "has_digital_booth"
+  },
+  {
+   "fieldname": "booth_video_url",
+   "fieldtype": "Data",
+   "label": "Demo Video URL",
+   "depends_on": "has_digital_booth",
+   "description": "YouTube video link for product demo"
+  },
+  {
+   "fieldname": "col_break_booth_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "booth_contact_email",
+   "fieldtype": "Data",
+   "label": "Booth Contact Email",
+   "options": "Email",
+   "depends_on": "has_digital_booth"
+  },
+  {
+   "fieldname": "booth_contact_phone",
+   "fieldtype": "Phone",
+   "label": "Booth Contact Phone",
+   "depends_on": "has_digital_booth"
+  },
+  {
+   "fieldname": "booth_banner",
+   "fieldtype": "Attach Image",
+   "label": "Booth Banner Image",
+   "depends_on": "has_digital_booth",
+   "description": "Banner shown at the top of the digital booth (recommended: 1200x400)"
+  },
+  {
+   "fieldname": "booth_description",
+   "fieldtype": "Text Editor",
+   "label": "Booth Description",
+   "depends_on": "has_digital_booth",
+   "description": "Detailed company/product description shown in the booth"
   }
  ],
  "links": [],
- "modified": "2026-03-10 00:00:00.000000",
+ "modified": "2026-03-17 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Expo Management",
  "name": "Exhibitor Profile",

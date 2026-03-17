@@ -246,6 +246,16 @@ def get_event_detail(event_code):
 	# SRS: Exhibitor listing — Company name, Industry, Logo
 	exhibitors = []
 	if t["Exhibitor Profile"]:
+		# exhibitors = frappe.get_all(
+		# 	"Exhibitor Profile",
+		# 	filters={"expo_event": event.name, "status": "Active"},
+		# 	fields=[
+		# 		"name", "exhibitor_name", "company_name",
+		# 		"industry", "company_logo", "description",
+		# 		"website", "product_categories",
+		# 	],
+		# 	limit=50,
+		# )
 		exhibitors = frappe.get_all(
 			"Exhibitor Profile",
 			filters={"expo_event": event.name, "status": "Active"},
@@ -253,6 +263,11 @@ def get_event_detail(event_code):
 				"name", "exhibitor_name", "company_name",
 				"industry", "company_logo", "description",
 				"website", "product_categories",
+				# Digital booth fields
+				"has_digital_booth",
+				"booth_tagline", "booth_description", "booth_products",
+				"booth_website", "booth_video_url",
+				"booth_contact_email", "booth_contact_phone", "booth_banner",
 			],
 			limit=50,
 		)
