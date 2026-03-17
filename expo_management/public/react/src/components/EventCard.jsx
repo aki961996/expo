@@ -266,15 +266,17 @@ export default function EventCard({ event, index }) {
 
           {/* Facility pills */}
           {(event.has_wifi || event.has_ac || event.has_food_court || event.has_atm || event.has_first_aid) && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
-              {event.has_wifi      && <Pill label="Wi-Fi"   accent={accent} />}
-              {event.has_ac        && <Pill label="AC"      accent={accent} />}
-              {event.has_food_court && <Pill label="Food"   accent={accent} />}
-              {event.has_atm       && <Pill label="ATM"     accent={accent} />}
-              {event.has_first_aid && <Pill label="Medical" accent={accent} />}
-              {event.has_prayer_room && <Pill label="Prayer" accent={accent} />}
-            </div>
-          )}
+  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+    {!!event.has_wifi       && <Pill label="Wi-Fi"   accent={accent} />}
+    {!!event.has_ac         && <Pill label="AC"       accent={accent} />}
+    {!!event.has_food_court && <Pill label="Food"     accent={accent} />}
+    {!!event.has_atm        && <Pill label="ATM"      accent={accent} />}
+    {!!event.has_first_aid  && <Pill label="Medical"  accent={accent} />}
+    {!!event.has_security   && <Pill label="Security" accent={accent} />}
+    {!!event.has_drinking_water && <Pill label="Water" accent={accent} />}
+    {!!event.has_prayer_room && <Pill label="Prayer"  accent={accent} />}
+  </div>
+)}
 
           {/* Footer — stats + CTA */}
           <div style={{
