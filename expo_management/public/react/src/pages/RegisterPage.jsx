@@ -43,7 +43,7 @@ export default function RegisterPage() {
     const errs = {}
     if (!form.exhibitor_name.trim()) errs.exhibitor_name = 'Required'
     if (!form.company_name.trim())   errs.company_name   = 'Required'
-    if (!form.mobile || form.mobile.replace(/\D/g,'').length < 10) errs.mobile = 'Enter valid mobile'
+    if (!form.mobile || form.mobile.replace(/\D/g,'').length < 10) errs.mobile = 'This number is already assigned to another user'
     if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter valid email'
     if (!form.industry) errs.industry = 'Select industry'
     setFieldErrors(errs)
