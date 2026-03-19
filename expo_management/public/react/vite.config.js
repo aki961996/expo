@@ -19,7 +19,7 @@ export default defineConfig({
 
   build: {
     // Output goes to Frappe public folder
-    outDir: '../expo_management/expo_management/public/react',
+    outDir: 'dist',
     emptyOutDir: true,
   },
 })
