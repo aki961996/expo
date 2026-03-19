@@ -129,11 +129,63 @@ def verify_otp(mobile, otp):
 # ─────────────────────────────────────────────────────────────
 # API 3: Register new Exhibitor
 # ─────────────────────────────────────────────────────────────
+# @frappe.whitelist(allow_guest=True)
+# def register_exhibitor(
+#     exhibitor_name, company_name, mobile, email,
+#     industry=None, gst_number=None, annual_turnover=None,
+#     website=None, address=None, product_categories=None, description=None,
+# ):
+#     mobile = (mobile or "").strip()
+#     if not mobile.startswith("+"):
+#         mobile = "+91" + mobile.lstrip("0")
+
+#     if frappe.db.exists("Exhibitor Profile", {"contact_number": mobile}):
+#         return {"success": False, "error": "mobile_exists", "message": "This mobile number is already registered."}
+#     if frappe.db.exists("Exhibitor Profile", {"email": email}):
+#         return {"success": False, "error": "email_exists", "message": "This email is already registered."}
+
+#     doc = frappe.get_doc({
+#         "doctype":               "Exhibitor Profile",
+#         "exhibitor_name":        exhibitor_name,
+#         "company_name":          company_name,
+#         "contact_number":        mobile,
+#         "email":                 email,
+#         "industry":              industry,
+#         "gst_number":            gst_number,
+#         "annual_turnover":       annual_turnover,
+#         "website":               website,
+#         "communication_address": address,
+#         "product_categories":    product_categories,
+#         "description":           description,
+#         "status":                "Pending Approval",
+#     })
+#     doc.insert(ignore_permissions=True)
+#     frappe.db.commit()
+
+#     try:
+#         admin_email = frappe.db.get_single_value("System Settings", "email_footer_address") or "admin@expo.local"
+#         frappe.sendmail(
+#             recipients=[admin_email],
+#             subject=f"New Exhibitor Registration: {company_name}",
+#             message=f"<p>New registration: <b>{exhibitor_name}</b> ({company_name}) — {mobile} — {email}</p><p>Please approve in the admin panel.</p>",
+#             now=True,
+#         )
+#     except Exception:
+#         pass
+
+#     return {"success": True, "message": "Registration submitted! You'll be notified once approved.", "exhibitor_id": doc.name}
+
+# new ak  API 3: Register new Exhibitor with digital booth fields
 @frappe.whitelist(allow_guest=True)
 def register_exhibitor(
     exhibitor_name, company_name, mobile, email,
     industry=None, gst_number=None, annual_turnover=None,
     website=None, address=None, product_categories=None, description=None,
+    # ── Digital booth (optional at registration) ──
+    has_digital_booth=0,
+    booth_tagline=None, booth_description=None, booth_products=None,
+    booth_website=None, booth_video_url=None,
+    booth_contact_email=None, booth_contact_phone=None, booth_banner=None,
 ):
     mobile = (mobile or "").strip()
     if not mobile.startswith("+"):
@@ -157,7 +209,17 @@ def register_exhibitor(
         "communication_address": address,
         "product_categories":    product_categories,
         "description":           description,
-        "status":                "Pending Approval",
+        "status":                "Pending Approval",  # ← always, no override
+        # Digital booth
+        "has_digital_booth":     int(has_digital_booth or 0),
+        "booth_tagline":         booth_tagline,
+        "booth_description":     booth_description,
+        "booth_products":        booth_products,
+        "booth_website":         booth_website,
+        "booth_video_url":       booth_video_url,
+        "booth_contact_email":   booth_contact_email,
+        "booth_contact_phone":   booth_contact_phone,
+        "booth_banner" :         booth_banner ,
     })
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -173,7 +235,12 @@ def register_exhibitor(
     except Exception:
         pass
 
-    return {"success": True, "message": "Registration submitted! You'll be notified once approved.", "exhibitor_id": doc.name}
+    return {
+        "success":      True,
+        "message":      "Registration submitted! You'll be notified once approved.",
+        "exhibitor_id": doc.name,
+    }
+
 
 
 # ─────────────────────────────────────────────────────────────

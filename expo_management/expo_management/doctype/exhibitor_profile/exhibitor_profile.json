@@ -221,7 +221,7 @@
   },
   {
    "fieldname": "booth_contact_phone",
-   "fieldtype": "Phone",
+   "fieldtype": "Data",   
    "label": "Booth Contact Phone",
    "depends_on": "has_digital_booth"
   },
