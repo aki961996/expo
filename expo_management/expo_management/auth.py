@@ -286,3 +286,45 @@ def get_current_exhibitor():
 def logout():
     frappe.local.login_manager.logout()
     return {"success": True, "message": "Logged out successfully"}
+
+
+# ─────────────────────────────────────────────────────────────
+# API 6: update_profile exibitter can update their profile details including digital booth info
+# ─────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def update_profile(
+    exhibitor_name=None, company_name=None,
+    industry=None, gst_number=None, annual_turnover=None,
+    website=None, product_categories=None, description=None,
+):
+    user = frappe.session.user
+    if user == "Guest":
+        frappe.throw("Not logged in", frappe.AuthenticationError)
+
+    exhibitor_name_doc = frappe.db.get_value(
+        "Exhibitor Profile", {"frappe_user": user}, "name"
+    )
+    if not exhibitor_name_doc:
+        frappe.throw("Exhibitor not found", frappe.DoesNotExistError)
+
+    updates = {}
+    if exhibitor_name:      updates["exhibitor_name"]     = exhibitor_name
+    if company_name:        updates["company_name"]        = company_name
+    if industry:            updates["industry"]            = industry
+    if gst_number:          updates["gst_number"]          = gst_number
+    if annual_turnover:     updates["annual_turnover"]     = annual_turnover
+    if website:             updates["website"]             = website
+    if product_categories:  updates["product_categories"]  = product_categories
+    if description is not None: updates["description"]     = description
+
+    for field, value in updates.items():
+        frappe.db.set_value("Exhibitor Profile", exhibitor_name_doc, field, value)
+
+    frappe.db.commit()
+    return {"success": True, "message": "Profile updated successfully"}
+
+
+
+
+    
