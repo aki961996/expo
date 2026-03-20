@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-
+base: '/expo/',
   server: {
     port: 3000,
     // Proxy API calls to Frappe during development
