@@ -43,16 +43,15 @@ export default function EventList() {
   const navigate = useNavigate()
   const { exhibitor, logout } = useAuth()
 
-  const [events, setEvents]               = useState([])
-  const [total, setTotal]                 = useState(null)
-  const [loading, setLoading]             = useState(true)
-  const [error, setError]                 = useState(null)
-  const [search, setSearch]               = useState('')
-  const [status, setStatus]               = useState('All')
-  const [category, setCategory]           = useState('All')
+  const [events, setEvents]         = useState([])
+  const [total, setTotal]           = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [error, setError]           = useState(null)
+  const [search, setSearch]         = useState('')
+  const [status, setStatus]         = useState('All')
+  const [category, setCategory]     = useState('All')
   const [searchFocused, setSearchFocused] = useState(false)
   const [showDropdown, setShowDropdown]   = useState(false)
-  const [loggingOut, setLoggingOut]       = useState(false)  // ← logout loader
 
   const load = useCallback(async () => {
     setLoading(true); setError(null)
@@ -77,19 +76,12 @@ export default function EventList() {
 
   useEffect(() => { load() }, [load])
 
+  // Close dropdown on outside click
   useEffect(() => {
     const handler = () => setShowDropdown(false)
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
   }, [])
-
-  const handleLogout = async () => {
-    setShowDropdown(false)
-    setLoggingOut(true)
-    await new Promise(r => setTimeout(r, 1200))
-    await logout()
-    setLoggingOut(false)
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#080808' }}>
@@ -102,59 +94,10 @@ export default function EventList() {
         @keyframes pulse     { 0%,100%{opacity:1}50%{opacity:0.3} }
         @keyframes bgMove    { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
         @keyframes shimmer   { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
-        @keyframes spin      { to{transform:rotate(360deg)} }
-        @keyframes scaleIn   { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F0F; }
         ::-webkit-scrollbar-thumb { background: #2F2F2F; border-radius: 3px; }
       `}</style>
-
-      {/* ── LOGOUT OVERLAY ── */}
-      {loggingOut && (
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(8,8,8,0.92)',
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(12px)',
-          animation: 'fadeIn 0.2s ease both',
-        }}>
-          {/* Spinner */}
-          <div style={{ position: 'relative', width: 56, height: 56, marginBottom: 24 }}>
-            <div style={{
-              position: 'absolute', inset: 0, borderRadius: '50%',
-              border: '2px solid #F59E0B15',
-            }} />
-            <div style={{
-              position: 'absolute', inset: 0, borderRadius: '50%',
-              border: '2px solid transparent',
-              borderTopColor: '#F59E0B',
-              animation: 'spin 0.75s linear infinite',
-            }} />
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#F59E0B',
-              animation: 'pulse 1.2s ease-in-out infinite',
-            }} />
-          </div>
-          <p style={{
-            fontFamily: 'Bricolage Grotesque, sans-serif',
-            fontWeight: 800, fontSize: '1.1rem',
-            color: '#F5F5F5', letterSpacing: '-0.03em',
-            margin: 0, animation: 'scaleIn 0.3s ease both',
-          }}>
-            Logging out…
-          </p>
-          <p style={{
-            fontSize: '0.78rem', color: '#374151',
-            marginTop: 8, animation: 'scaleIn 0.35s ease both',
-          }}>
-            See you soon!
-          </p>
-        </div>
-      )}
 
       {/* ── NAVBAR ── */}
       <nav style={{
@@ -188,6 +131,7 @@ export default function EventList() {
 
         {/* Auth section */}
         {exhibitor ? (
+          // ── Logged in ──
           <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setShowDropdown(d => !d)}
@@ -200,6 +144,7 @@ export default function EventList() {
               onMouseEnter={e => e.currentTarget.style.borderColor = '#2F2F2F'}
               onMouseLeave={e => e.currentTarget.style.borderColor = '#1F1F1F'}
             >
+              {/* Avatar */}
               <div style={{
                 width: 28, height: 28, borderRadius: '50%',
                 background: '#F59E0B20', border: '1px solid #F59E0B50',
@@ -218,6 +163,7 @@ export default function EventList() {
                   {exhibitor.company_name}
                 </div>
               </div>
+              {/* Chevron */}
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
                 stroke="#4B5563" strokeWidth="2.5" strokeLinecap="round"
                 style={{ transition: 'transform 0.2s', transform: showDropdown ? 'rotate(180deg)' : 'rotate(0)' }}
@@ -226,6 +172,7 @@ export default function EventList() {
               </svg>
             </button>
 
+            {/* Dropdown */}
             {showDropdown && (
               <div style={{
                 position: 'absolute', top: '110%', right: 0,
@@ -241,19 +188,33 @@ export default function EventList() {
                     {exhibitor.mobile || exhibitor.email}
                   </div>
                 </div>
-                <DropdownItem icon="🏠" label="My Dashboard"
-                  onClick={() => { navigate('/dashboard'); setShowDropdown(false) }} />
-                <DropdownItem icon="📋" label="My Bookings"
-                  onClick={() => { navigate('/my-bookings'); setShowDropdown(false) }} />
-                <DropdownItem icon="👤" label="My Profile"
-                  onClick={() => { navigate('/profile'); setShowDropdown(false) }} />
+                <DropdownItem
+                  icon="🏠"
+                  label="My Dashboard"
+                  onClick={() => { navigate('/dashboard'); setShowDropdown(false) }}
+                />
+                <DropdownItem
+                  icon="📋"
+                  label="My Bookings"
+                  onClick={() => { navigate('/my-bookings'); setShowDropdown(false) }}
+                />
+                <DropdownItem
+                  icon="👤"
+                  label="My Profile"
+                  onClick={() => { navigate('/profile'); setShowDropdown(false) }}
+                />
                 <div style={{ height: 1, background: '#1A1A1A' }} />
-                <DropdownItem icon="🚪" label="Logout" color="#F87171"
-                  onClick={handleLogout} />
+                <DropdownItem
+                  icon="🚪"
+                  label="Logout"
+                  color="#F87171"
+                  onClick={async () => { await logout(); setShowDropdown(false) }}
+                />
               </div>
             )}
           </div>
         ) : (
+          // ── Not logged in ──
           <button
             onClick={() => navigate('/login')}
             style={{
