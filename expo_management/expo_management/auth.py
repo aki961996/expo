@@ -2,7 +2,6 @@ import frappe
 import random
 import string
 from frappe import _
-from frappe.utils import now_datetime, add_to_date
 
 
 # ── OTP Config ────────────────────────────────────────────────
@@ -114,14 +113,19 @@ def verify_otp(mobile, otp):
         "success": True,
         "message": "Login successful",
         "exhibitor": {
-            "name":           exhibitor.name,
-            "exhibitor_name": exhibitor.exhibitor_name,
-            "company_name":   exhibitor.company_name,
-            "email":          exhibitor.email,
-            "mobile":         mobile,
-            "status":         exhibitor.status,
-            "industry":       exhibitor.industry,
-            "logo":           exhibitor.company_logo,
+            "name":               exhibitor.name,
+            "exhibitor_name":     exhibitor.exhibitor_name,
+            "company_name":       exhibitor.company_name,
+            "email":              exhibitor.email,
+            "mobile":             mobile,
+            "status":             exhibitor.status,
+            "industry":           exhibitor.industry,
+            "logo":               exhibitor.company_logo,
+            "gst_number":         exhibitor.gst_number,
+            "annual_turnover":    exhibitor.annual_turnover,
+            "website":            exhibitor.website,
+            "product_categories": exhibitor.product_categories,
+            "description":        exhibitor.description,
         }
     }
 
@@ -129,63 +133,15 @@ def verify_otp(mobile, otp):
 # ─────────────────────────────────────────────────────────────
 # API 3: Register new Exhibitor
 # ─────────────────────────────────────────────────────────────
-# @frappe.whitelist(allow_guest=True)
-# def register_exhibitor(
-#     exhibitor_name, company_name, mobile, email,
-#     industry=None, gst_number=None, annual_turnover=None,
-#     website=None, address=None, product_categories=None, description=None,
-# ):
-#     mobile = (mobile or "").strip()
-#     if not mobile.startswith("+"):
-#         mobile = "+91" + mobile.lstrip("0")
-
-#     if frappe.db.exists("Exhibitor Profile", {"contact_number": mobile}):
-#         return {"success": False, "error": "mobile_exists", "message": "This mobile number is already registered."}
-#     if frappe.db.exists("Exhibitor Profile", {"email": email}):
-#         return {"success": False, "error": "email_exists", "message": "This email is already registered."}
-
-#     doc = frappe.get_doc({
-#         "doctype":               "Exhibitor Profile",
-#         "exhibitor_name":        exhibitor_name,
-#         "company_name":          company_name,
-#         "contact_number":        mobile,
-#         "email":                 email,
-#         "industry":              industry,
-#         "gst_number":            gst_number,
-#         "annual_turnover":       annual_turnover,
-#         "website":               website,
-#         "communication_address": address,
-#         "product_categories":    product_categories,
-#         "description":           description,
-#         "status":                "Pending Approval",
-#     })
-#     doc.insert(ignore_permissions=True)
-#     frappe.db.commit()
-
-#     try:
-#         admin_email = frappe.db.get_single_value("System Settings", "email_footer_address") or "admin@expo.local"
-#         frappe.sendmail(
-#             recipients=[admin_email],
-#             subject=f"New Exhibitor Registration: {company_name}",
-#             message=f"<p>New registration: <b>{exhibitor_name}</b> ({company_name}) — {mobile} — {email}</p><p>Please approve in the admin panel.</p>",
-#             now=True,
-#         )
-#     except Exception:
-#         pass
-
-#     return {"success": True, "message": "Registration submitted! You'll be notified once approved.", "exhibitor_id": doc.name}
-
-# new ak  API 3: Register new Exhibitor with digital booth fields
 @frappe.whitelist(allow_guest=True)
 def register_exhibitor(
     exhibitor_name, company_name, mobile, email,
     industry=None, gst_number=None, annual_turnover=None,
     website=None, address=None, product_categories=None, description=None,
-    # ── Digital booth (optional at registration) ──
     has_digital_booth=0,
     booth_tagline=None, booth_description=None, booth_products=None,
     booth_website=None, booth_video_url=None,
-    booth_contact_email=None, booth_contact_phone=None, booth_banner=None,
+    booth_contact_email=None, booth_contact_phone=None,
 ):
     mobile = (mobile or "").strip()
     if not mobile.startswith("+"):
@@ -209,8 +165,7 @@ def register_exhibitor(
         "communication_address": address,
         "product_categories":    product_categories,
         "description":           description,
-        "status":                "Pending Approval",  # ← always, no override
-        # Digital booth
+        "status":                "Pending Approval",
         "has_digital_booth":     int(has_digital_booth or 0),
         "booth_tagline":         booth_tagline,
         "booth_description":     booth_description,
@@ -219,7 +174,6 @@ def register_exhibitor(
         "booth_video_url":       booth_video_url,
         "booth_contact_email":   booth_contact_email,
         "booth_contact_phone":   booth_contact_phone,
-        "booth_banner" :         booth_banner ,
     })
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
@@ -235,12 +189,7 @@ def register_exhibitor(
     except Exception:
         pass
 
-    return {
-        "success":      True,
-        "message":      "Registration submitted! You'll be notified once approved.",
-        "exhibitor_id": doc.name,
-    }
-
+    return {"success": True, "message": "Registration submitted! You'll be notified once approved.", "exhibitor_id": doc.name}
 
 
 # ─────────────────────────────────────────────────────────────
@@ -270,6 +219,7 @@ def get_current_exhibitor():
             "status":             exhibitor.status,
             "industry":           exhibitor.industry,
             "logo":               exhibitor.company_logo,
+            # ── Profile fields ────────────────────────────────
             "gst_number":         exhibitor.gst_number,
             "annual_turnover":    exhibitor.annual_turnover,
             "website":            exhibitor.website,
@@ -289,44 +239,36 @@ def logout():
 
 
 # ─────────────────────────────────────────────────────────────
-# API 6: Update Exhibitor Profile
-# POST /api/method/expo_management.expo_management.auth.update_profile
+# API 6: Update Profile
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist()
 def update_profile(
-    exhibitor_name=None,
-    company_name=None,
-    industry=None,
-    gst_number=None,
-    annual_turnover=None,
-    website=None,
-    product_categories=None,
-    description=None,
+    exhibitor_name=None, company_name=None,
+    industry=None, gst_number=None, annual_turnover=None,
+    website=None, product_categories=None, description=None,
 ):
     user = frappe.session.user
     if user == "Guest":
         frappe.throw(_("Not logged in"), frappe.AuthenticationError)
 
-    exhibitor_id = frappe.db.get_value(
+    exhibitor_doc_name = frappe.db.get_value(
         "Exhibitor Profile", {"frappe_user": user}, "name"
     )
-    if not exhibitor_id:
+    if not exhibitor_doc_name:
         frappe.throw(_("Exhibitor profile not found"), frappe.DoesNotExistError)
 
-    updates = {
-        "exhibitor_name":     exhibitor_name,
-        "company_name":       company_name,
-        "industry":           industry,
-        "gst_number":         gst_number,
-        "annual_turnover":    annual_turnover,
-        "website":            website,
-        "product_categories": product_categories,
-        "description":        description,
-    }
+    updates = {}
+    if exhibitor_name:          updates["exhibitor_name"]     = exhibitor_name
+    if company_name:            updates["company_name"]       = company_name
+    if industry:                updates["industry"]           = industry
+    if gst_number:              updates["gst_number"]         = gst_number
+    if annual_turnover:         updates["annual_turnover"]    = annual_turnover
+    if website:                 updates["website"]            = website
+    if product_categories:      updates["product_categories"] = product_categories
+    if description is not None: updates["description"]        = description
 
     for field, value in updates.items():
-        if value is not None:
-            frappe.db.set_value("Exhibitor Profile", exhibitor_id, field, value)
+        frappe.db.set_value("Exhibitor Profile", exhibitor_doc_name, field, value)
 
     frappe.db.commit()
     return {"success": True, "message": "Profile updated successfully"}

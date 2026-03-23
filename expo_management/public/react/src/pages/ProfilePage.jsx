@@ -20,9 +20,9 @@ async function apiCall(method, body = {}) {
 }
 
 export default function ProfilePage() {
-  const navigate              = useNavigate()
-  const { exhibitor, logout } = useAuth()
-  const fileRef               = useRef(null)
+  const navigate                        = useNavigate()
+  const { exhibitor, logout, loading }  = useAuth()   // ← loading added
+  const fileRef                         = useRef(null)
 
   const [editing, setEditing]       = useState(false)
   const [saving, setSaving]         = useState(false)
@@ -43,7 +43,7 @@ export default function ProfilePage() {
     description:        '',
   })
 
-  // ── Sync form when exhibitor loads from context ────────────
+  // ── Sync form when exhibitor loads ────────────────────────
   useEffect(() => {
     if (exhibitor) {
       setForm({
@@ -61,12 +61,26 @@ export default function ProfilePage() {
     }
   }, [exhibitor])
 
-  // ── Redirect if not logged in ──────────────────────────────
-  useEffect(() => {
-    if (exhibitor === null) navigate('/login')
-  }, [exhibitor, navigate])
+  // ── Loading state — wait for session check ────────────────
+  if (loading) return (
+    <div style={{
+      minHeight: '100vh', background: '#080808',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+    }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      <div style={{
+        width: 32, height: 32, borderRadius: '50%',
+        border: '2px solid #1F1F1F', borderTopColor: '#F59E0B',
+        animation: 'spin 0.7s linear infinite',
+      }} />
+    </div>
+  )
 
-  if (!exhibitor) return null
+  // ── Not logged in — redirect ──────────────────────────────
+  if (!exhibitor) {
+    navigate('/login')
+    return null
+  }
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
