@@ -9,16 +9,16 @@ export default function LoginPage() {
   const location = useLocation()
   const { sendOtp, verifyOtp } = useAuth()
 
-  const redirectTo = location.state?.redirect || '/dashboard'
+  const redirectTo = location.state?.redirect || '/'
 
-  const [step, setStep]           = useState(STEPS.MOBILE)
-  const [mobile, setMobile]       = useState('')
-  const [otp, setOtp]             = useState(['', '', '', '', '', ''])
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState('')
-  const [timer, setTimer]         = useState(0)
-  const [devOtp, setDevOtp]       = useState('')
-  const [redirecting, setRedirecting] = useState(false)   // ← dashboard loader
+  const [step, setStep]               = useState(STEPS.MOBILE)
+  const [mobile, setMobile]           = useState('')
+  const [otp, setOtp]                 = useState(['', '', '', '', '', ''])
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState('')
+  const [timer, setTimer]             = useState(0)
+  const [devOtp, setDevOtp]           = useState('')
+  const [redirecting, setRedirecting] = useState(false)
 
   const otpRefs   = useRef([])
   const mobileRef = useRef()
@@ -93,10 +93,8 @@ export default function LoginPage() {
     try {
       const res = await verifyOtp(mobile.replace(/\s/g, ''), otpValue)
       if (res.success) {
-        setRedirecting(true)                              // ← loader on
-        setTimeout(() => {
-          navigate(redirectTo, { replace: true })
-        }, 1200)
+        setRedirecting(true)
+        setTimeout(() => navigate(redirectTo, { replace: true }), 1200)
       } else {
         setError(res.message || 'Invalid OTP')
         setOtp(['', '', '', '', '', ''])
@@ -118,17 +116,17 @@ export default function LoginPage() {
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Sans:wght@400;500;600&display=swap');
-        @keyframes fadeUp   { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes fadeIn   { from{opacity:0} to{opacity:1} }
-        @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:0.3} }
-        @keyframes spin     { to{transform:rotate(360deg)} }
-        @keyframes scaleIn  { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
+        @keyframes fadeUp  { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+        @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        @keyframes spin    { to{transform:rotate(360deg)} }
+        @keyframes scaleIn { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
         * { box-sizing: border-box; }
         input::placeholder { color: #374151; }
         input:focus { outline: none; }
       `}</style>
 
-      {/* ── Dashboard redirect loader ── */}
+      {/* ── Redirect loader ── */}
       {redirecting && (
         <div style={{
           position: 'fixed', inset: 0, background: '#080808',
@@ -136,59 +134,24 @@ export default function LoginPage() {
           alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, animation: 'fadeIn 0.2s ease both',
         }}>
-          {/* Amber ring spinner */}
           <div style={{ position: 'relative', width: 56, height: 56, marginBottom: 24 }}>
-            <div style={{
-              position: 'absolute', inset: 0,
-              borderRadius: '50%',
-              border: '2px solid #F59E0B15',
-            }} />
-            <div style={{
-              position: 'absolute', inset: 0,
-              borderRadius: '50%',
-              border: '2px solid transparent',
-              borderTopColor: '#F59E0B',
-              animation: 'spin 0.75s linear infinite',
-            }} />
-            {/* Centre dot */}
-            <div style={{
-              position: 'absolute', top: '50%', left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: 8, height: 8, borderRadius: '50%',
-              background: '#F59E0B',
-              animation: 'pulse 1.2s ease-in-out infinite',
-            }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid #F59E0B15' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#F59E0B', animation: 'spin 0.75s linear infinite' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', animation: 'pulse 1.2s ease-in-out infinite' }} />
           </div>
-
-          <p style={{
-            fontFamily: 'Bricolage Grotesque, sans-serif',
-            fontWeight: 800, fontSize: '1.1rem',
-            color: '#F5F5F5', letterSpacing: '-0.03em',
-            margin: 0, animation: 'scaleIn 0.3s ease both',
-          }}>
+          <p style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5', letterSpacing: '-0.03em', margin: 0 }}>
             Taking you in…
           </p>
-          <p style={{
-            fontSize: '0.78rem', color: '#374151',
-            marginTop: 8, animation: 'scaleIn 0.35s ease both',
-          }}>
-            Welcome back
-          </p>
+          <p style={{ fontSize: '0.78rem', color: '#374151', marginTop: 8 }}>Welcome back</p>
         </div>
       )}
 
       {/* Ambient glow */}
-      <div style={{
-        position: 'absolute', top: '30%', left: '50%',
-        transform: 'translateX(-50%)',
-        width: 500, height: 300,
-        background: 'radial-gradient(ellipse, #F59E0B0A 0%, transparent 70%)',
-        pointerEvents: 'none',
-      }} />
+      <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, background: 'radial-gradient(ellipse, #F59E0B0A 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-      {/* Card */}
+      {/* ── CARD ── */}
       <div style={{
-        width: '100%', maxWidth: 400,
+        width: '100%', maxWidth: 420,
         background: '#0F0F0F', border: '1px solid #1A1A1A',
         borderRadius: 20, overflow: 'hidden',
         animation: 'fadeUp 0.4s ease both',
@@ -196,11 +159,11 @@ export default function LoginPage() {
       }}>
         <div style={{ height: 2, background: 'linear-gradient(90deg, transparent, #F59E0B, transparent)' }} />
 
-        <div style={{ padding: '2rem 2rem 2.5rem' }}>
+        <div style={{ padding: '2rem' }}>
 
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '2rem' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
                 <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white" />
                 <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6" />
@@ -215,12 +178,7 @@ export default function LoginPage() {
 
           {/* Redirect hint */}
           {location.state?.redirect && (
-            <div style={{
-              padding: '8px 12px', borderRadius: 8, marginBottom: 16,
-              background: '#F59E0B10', border: '1px solid #F59E0B25',
-              fontSize: '0.75rem', color: '#F59E0B',
-              display: 'flex', alignItems: 'center', gap: 6,
-            }}>
+            <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 16, background: '#F59E0B10', border: '1px solid #F59E0B25', fontSize: '0.75rem', color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 6 }}>
               🔒 Login to continue booking
             </div>
           )}
@@ -228,11 +186,7 @@ export default function LoginPage() {
           {/* Step indicator */}
           <div style={{ display: 'flex', gap: 6, marginBottom: '1.5rem' }}>
             {[STEPS.MOBILE, STEPS.OTP].map((s, i) => (
-              <div key={s} style={{
-                height: 3, flex: 1, borderRadius: 2,
-                background: step === s || (i === 0 && step === STEPS.OTP) ? '#F59E0B' : '#1F1F1F',
-                transition: 'background 0.3s',
-              }} />
+              <div key={s} style={{ height: 3, flex: 1, borderRadius: 2, background: step === s || (i === 0 && step === STEPS.OTP) ? '#F59E0B' : '#1F1F1F', transition: 'background 0.3s' }} />
             ))}
           </div>
 
@@ -250,22 +204,37 @@ export default function LoginPage() {
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
                   MOBILE NUMBER
                 </label>
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                  <div style={{ padding: '12px 14px', background: '#141414', border: '1px solid #1F1F1F', borderRadius: 10, fontSize: '0.88rem', color: '#9CA3AF', fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+
+                {/* ── Responsive mobile input ── */}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16, width: '100%' }}>
+                  {/* Country code — fixed width */}
+                  <div style={{
+                    padding: '13px 14px',
+                    background: '#141414', border: '1px solid #1F1F1F', borderRadius: 10,
+                    fontSize: '0.88rem', color: '#9CA3AF', fontWeight: 600,
+                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                    whiteSpace: 'nowrap',
+                  }}>
                     🇮🇳 +91
                   </div>
+                  {/* Number input — takes remaining space */}
                   <input
                     ref={mobileRef}
                     type="tel" inputMode="numeric" maxLength={10}
-                    placeholder="98765 43210"
+                    placeholder="9876543210"
                     value={mobile}
                     onChange={e => { setMobile(e.target.value.replace(/\D/g, '')); setError('') }}
                     autoFocus
                     style={{
-                      flex: 1, padding: '12px 16px', background: '#141414',
+                      flex: '1 1 0',
+                      minWidth: 0,
+                      padding: '13px 16px',
+                      background: '#141414',
                       border: `1px solid ${error ? '#F87171' : '#1F1F1F'}`,
-                      borderRadius: 10, fontSize: '1.1rem', color: '#F5F5F5',
-                      letterSpacing: '0.08em', transition: 'border-color 0.2s',
+                      borderRadius: 10,
+                      fontSize: '1.1rem', color: '#F5F5F5',
+                      letterSpacing: '0.06em',
+                      transition: 'border-color 0.2s',
                     }}
                     onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                     onBlur={e => e.target.style.borderColor = error ? '#F87171' : '#1F1F1F'}
@@ -283,7 +252,8 @@ export default function LoginPage() {
                   background: mobile.length >= 10 ? '#F59E0B' : '#1A1A1A',
                   color: mobile.length >= 10 ? '#000' : '#374151',
                   fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem',
-                  cursor: mobile.length >= 10 ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
+                  cursor: mobile.length >= 10 ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}>
                   {loading
@@ -326,7 +296,7 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* OTP boxes — fixed with flex: '1 1 0' + minWidth: 0 */}
+              {/* OTP boxes */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16, width: '100%' }} onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
                   <input
@@ -365,8 +335,10 @@ export default function LoginPage() {
                   background: otp.every(d => d) ? '#F59E0B' : '#1A1A1A',
                   color: otp.every(d => d) ? '#000' : '#374151',
                   fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem',
-                  cursor: otp.every(d => d) ? 'pointer' : 'not-allowed', transition: 'all 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14,
+                  cursor: otp.every(d => d) ? 'pointer' : 'not-allowed',
+                  transition: 'all 0.2s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  marginBottom: 14,
                 }}
               >
                 {loading
@@ -391,7 +363,7 @@ export default function LoginPage() {
 
       {/* Back button */}
       <button
-        onClick={() => navigate(location.state?.redirect || '/')}
+        onClick={() => navigate('/')}
         style={{
           position: 'absolute', top: 24, left: 24,
           background: 'none', border: '1px solid #1F1F1F',
@@ -399,11 +371,12 @@ export default function LoginPage() {
           color: '#4B5563', fontSize: '0.8rem',
           cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
           display: 'flex', alignItems: 'center', gap: 6,
+          transition: 'color 0.2s',
         }}
         onMouseEnter={e => e.currentTarget.style.color = '#9CA3AF'}
         onMouseLeave={e => e.currentTarget.style.color = '#4B5563'}
       >
-        ← {location.state?.redirect ? 'Back to Event' : 'Back to Events'}
+        ← Back to Events
       </button>
     </div>
   )
