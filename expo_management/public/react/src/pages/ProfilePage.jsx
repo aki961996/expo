@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -20,45 +20,74 @@ async function apiCall(method, body = {}) {
 }
 
 export default function ProfilePage() {
-  const navigate    = useNavigate()
+  const navigate              = useNavigate()
   const { exhibitor, logout } = useAuth()
-  const fileRef     = useRef(null)
+  const fileRef               = useRef(null)
 
-  const [editing, setEditing]   = useState(false)
-  const [saving, setSaving]     = useState(false)
-  const [saved, setSaved]       = useState(false)
-  const [error, setError]       = useState(null)
+  const [editing, setEditing]       = useState(false)
+  const [saving, setSaving]         = useState(false)
+  const [saved, setSaved]           = useState(false)
+  const [error, setError]           = useState(null)
   const [loggingOut, setLoggingOut] = useState(false)
 
   const [form, setForm] = useState({
-    exhibitor_name:    exhibitor?.exhibitor_name    || '',
-    company_name:      exhibitor?.company_name      || '',
-    email:             exhibitor?.email             || '',
-    mobile:            exhibitor?.mobile            || '',
-    industry:          exhibitor?.industry          || '',
-    gst_number:        exhibitor?.gst_number        || '',
-    annual_turnover:   exhibitor?.annual_turnover   || '',
-    website:           exhibitor?.website           || '',
-    product_categories: exhibitor?.product_categories || '',
-    description:       exhibitor?.description       || '',
+    exhibitor_name:     '',
+    company_name:       '',
+    email:              '',
+    mobile:             '',
+    industry:           '',
+    gst_number:         '',
+    annual_turnover:    '',
+    website:            '',
+    product_categories: '',
+    description:        '',
   })
 
-  if (!exhibitor) {
-    navigate('/login')
-    return null
-  }
+  // ── Sync form when exhibitor loads from context ────────────
+  useEffect(() => {
+    if (exhibitor) {
+      setForm({
+        exhibitor_name:     exhibitor.exhibitor_name     || '',
+        company_name:       exhibitor.company_name       || '',
+        email:              exhibitor.email              || '',
+        mobile:             exhibitor.mobile             || '',
+        industry:           exhibitor.industry           || '',
+        gst_number:         exhibitor.gst_number         || '',
+        annual_turnover:    exhibitor.annual_turnover    || '',
+        website:            exhibitor.website            || '',
+        product_categories: exhibitor.product_categories || '',
+        description:        exhibitor.description        || '',
+      })
+    }
+  }, [exhibitor])
+
+  // ── Redirect if not logged in ──────────────────────────────
+  useEffect(() => {
+    if (exhibitor === null) navigate('/login')
+  }, [exhibitor, navigate])
+
+  if (!exhibitor) return null
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
   const handleSave = async () => {
     setSaving(true); setError(null)
     try {
-      await apiCall('update_profile', form)
+      await apiCall('update_profile', {
+        exhibitor_name:     form.exhibitor_name,
+        company_name:       form.company_name,
+        industry:           form.industry,
+        gst_number:         form.gst_number,
+        annual_turnover:    form.annual_turnover,
+        website:            form.website,
+        product_categories: form.product_categories,
+        description:        form.description,
+      })
       setSaved(true)
       setEditing(false)
       setTimeout(() => setSaved(false), 3000)
     } catch (e) {
-      setError(e.message || 'Failed to save')
+      setError(e.message || 'Failed to save. Please try again.')
     } finally {
       setSaving(false)
     }
@@ -70,17 +99,17 @@ export default function ProfilePage() {
     await logout()
   }
 
-  const initials = exhibitor.exhibitor_name?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'E'
+  const initials = exhibitor.exhibitor_name
+    ?.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase() || 'E'
 
   return (
     <div style={{ minHeight: '100vh', background: '#080808' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=DM+Sans:wght@400;500&display=swap');
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        @keyframes fadeIn  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes spin    { to{transform:rotate(360deg)} }
-        @keyframes pulse   { 0%,100%{opacity:1}50%{opacity:0.3} }
-        @keyframes scaleIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+        @keyframes fadeIn    { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes spin      { to{transform:rotate(360deg)} }
+        @keyframes pulse     { 0%,100%{opacity:1}50%{opacity:0.3} }
         @keyframes slideDown { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
         input, textarea { font-family: 'DM Sans', sans-serif !important; }
         input:focus, textarea:focus { outline: none; }
@@ -165,11 +194,10 @@ export default function ProfilePage() {
         {/* ── PROFILE HEADER ── */}
         <div style={{
           display: 'flex', alignItems: 'flex-start', gap: 24,
-          padding: '28px 28px', borderRadius: 20,
+          padding: '28px', borderRadius: 20,
           background: '#0F0F0F', border: '1px solid #1A1A1A',
           marginBottom: 20, position: 'relative', overflow: 'hidden',
         }}>
-          {/* Background accent */}
           <div style={{
             position: 'absolute', top: -40, right: -40,
             width: 200, height: 200, borderRadius: '50%',
@@ -177,7 +205,7 @@ export default function ProfilePage() {
             pointerEvents: 'none',
           }} />
 
-          {/* Avatar */}
+          {/* Avatar + upload */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
               width: 72, height: 72, borderRadius: 18,
@@ -194,9 +222,9 @@ export default function ProfilePage() {
                 </span>
               )}
             </div>
-            {/* Upload button */}
             <button
               onClick={() => fileRef.current?.click()}
+              title="Upload logo"
               style={{
                 position: 'absolute', bottom: -4, right: -4,
                 width: 22, height: 22, borderRadius: '50%',
@@ -204,7 +232,6 @@ export default function ProfilePage() {
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer',
               }}
-              title="Upload logo"
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2.5" strokeLinecap="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -215,14 +242,13 @@ export default function ProfilePage() {
             <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} />
           </div>
 
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4, flexWrap: 'wrap' }}>
               <h1 style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 800, fontSize: '1.4rem', color: '#F5F5F5', letterSpacing: '-0.03em' }}>
                 {exhibitor.exhibitor_name}
               </h1>
               <span style={{
-                padding: '2px 10px', borderRadius: 100, fontSize: '0.65rem', fontWeight: 700,
-                letterSpacing: '0.06em',
+                padding: '2px 10px', borderRadius: 100, fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.06em',
                 background: exhibitor.status === 'Active' ? '#00FF8715' : '#F59E0B15',
                 border: `1px solid ${exhibitor.status === 'Active' ? '#00FF8740' : '#F59E0B40'}`,
                 color: exhibitor.status === 'Active' ? '#00FF87' : '#F59E0B',
@@ -230,7 +256,7 @@ export default function ProfilePage() {
                 {exhibitor.status?.toUpperCase()}
               </span>
             </div>
-            <p style={{ fontSize: '0.9rem', color: '#9CA3AF', marginBottom: 6, fontFamily: 'DM Sans' }}>
+            <p style={{ fontSize: '0.9rem', color: '#9CA3AF', marginBottom: 4, fontFamily: 'DM Sans' }}>
               {exhibitor.company_name}
             </p>
             <p style={{ fontSize: '0.78rem', color: '#4B5563', fontFamily: 'DM Sans' }}>
@@ -238,7 +264,6 @@ export default function ProfilePage() {
             </p>
           </div>
 
-          {/* Edit toggle */}
           <button
             onClick={() => { setEditing(e => !e); setError(null) }}
             style={{
@@ -254,7 +279,7 @@ export default function ProfilePage() {
           </button>
         </div>
 
-        {/* ── SUCCESS TOAST ── */}
+        {/* ── TOASTS ── */}
         {saved && (
           <div style={{
             padding: '12px 18px', borderRadius: 10, marginBottom: 16,
@@ -265,7 +290,6 @@ export default function ProfilePage() {
             ✓ Profile saved successfully
           </div>
         )}
-
         {error && (
           <div style={{
             padding: '12px 18px', borderRadius: 10, marginBottom: 16,
@@ -279,35 +303,31 @@ export default function ProfilePage() {
         {/* ── BASIC DETAILS ── */}
         <Section title="Basic Details" icon="👤">
           <Grid>
-            <Field label="Exhibitor Name" value={form.exhibitor_name}
-              editing={editing} onChange={v => set('exhibitor_name', v)} />
-            <Field label="Company Name" value={form.company_name}
-              editing={editing} onChange={v => set('company_name', v)} />
-            <Field label="Industry" value={form.industry}
-              editing={editing} onChange={v => set('industry', v)} />
-            <Field label="Annual Turnover" value={form.annual_turnover}
-              editing={editing} onChange={v => set('annual_turnover', v)} />
-            <Field label="GST Number" value={form.gst_number}
-              editing={editing} onChange={v => set('gst_number', v)} />
-            <Field label="Website" value={form.website}
-              editing={editing} onChange={v => set('website', v)} />
+            <Field label="Exhibitor Name"  value={form.exhibitor_name}     editing={editing} onChange={v => set('exhibitor_name', v)} />
+            <Field label="Company Name"    value={form.company_name}        editing={editing} onChange={v => set('company_name', v)} />
+            <Field label="Industry"        value={form.industry}            editing={editing} onChange={v => set('industry', v)} />
+            <Field label="Annual Turnover" value={form.annual_turnover}     editing={editing} onChange={v => set('annual_turnover', v)} />
+            <Field label="GST Number"      value={form.gst_number}          editing={editing} onChange={v => set('gst_number', v)} />
+            <Field label="Website"         value={form.website}             editing={editing} onChange={v => set('website', v)} />
           </Grid>
         </Section>
 
         {/* ── CONTACT ── */}
         <Section title="Contact Information" icon="📞">
           <Grid>
-            <Field label="Email" value={form.email} editing={false} />
+            <Field label="Email"  value={form.email}  editing={false} />
             <Field label="Mobile" value={form.mobile} editing={false} />
           </Grid>
+          <p style={{ fontSize: '0.72rem', color: '#374151', marginTop: 10, fontFamily: 'DM Sans' }}>
+            * Email and mobile cannot be changed
+          </p>
         </Section>
 
         {/* ── COMPANY PROFILE ── */}
         <Section title="Company Profile" icon="🏢">
           <Field label="Product Categories" value={form.product_categories}
-            editing={editing} onChange={v => set('product_categories', v)}
-            fullWidth />
-          <div style={{ marginTop: 12 }}>
+            editing={editing} onChange={v => set('product_categories', v)} fullWidth />
+          <div style={{ marginTop: 14 }}>
             <label style={{ fontSize: '0.72rem', color: '#4B5563', fontFamily: 'DM Sans', fontWeight: 600, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
               DESCRIPTION
             </label>
@@ -320,24 +340,20 @@ export default function ProfilePage() {
                   width: '100%', padding: '10px 14px',
                   background: '#141414', border: '1px solid #2F2F2F',
                   borderRadius: 10, color: '#E5E7EB', fontSize: '0.85rem',
-                  resize: 'vertical', lineHeight: 1.6,
-                  transition: 'border-color 0.2s',
+                  resize: 'vertical', lineHeight: 1.6, transition: 'border-color 0.2s',
                 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                 onBlur={e => e.target.style.borderColor = '#2F2F2F'}
               />
             ) : (
-              <p style={{
-                fontSize: '0.85rem', color: form.description ? '#9CA3AF' : '#374151',
-                lineHeight: 1.7, fontFamily: 'DM Sans',
-              }}>
+              <p style={{ fontSize: '0.85rem', color: form.description ? '#9CA3AF' : '#374151', lineHeight: 1.7, fontFamily: 'DM Sans' }}>
                 {form.description || '—'}
               </p>
             )}
           </div>
         </Section>
 
-        {/* ── SAVE BUTTON ── */}
+        {/* ── SAVE ── */}
         {editing && (
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
             <button
@@ -349,7 +365,7 @@ export default function ProfilePage() {
                 border: 'none', color: '#000',
                 fontSize: '0.88rem', fontWeight: 700,
                 cursor: saving ? 'not-allowed' : 'pointer',
-                fontFamily: 'DM Sans', letterSpacing: '0.01em',
+                fontFamily: 'DM Sans',
                 display: 'flex', alignItems: 'center', gap: 8,
                 transition: 'opacity 0.2s',
               }}
@@ -368,7 +384,6 @@ export default function ProfilePage() {
   )
 }
 
-// ── Section wrapper ───────────────────────────────────────────
 function Section({ title, icon, children }) {
   return (
     <div style={{
@@ -378,10 +393,7 @@ function Section({ title, icon, children }) {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 18 }}>
         <span style={{ fontSize: '0.9rem' }}>{icon}</span>
-        <h2 style={{
-          fontFamily: 'Bricolage Grotesque', fontWeight: 700,
-          fontSize: '0.95rem', color: '#E5E7EB', letterSpacing: '-0.01em',
-        }}>
+        <h2 style={{ fontFamily: 'Bricolage Grotesque', fontWeight: 700, fontSize: '0.95rem', color: '#E5E7EB', letterSpacing: '-0.01em' }}>
           {title}
         </h2>
       </div>
@@ -390,7 +402,6 @@ function Section({ title, icon, children }) {
   )
 }
 
-// ── 2-column grid ─────────────────────────────────────────────
 function Grid({ children }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '14px 20px' }}>
@@ -399,15 +410,10 @@ function Grid({ children }) {
   )
 }
 
-// ── Single field ──────────────────────────────────────────────
 function Field({ label, value, editing, onChange, fullWidth }) {
   return (
     <div style={{ gridColumn: fullWidth ? '1 / -1' : undefined }}>
-      <label style={{
-        fontSize: '0.72rem', color: '#4B5563',
-        fontFamily: 'DM Sans', fontWeight: 600,
-        letterSpacing: '0.06em', display: 'block', marginBottom: 6,
-      }}>
+      <label style={{ fontSize: '0.72rem', color: '#4B5563', fontFamily: 'DM Sans', fontWeight: 600, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>
         {label.toUpperCase()}
       </label>
       {editing && onChange ? (
@@ -425,12 +431,7 @@ function Field({ label, value, editing, onChange, fullWidth }) {
           onBlur={e => e.target.style.borderColor = '#2F2F2F'}
         />
       ) : (
-        <p style={{
-          fontSize: '0.85rem',
-          color: value ? '#9CA3AF' : '#374151',
-          fontFamily: 'DM Sans', lineHeight: 1.5,
-          padding: '1px 0',
-        }}>
+        <p style={{ fontSize: '0.85rem', color: value ? '#9CA3AF' : '#374151', fontFamily: 'DM Sans', lineHeight: 1.5 }}>
           {value || '—'}
         </p>
       )}

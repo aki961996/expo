@@ -4,7 +4,7 @@ import EventList    from './pages/EventList'
 import EventDetail  from './pages/EventDetail'
 import LoginPage    from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
-import ProfilePage from './pages/Profilepage'
+import ProfilePage from './pages/ProfilePage'
 
 // Route guard — login ഇല്ലെങ്കിൽ /login-ലേക്ക്
 function PrivateRoute({ children }) {
@@ -33,7 +33,7 @@ function AppRoutes() {
       <Route path="/event/:code"   element={<EventDetail />} />
       <Route path="/login"         element={<LoginPage />} />
       <Route path="/register"      element={<RegisterPage />} />
-      <Route path="/profile"       element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+      <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
 
       {/* Protected — future pages */}
       {/* <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} /> */}
