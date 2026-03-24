@@ -61,7 +61,7 @@ export default function EventDetail() {
   const [detail, setDetail]           = useState(null)
   const [loading, setLoading]         = useState(true)
   const [activeTab, setActiveTab]     = useState('halls')
-  const [selectedDim, setSelectedDim] = useState(null)  // { dim, hallName }
+  const [selectedDim, setSelectedDim] = useState(null) // { dim, hall }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -70,15 +70,15 @@ export default function EventDetail() {
       .then(d => {
         setDetail(d)
         setLoading(false)
-        // default: set cheapest dim as selected
-        const allDims = (d.halls || []).flatMap(h =>
-          (h.dimensions || []).map(dim => ({ dim, hallName: h.hall_name }))
+        // default: cheapest dim + its hall
+        const allEntries = (d.halls || []).flatMap(hall =>
+          (hall.dimensions || []).map(dim => ({ dim, hall }))
         )
-        if (allDims.length > 0) {
-          const cheapest = allDims.reduce((m, x) => {
+        if (allEntries.length > 0) {
+          const cheapest = allEntries.reduce((m, x) => {
             const area  = x.dim.area || ((x.dim.width || 0) * (x.dim.depth || 0))
             const price = (x.dim.base_price || 0) * area
-            const mArea = m.dim.area || ((m.dim.width || 0) * (m.dim.depth || 0))
+            const mArea  = m.dim.area || ((m.dim.width || 0) * (m.dim.depth || 0))
             const mPrice = (m.dim.base_price || 0) * mArea
             return price < mPrice ? x : m
           })
@@ -121,13 +121,17 @@ export default function EventDetail() {
   const logo       = getFrappeImageUrl(event.logo)
   const facilities = FACILITY_MAP.filter(([key]) => event[key])
 
-  const availStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.available_stalls || 0), 0)
-  const totalStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.total_stalls || 0), 0)
+  // ── Sidebar: selected dim + its hall stats ──
+  const selDim    = selectedDim?.dim
+  const selHall   = selectedDim?.hall
+  const selArea   = selDim ? (selDim.area || ((selDim.width || 0) * (selDim.depth || 0))) : 0
+  const selPrice  = selDim ? (selDim.base_price || 0) * selArea : Infinity
 
-  // ── Sidebar price: selected dim or cheapest ──
-  const sidebarDim   = selectedDim?.dim
-  const sidebarArea  = sidebarDim ? (sidebarDim.area || ((sidebarDim.width || 0) * (sidebarDim.depth || 0))) : 0
-  const sidebarPrice = sidebarDim ? (sidebarDim.base_price || 0) * sidebarArea : Infinity
+  // Stats: from selected hall's ALL dimensions (or all halls if none selected)
+  const statDims  = selHall ? (selHall.dimensions || []) : halls.flatMap(h => h.dimensions || [])
+  const statAvail = statDims.reduce((s, d) => s + (d.available_stalls || 0), 0)
+  const statTotal = statDims.reduce((s, d) => s + (d.total_stalls || 0), 0)
+  const statHalls = selHall ? 1 : halls.length
 
   const tabs = [
     { id: 'halls',      label: 'Halls & Stalls', count: halls.length },
@@ -144,7 +148,7 @@ export default function EventDetail() {
         @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin      { to{transform:rotate(360deg)} }
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
-        @keyframes priceFlash { 0%{opacity:0;transform:scale(0.95)} 100%{opacity:1;transform:scale(1)} }
+        @keyframes priceFlash { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F0F; }
@@ -264,7 +268,6 @@ export default function EventDetail() {
           )}
 
           <div style={{ animation: 'fadeUp 0.5s ease 0.15s both' }}>
-            {/* Tabs */}
             <div style={{ display: 'flex', gap: 4, background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 12, padding: 4, marginBottom: 16 }}>
               {tabs.filter(t => t.count > 0).map(tab => (
                 <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
@@ -291,7 +294,7 @@ export default function EventDetail() {
                     hall={hall}
                     accent={accent}
                     selectedDim={selectedDim}
-                    onSelectDim={(dim) => setSelectedDim({ dim, hallName: hall.hall_name })}
+                    onSelectDim={(dim) => setSelectedDim({ dim, hall })}
                   />
                 ))}
               </div>
@@ -302,7 +305,6 @@ export default function EventDetail() {
               </div>
             )}
 
-            {/* ── EXHIBITORS TAB ── */}
             {activeTab === 'exhibitors' && (
               <div>
                 <div style={{ fontSize: '0.75rem', color: '#4B5563', marginBottom: 14 }}>
@@ -314,12 +316,7 @@ export default function EventDetail() {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {exhibitors.map((ex, i) => (
-                    <ExhibitorRow
-                      key={i}
-                      ex={ex}
-                      accent={accent}
-                      onOpenBooth={() => navigate(`/booth/${code}/${ex.name}`)}
-                    />
+                    <ExhibitorRow key={i} ex={ex} accent={accent} onOpenBooth={() => navigate(`/booth/${code}/${ex.name}`)} />
                   ))}
                 </div>
               </div>
@@ -339,30 +336,40 @@ export default function EventDetail() {
         <div style={{ position: 'sticky', top: 76, animation: 'fadeIn 0.5s ease 0.2s both' }}>
           <div style={{ background: '#0F0F0F', border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden', boxShadow: `0 0 40px ${accent}08` }}>
 
-            {/* Price section — updates on dim click */}
+            {/* Price */}
             <div style={{ padding: '22px 22px 18px', background: `linear-gradient(135deg, ${accent}15, transparent)`, borderBottom: '1px solid #1A1A1A' }}>
               <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>
                 {selectedDim ? 'SELECTED STALL' : 'STARTING FROM'}
               </div>
               <div
-                key={sidebarPrice}  /* key change triggers re-render animation */
-                style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'priceFlash 0.25s ease both' }}
+                key={selPrice}
+                style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'priceFlash 0.2s ease both' }}
               >
-                {sidebarPrice === Infinity ? '—' : `₹${sidebarPrice.toLocaleString()}`}
+                {selPrice === Infinity ? '—' : `₹${selPrice.toLocaleString()}`}
               </div>
-              {selectedDim ? (
+              {selDim ? (
                 <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>
-                  {selectedDim.dim.dimension_label} m · {selectedDim.hallName?.split('–')[0]?.trim()} · excl. GST
+                  {selDim.dimension_label} m · {selHall?.hall_name?.split('–')[0]?.trim() || ''} · excl. GST
                 </div>
               ) : (
                 <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>smallest stall · excl. GST</div>
               )}
             </div>
 
+            {/* Stats — update with selected hall */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
-              {[[availStalls, 'Available'], [totalStalls, 'Total'], [halls.length, 'Halls']].map(([v, l], i) => (
+              {[
+                [statAvail, 'Available'],
+                [statTotal, 'Total'],
+                [statHalls, selHall ? 'In Hall' : 'Halls'],
+              ].map(([v, l], i) => (
                 <div key={l} style={{ padding: '14px 10px', textAlign: 'center', borderRight: i < 2 ? '1px solid #1A1A1A' : 'none' }}>
-                  <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: i === 0 ? accent : '#F5F5F5' }}>{v}</div>
+                  <div
+                    key={`${v}-${l}`}
+                    style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: i === 0 ? accent : '#F5F5F5', animation: 'priceFlash 0.2s ease both' }}
+                  >
+                    {v}
+                  </div>
                   <div style={{ fontSize: '0.65rem', color: '#4B5563', marginTop: 2, letterSpacing: '0.05em' }}>{l.toUpperCase()}</div>
                 </div>
               ))}
@@ -435,73 +442,34 @@ export default function EventDetail() {
 function ExhibitorRow({ ex, accent, onOpenBooth }) {
   const [hov, setHov] = useState(false)
   const hasBooth = !!ex.has_digital_booth
-
   return (
-    <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        gap: 14, padding: '14px 16px', borderRadius: 12,
-        background: hov ? (hasBooth ? accent + '08' : '#111') : '#0F0F0F',
-        border: `1px solid ${hov ? (hasBooth ? accent + '40' : '#2A2A2A') : '#1A1A1A'}`,
-        transition: 'all 0.2s',
-      }}
-    >
+    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '14px 16px', borderRadius: 12, background: hov ? (hasBooth ? accent + '08' : '#111') : '#0F0F0F', border: `1px solid ${hov ? (hasBooth ? accent + '40' : '#2A2A2A') : '#1A1A1A'}`, transition: 'all 0.2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-        <div style={{
-          width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-          background: hasBooth ? accent + '20' : '#1A1A1A',
-          border: `1px solid ${hasBooth ? accent + '40' : '#2A2A2A'}`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800,
-          fontSize: '0.85rem', color: hasBooth ? accent : '#4B5563',
-        }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: hasBooth ? accent + '20' : '#1A1A1A', border: `1px solid ${hasBooth ? accent + '40' : '#2A2A2A'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.85rem', color: hasBooth ? accent : '#4B5563' }}>
           {ex.company_name?.charAt(0)}
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#E5E7EB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {ex.company_name}
-          </div>
+          <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#E5E7EB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.company_name}</div>
           <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 1 }}>{ex.industry}</div>
           {hasBooth && ex.booth_tagline && (
-            <div style={{ fontSize: '0.7rem', color: accent, marginTop: 3, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              "{ex.booth_tagline}"
-            </div>
+            <div style={{ fontSize: '0.7rem', color: accent, marginTop: 3, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>"{ex.booth_tagline}"</div>
           )}
         </div>
       </div>
-
       {hasBooth ? (
-        <button onClick={onOpenBooth} style={{
-          display: 'flex', alignItems: 'center', gap: 6,
-          padding: '7px 14px', borderRadius: 8, border: 'none',
-          background: accent + '20', color: accent,
-          fontSize: '0.75rem', fontWeight: 700,
-          cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-          flexShrink: 0, transition: 'background 0.2s', whiteSpace: 'nowrap',
-        }}
+        <button onClick={onOpenBooth} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 8, border: 'none', background: accent + '20', color: accent, fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', flexShrink: 0, transition: 'background 0.2s', whiteSpace: 'nowrap' }}
           onMouseEnter={e => e.currentTarget.style.background = accent + '35'}
-          onMouseLeave={e => e.currentTarget.style.background = accent + '20'}
-        >
-          <span style={{ fontSize: '0.8rem' }}>🏪</span>
-          View Digital Booth
+          onMouseLeave={e => e.currentTarget.style.background = accent + '20'}>
+          <span style={{ fontSize: '0.8rem' }}>🏪</span>View Digital Booth
         </button>
       ) : (
-        <span style={{
-          fontSize: '0.68rem', color: '#2A2A2A', fontWeight: 500,
-          padding: '5px 10px', borderRadius: 6,
-          background: '#141414', border: '1px solid #1F1F1F',
-          flexShrink: 0, whiteSpace: 'nowrap',
-        }}>
-          No booth yet
-        </span>
+        <span style={{ fontSize: '0.68rem', color: '#2A2A2A', fontWeight: 500, padding: '5px 10px', borderRadius: 6, background: '#141414', border: '1px solid #1F1F1F', flexShrink: 0, whiteSpace: 'nowrap' }}>No booth yet</span>
       )}
     </div>
   )
 }
 
-// ── Other Components ──────────────────────────────────────────
 function HeroPill({ icon, text }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 14px', borderRadius: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem', color: '#9CA3AF' }}>
@@ -557,7 +525,6 @@ function HallCard({ hall, accent, selectedDim, onSelectDim }) {
   )
 }
 
-// ── DimCard — clickable, updates sidebar ──────────────────────
 function DimCard({ dim, accent, isSelected, onClick }) {
   const [hov, setHov] = useState(false)
   const available  = dim.available_stalls || 0
@@ -579,7 +546,6 @@ function DimCard({ dim, accent, isSelected, onClick }) {
         boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none',
       }}
     >
-      {/* Selected indicator */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5' }}>
           {dim.dimension_label} m
@@ -590,18 +556,12 @@ function DimCard({ dim, accent, isSelected, onClick }) {
           </div>
         )}
       </div>
-
-      {/* Total price */}
       <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>
         ₹{totalPrice.toLocaleString()}
       </div>
-
-      {/* Per sqft subtle */}
       <div style={{ fontSize: '0.7rem', color: '#4B5563', marginBottom: 10 }}>
         ₹{dim.base_price?.toLocaleString()}/sqft · {stallArea} sqm
       </div>
-
-      {/* Availability bar */}
       <div style={{ height: 3, background: '#1F1F1F', borderRadius: 2, marginBottom: 6, overflow: 'hidden' }}>
         <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct > 50 ? accent : pct > 20 ? '#F59E0B' : '#F87171', transition: 'width 0.3s ease' }} />
       </div>
