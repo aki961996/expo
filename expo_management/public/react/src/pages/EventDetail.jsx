@@ -103,7 +103,13 @@ export default function EventDetail() {
   const logo       = getFrappeImageUrl(event.logo)
   const facilities = FACILITY_MAP.filter(([key]) => event[key])
 
-  const minPrice    = halls.flatMap(h => h.dimensions || []).reduce((m, d) => Math.min(m, (d.base_price || 0) * (d.area || 0)), Infinity)
+  // ── Price: base_price × area ──
+  const minPrice = halls.flatMap(h => h.dimensions || []).reduce((m, d) => {
+    const stallArea  = d.area || ((d.width || 0) * (d.depth || 0))
+    const stallPrice = (d.base_price || 0) * stallArea
+    return stallPrice > 0 ? Math.min(m, stallPrice) : m
+  }, Infinity)
+
   const availStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.available_stalls || 0), 0)
   const totalStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.total_stalls || 0), 0)
 
@@ -312,7 +318,7 @@ export default function EventDetail() {
               <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em' }}>
                 {minPrice === Infinity ? '—' : `₹${minPrice.toLocaleString()}`}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>per stall · excl. GST</div>
+              <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>smallest stall · excl. GST</div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
@@ -458,7 +464,6 @@ function ExhibitorRow({ ex, accent, onOpenBooth }) {
 }
 
 // ── Other Components ──────────────────────────────────────────
-
 function HeroPill({ icon, text }) {
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '6px 14px', borderRadius: 100, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(12px)', border: '1px solid rgba(255,255,255,0.08)', fontSize: '0.78rem', color: '#9CA3AF' }}>
@@ -498,7 +503,7 @@ function HallCard({ hall, accent }) {
         </div>
       </div>
       {open && (hall.dimensions || []).length > 0 && (
-        <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 10 }}>
+        <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
           {(hall.dimensions || []).map((dim, di) => <DimCard key={di} dim={dim} accent={accent} />)}
         </div>
       )}
@@ -506,16 +511,35 @@ function HallCard({ hall, accent }) {
   )
 }
 
+// ── DimCard — total price + per sqft ─────────────────────────
 function DimCard({ dim, accent }) {
   const [hov, setHov] = useState(false)
-  const available = dim.available_stalls || 0
-  const total     = dim.total_stalls || 0
-  const pct       = total > 0 ? (available / total) * 100 : 0
+  const available  = dim.available_stalls || 0
+  const total      = dim.total_stalls || 0
+  const pct        = total > 0 ? (available / total) * 100 : 0
+  const stallArea  = dim.area || ((dim.width || 0) * (dim.depth || 0))
+  const totalPrice = (dim.base_price || 0) * stallArea
+
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: hov ? accent + '0A' : '#141414', border: `1px solid ${hov ? accent + '40' : '#1F1F1F'}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s' }}>
-      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.2rem', color: '#F5F5F5', marginBottom: 2 }}>{dim.dimension_label} m</div>
-      <div style={{ fontSize: '0.78rem', color: accent, fontWeight: 600, marginBottom: 8 }}>₹{dim.base_price?.toLocaleString()}<span style={{ color: '#4B5563', fontWeight: 400 }}>/sqft</span></div>
+
+      {/* Dimension label */}
+      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5', marginBottom: 6 }}>
+        {dim.dimension_label} m
+      </div>
+
+      {/* Total price — prominent */}
+      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>
+        ₹{totalPrice.toLocaleString()}
+      </div>
+
+      {/* Per sqft — subtle */}
+      <div style={{ fontSize: '0.7rem', color: '#4B5563', marginBottom: 10 }}>
+        ₹{dim.base_price?.toLocaleString()}/sqft · {stallArea} sqm
+      </div>
+
+      {/* Availability bar */}
       <div style={{ height: 3, background: '#1F1F1F', borderRadius: 2, marginBottom: 6, overflow: 'hidden' }}>
         <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct > 50 ? accent : pct > 20 ? '#F59E0B' : '#F87171', transition: 'width 0.3s ease' }} />
       </div>
@@ -523,7 +547,9 @@ function DimCard({ dim, accent }) {
         <span style={{ color: pct > 20 ? accent : '#F87171', fontWeight: 700 }}>{available}</span>
         <span> / {total} available</span>
       </div>
-      {dim.corner_premium > 0 && <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 5 }}>+{dim.corner_premium}% corner</div>}
+      {dim.corner_premium > 0 && (
+        <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 5 }}>+{dim.corner_premium}% corner premium</div>
+      )}
     </div>
   )
 }
