@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate, useLocation } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { getEventDetail } from '../api/frappe'
 import { useAuth } from '../context/AuthContext'
 
@@ -51,17 +51,24 @@ function getFrappeImageUrl(path) {
 function getInitials(name = '') {
   return name.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()
 }
+function getDimKey(hall, dim) {
+  return `${hall.hall_code || hall.hall_name}__${dim.dimension_label}`
+}
+function getDimPrice(dim) {
+  const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
+  return (dim.base_price || 0) * area
+}
 
 export default function EventDetail() {
-  const { code }      = useParams()
-  const navigate      = useNavigate()
-  const location      = useLocation()
+  const { code }    = useParams()
+  const navigate    = useNavigate()
   const { exhibitor } = useAuth()
 
-  const [detail, setDetail]           = useState(null)
-  const [loading, setLoading]         = useState(true)
-  const [activeTab, setActiveTab]     = useState('halls')
-  const [selectedDim, setSelectedDim] = useState(null) // { dim, hall }
+  const [detail, setDetail]         = useState(null)
+  const [loading, setLoading]       = useState(true)
+  const [activeTab, setActiveTab]   = useState('halls')
+  // selected: Map of key → { dim, hall }
+  const [selected, setSelected]     = useState(new Map())
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -70,23 +77,33 @@ export default function EventDetail() {
       .then(d => {
         setDetail(d)
         setLoading(false)
-        // default: cheapest dim + its hall
+        // default: cheapest dim pre-selected
         const allEntries = (d.halls || []).flatMap(hall =>
           (hall.dimensions || []).map(dim => ({ dim, hall }))
         )
         if (allEntries.length > 0) {
-          const cheapest = allEntries.reduce((m, x) => {
-            const area  = x.dim.area || ((x.dim.width || 0) * (x.dim.depth || 0))
-            const price = (x.dim.base_price || 0) * area
-            const mArea  = m.dim.area || ((m.dim.width || 0) * (m.dim.depth || 0))
-            const mPrice = (m.dim.base_price || 0) * mArea
-            return price < mPrice ? x : m
-          })
-          setSelectedDim(cheapest)
+          const cheapest = allEntries.reduce((m, x) =>
+            getDimPrice(x.dim) < getDimPrice(m.dim) ? x : m
+          )
+          const key = getDimKey(cheapest.hall, cheapest.dim)
+          setSelected(new Map([[key, cheapest]]))
         }
       })
       .catch(() => setLoading(false))
   }, [code])
+
+  const toggleDim = (hall, dim) => {
+    const key = getDimKey(hall, dim)
+    setSelected(prev => {
+      const next = new Map(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.set(key, { dim, hall })
+      }
+      return next
+    })
+  }
 
   const handleBookStall = () => {
     if (!exhibitor) {
@@ -108,9 +125,7 @@ export default function EventDetail() {
       <div style={{ fontSize: '4rem', marginBottom: 20, opacity: 0.2 }}>◎</div>
       <h2 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F5F5F5', marginBottom: 8 }}>Event not found</h2>
       <p style={{ color: '#4B5563', marginBottom: 28 }}>The event you're looking for doesn't exist</p>
-      <button onClick={() => navigate('/')} style={{ padding: '10px 24px', borderRadius: 10, background: '#F59E0B', border: 'none', fontWeight: 700, color: '#000', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
-        ← All Events
-      </button>
+      <button onClick={() => navigate('/')} style={{ padding: '10px 24px', borderRadius: 10, background: '#F59E0B', border: 'none', fontWeight: 700, color: '#000', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>← All Events</button>
     </div>
   )
 
@@ -121,17 +136,14 @@ export default function EventDetail() {
   const logo       = getFrappeImageUrl(event.logo)
   const facilities = FACILITY_MAP.filter(([key]) => event[key])
 
-  // ── Sidebar: selected dim + its hall stats ──
-  const selDim    = selectedDim?.dim
-  const selHall   = selectedDim?.hall
-  const selArea   = selDim ? (selDim.area || ((selDim.width || 0) * (selDim.depth || 0))) : 0
-  const selPrice  = selDim ? (selDim.base_price || 0) * selArea : Infinity
+  // ── Sidebar calculations ──────────────────────────────────
+  const selectedArr   = [...selected.values()]
+  const hasSelection  = selectedArr.length > 0
+  const totalPrice    = selectedArr.reduce((s, x) => s + getDimPrice(x.dim), 0)
 
-  // Stats: from selected hall's ALL dimensions (or all halls if none selected)
-  const statDims  = selHall ? (selHall.dimensions || []) : halls.flatMap(h => h.dimensions || [])
-  const statAvail = statDims.reduce((s, d) => s + (d.available_stalls || 0), 0)
-  const statTotal = statDims.reduce((s, d) => s + (d.total_stalls || 0), 0)
-  const statHalls = selHall ? 1 : halls.length
+  // Available/Total: if single dim selected → that dim's count; if multiple → sum
+  const statAvail = selectedArr.reduce((s, x) => s + (x.dim.available_stalls || 0), 0)
+  const statTotal = selectedArr.reduce((s, x) => s + (x.dim.total_stalls || 0), 0)
 
   const tabs = [
     { id: 'halls',      label: 'Halls & Stalls', count: halls.length },
@@ -148,7 +160,7 @@ export default function EventDetail() {
         @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin      { to{transform:rotate(360deg)} }
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
-        @keyframes priceFlash { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
+        @keyframes flash     { 0%{opacity:0;transform:translateY(4px)} 100%{opacity:1;transform:translateY(0)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F0F; }
@@ -156,29 +168,13 @@ export default function EventDetail() {
       `}</style>
 
       {/* ── NAVBAR ── */}
-      <nav style={{
-        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100,
-        padding: '0 2rem', height: 60,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid #1A1A1A',
-      }}>
-        <button onClick={() => navigate('/')} style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          padding: '6px 14px', borderRadius: 8,
-          border: '1px solid #1F1F1F', background: 'transparent',
-          color: '#9CA3AF', fontSize: '0.82rem', fontWeight: 500,
-          cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
-        }}
+      <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'rgba(8,8,8,0.9)', backdropFilter: 'blur(20px)', borderBottom: '1px solid #1A1A1A' }}>
+        <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid #1F1F1F', background: 'transparent', color: '#9CA3AF', fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
           onMouseEnter={e => { e.currentTarget.style.borderColor = '#2F2F2F'; e.currentTarget.style.color = '#F5F5F5' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1F1F1F'; e.currentTarget.style.color = '#9CA3AF' }}
-        >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-            <path d="M19 12H5M12 5l-7 7 7 7" />
-          </svg>
+          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1F1F1F'; e.currentTarget.style.color = '#9CA3AF' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           All Events
         </button>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {event.status === 'Ongoing' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 100, background: '#00FF8715', border: '1px solid #00FF8730' }}>
@@ -186,18 +182,9 @@ export default function EventDetail() {
               <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#00FF87', letterSpacing: '0.1em' }}>LIVE NOW</span>
             </div>
           )}
-          <button onClick={handleBookStall} style={{
-            padding: '7px 18px', borderRadius: 8,
-            background: exhibitor ? accent : '#1A1A1A',
-            border: exhibitor ? 'none' : `1px solid ${accent}40`,
-            fontSize: '0.82rem', fontWeight: 700,
-            color: exhibitor ? '#000' : accent,
-            cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s',
-            display: 'flex', alignItems: 'center', gap: 6,
-          }}
+          <button onClick={handleBookStall} style={{ padding: '7px 18px', borderRadius: 8, background: exhibitor ? accent : '#1A1A1A', border: exhibitor ? 'none' : `1px solid ${accent}40`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-            onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-          >
+            onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             {exhibitor ? 'Book a Stall →' : '🔒 Login to Book'}
           </button>
         </div>
@@ -206,8 +193,7 @@ export default function EventDetail() {
       {/* ── HERO ── */}
       <div style={{ position: 'relative', height: 420, overflow: 'hidden', marginTop: 60 }}>
         {banner ? (
-          <img src={banner} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }}
-            onError={e => e.target.style.display = 'none'} />
+          <img src={banner} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.35 }} onError={e => e.target.style.display = 'none'} />
         ) : (
           <div style={{ position: 'absolute', inset: 0, background: `radial-gradient(ellipse at 20% 50%, ${accent}15 0%, transparent 60%), radial-gradient(ellipse at 80% 30%, ${accent}08 0%, transparent 50%)` }}>
             <div style={{ position: 'absolute', inset: 0, backgroundImage: `linear-gradient(${accent}06 1px, transparent 1px), linear-gradient(90deg, ${accent}06 1px, transparent 1px)`, backgroundSize: '50px 50px' }} />
@@ -215,7 +201,6 @@ export default function EventDetail() {
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(8,8,8,0.3) 0%, rgba(8,8,8,0.6) 50%, rgba(8,8,8,1) 100%)' }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
-
         <div style={{ position: 'absolute', bottom: 40, left: 0, right: 0, padding: '0 2rem', animation: 'fadeUp 0.5s ease both' }}>
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
@@ -223,29 +208,19 @@ export default function EventDetail() {
                 <span style={{ width: 6, height: 6, borderRadius: '50%', background: st.color, animation: st.pulse ? 'livePulse 1.5s infinite' : 'none', boxShadow: st.pulse ? `0 0 8px ${st.color}` : 'none' }} />
                 <span style={{ fontSize: '0.65rem', fontWeight: 700, color: st.color, letterSpacing: '0.1em' }}>{st.label}</span>
               </div>
-              <div style={{ padding: '4px 12px', borderRadius: 100, background: accent + '20', border: `1px solid ${accent}40`, fontSize: '0.65rem', fontWeight: 700, color: accent, letterSpacing: '0.08em', backdropFilter: 'blur(10px)' }}>
-                {event.category?.toUpperCase()}
-              </div>
-              <div style={{ padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)' }}>
-                {event.business_type}
-              </div>
+              <div style={{ padding: '4px 12px', borderRadius: 100, background: accent + '20', border: `1px solid ${accent}40`, fontSize: '0.65rem', fontWeight: 700, color: accent, letterSpacing: '0.08em', backdropFilter: 'blur(10px)' }}>{event.category?.toUpperCase()}</div>
+              <div style={{ padding: '4px 12px', borderRadius: 100, background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', fontSize: '0.65rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)', backdropFilter: 'blur(10px)' }}>{event.business_type}</div>
             </div>
-
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, marginBottom: 16 }}>
               <div style={{ width: 56, height: 56, borderRadius: 14, background: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(12px)', border: `1px solid ${accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, overflow: 'hidden' }}>
                 {logo ? <img src={logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} onError={e => e.target.style.display = 'none'} />
                   : <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: accent }}>{getInitials(event.event_name)}</span>}
               </div>
               <div>
-                <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: 'clamp(1.8rem, 4vw, 3rem)', letterSpacing: '-0.03em', lineHeight: 1.1, color: '#F5F5F5', marginBottom: 6 }}>
-                  {event.event_name}
-                </h1>
-                <p style={{ fontSize: '0.88rem', color: '#6B7280' }}>
-                  Organised by <span style={{ color: '#9CA3AF', fontWeight: 500 }}>{event.organizer_name}</span>
-                </p>
+                <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: 'clamp(1.8rem, 4vw, 3rem)', letterSpacing: '-0.03em', lineHeight: 1.1, color: '#F5F5F5', marginBottom: 6 }}>{event.event_name}</h1>
+                <p style={{ fontSize: '0.88rem', color: '#6B7280' }}>Organised by <span style={{ color: '#9CA3AF', fontWeight: 500 }}>{event.organizer_name}</span></p>
               </div>
             </div>
-
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <HeroPill icon="📅" text={`${fmtDate(event.start_date)} — ${fmtDate(event.end_date)}`} />
               <HeroPill icon="📍" text={`${event.venue_name}, ${event.city}`} />
@@ -270,32 +245,20 @@ export default function EventDetail() {
           <div style={{ animation: 'fadeUp 0.5s ease 0.15s both' }}>
             <div style={{ display: 'flex', gap: 4, background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 12, padding: 4, marginBottom: 16 }}>
               {tabs.filter(t => t.count > 0).map(tab => (
-                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{
-                  flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: activeTab === tab.id ? accent + '20' : 'transparent',
-                  color: activeTab === tab.id ? accent : '#4B5563',
-                  fontSize: '0.78rem', fontWeight: 600, fontFamily: 'DM Sans, sans-serif',
-                  transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  borderBottom: activeTab === tab.id ? `2px solid ${accent}` : '2px solid transparent',
-                }}>
+                <button key={tab.id} onClick={() => setActiveTab(tab.id)} style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: 'none', cursor: 'pointer', background: activeTab === tab.id ? accent + '20' : 'transparent', color: activeTab === tab.id ? accent : '#4B5563', fontSize: '0.78rem', fontWeight: 600, fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, borderBottom: activeTab === tab.id ? `2px solid ${accent}` : '2px solid transparent' }}>
                   {tab.label}
-                  <span style={{ padding: '1px 7px', borderRadius: 100, background: activeTab === tab.id ? accent + '25' : '#1A1A1A', fontSize: '0.68rem', fontWeight: 700, color: activeTab === tab.id ? accent : '#4B5563' }}>
-                    {tab.count}
-                  </span>
+                  <span style={{ padding: '1px 7px', borderRadius: 100, background: activeTab === tab.id ? accent + '25' : '#1A1A1A', fontSize: '0.68rem', fontWeight: 700, color: activeTab === tab.id ? accent : '#4B5563' }}>{tab.count}</span>
                 </button>
               ))}
             </div>
 
             {activeTab === 'halls' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ fontSize: '0.73rem', color: '#4B5563', padding: '6px 2px' }}>
+                  👆 Click stall size to select · Select multiple to compare prices
+                </div>
                 {halls.map((hall, i) => (
-                  <HallCard
-                    key={i}
-                    hall={hall}
-                    accent={accent}
-                    selectedDim={selectedDim}
-                    onSelectDim={(dim) => setSelectedDim({ dim, hall })}
-                  />
+                  <HallCard key={i} hall={hall} accent={accent} selected={selected} onToggleDim={toggleDim} />
                 ))}
               </div>
             )}
@@ -304,24 +267,17 @@ export default function EventDetail() {
                 {services.map((svc, i) => <ServiceCard key={i} svc={svc} />)}
               </div>
             )}
-
             {activeTab === 'exhibitors' && (
               <div>
                 <div style={{ fontSize: '0.75rem', color: '#4B5563', marginBottom: 14 }}>
-                  <span style={{ color: accent, fontWeight: 700 }}>
-                    {exhibitors.filter(e => e.has_digital_booth).length}
-                  </span>
-                  {' '}of {exhibitors.length} exhibitors have a digital booth —{' '}
-                  <span style={{ color: '#6B7280' }}>click to explore</span>
+                  <span style={{ color: accent, fontWeight: 700 }}>{exhibitors.filter(e => e.has_digital_booth).length}</span>
+                  {' '}of {exhibitors.length} exhibitors have a digital booth — <span style={{ color: '#6B7280' }}>click to explore</span>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {exhibitors.map((ex, i) => (
-                    <ExhibitorRow key={i} ex={ex} accent={accent} onOpenBooth={() => navigate(`/booth/${code}/${ex.name}`)} />
-                  ))}
+                  {exhibitors.map((ex, i) => <ExhibitorRow key={i} ex={ex} accent={accent} onOpenBooth={() => navigate(`/booth/${code}/${ex.name}`)} />)}
                 </div>
               </div>
             )}
-
             {activeTab === 'facilities' && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
                 {facilities.map(([, icon, label]) => <FacilityCard key={label} icon={icon} label={label} accent={accent} />)}
@@ -336,40 +292,54 @@ export default function EventDetail() {
         <div style={{ position: 'sticky', top: 76, animation: 'fadeIn 0.5s ease 0.2s both' }}>
           <div style={{ background: '#0F0F0F', border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden', boxShadow: `0 0 40px ${accent}08` }}>
 
-            {/* Price */}
+            {/* Price block */}
             <div style={{ padding: '22px 22px 18px', background: `linear-gradient(135deg, ${accent}15, transparent)`, borderBottom: '1px solid #1A1A1A' }}>
               <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>
-                {selectedDim ? 'SELECTED STALL' : 'STARTING FROM'}
+                {selected.size > 1 ? `${selected.size} STALL TYPES SELECTED` : hasSelection ? 'SELECTED STALL' : 'STARTING FROM'}
               </div>
-              <div
-                key={selPrice}
-                style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'priceFlash 0.2s ease both' }}
-              >
-                {selPrice === Infinity ? '—' : `₹${selPrice.toLocaleString()}`}
+              <div key={totalPrice} style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'flash 0.2s ease both' }}>
+                {hasSelection ? `₹${totalPrice.toLocaleString()}` : '—'}
               </div>
-              {selDim ? (
-                <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>
-                  {selDim.dimension_label} m · {selHall?.hall_name?.split('–')[0]?.trim() || ''} · excl. GST
+
+              {/* Selected breakdown */}
+              {hasSelection && selected.size === 1 && (() => {
+                const [{ dim, hall }] = selectedArr
+                const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
+                return (
+                  <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>
+                    {dim.dimension_label} m · {hall?.hall_name?.split('–')[0]?.trim()} · excl. GST
+                  </div>
+                )
+              })()}
+              {hasSelection && selected.size > 1 && (
+                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {selectedArr.map(({ dim, hall }) => {
+                    const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
+                    const price = (dim.base_price || 0) * area
+                    return (
+                      <div key={getDimKey(hall, dim)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#6B7280' }}>
+                        <span>{dim.dimension_label} m · {hall?.hall_name?.split('–')[0]?.trim()}</span>
+                        <span style={{ color: accent, fontWeight: 600 }}>₹{price.toLocaleString()}</span>
+                      </div>
+                    )
+                  })}
+                  <div style={{ borderTop: '1px solid #1F1F1F', paddingTop: 4, display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem' }}>
+                    <span style={{ color: '#4B5563' }}>excl. GST</span>
+                    <span style={{ color: '#9CA3AF', fontWeight: 700 }}>₹{totalPrice.toLocaleString()} total</span>
+                  </div>
                 </div>
-              ) : (
-                <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>smallest stall · excl. GST</div>
               )}
             </div>
 
-            {/* Stats — update with selected hall */}
+            {/* Stats: per selected dims */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
               {[
                 [statAvail, 'Available'],
                 [statTotal, 'Total'],
-                [statHalls, selHall ? 'In Hall' : 'Halls'],
+                [selected.size || 0, selected.size > 1 ? 'Types' : 'Type'],
               ].map(([v, l], i) => (
                 <div key={l} style={{ padding: '14px 10px', textAlign: 'center', borderRight: i < 2 ? '1px solid #1A1A1A' : 'none' }}>
-                  <div
-                    key={`${v}-${l}`}
-                    style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: i === 0 ? accent : '#F5F5F5', animation: 'priceFlash 0.2s ease both' }}
-                  >
-                    {v}
-                  </div>
+                  <div key={`${v}`} style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: i === 0 ? accent : '#F5F5F5', animation: 'flash 0.2s ease both' }}>{v}</div>
                   <div style={{ fontSize: '0.65rem', color: '#4B5563', marginTop: 2, letterSpacing: '0.05em' }}>{l.toUpperCase()}</div>
                 </div>
               ))}
@@ -385,41 +355,20 @@ export default function EventDetail() {
             </div>
 
             <div style={{ padding: 20 }}>
-              <button onClick={handleBookStall} style={{
-                width: '100%', padding: '14px', borderRadius: 12,
-                background: exhibitor ? `linear-gradient(135deg, ${accent}, ${accent}CC)` : '#141414',
-                fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem',
-                color: exhibitor ? '#000' : accent, cursor: 'pointer', letterSpacing: '-0.01em',
-                boxShadow: exhibitor ? `0 8px 24px ${accent}30` : 'none',
-                border: exhibitor ? 'none' : `1px solid ${accent}30`,
-                transition: 'transform 0.2s, box-shadow 0.2s',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              }}
+              <button onClick={handleBookStall} style={{ width: '100%', padding: '14px', borderRadius: 12, background: exhibitor ? `linear-gradient(135deg, ${accent}, ${accent}CC)` : '#141414', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: exhibitor ? '#000' : accent, cursor: 'pointer', letterSpacing: '-0.01em', boxShadow: exhibitor ? `0 8px 24px ${accent}30` : 'none', border: exhibitor ? 'none' : `1px solid ${accent}30`, transition: 'transform 0.2s, box-shadow 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 onMouseEnter={e => { if (exhibitor) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 12px 32px ${accent}40` } }}
-                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = exhibitor ? `0 8px 24px ${accent}30` : 'none' }}
-              >
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = exhibitor ? `0 8px 24px ${accent}30` : 'none' }}>
                 {exhibitor ? 'Book a Stall →' : '🔒 Login to Book'}
               </button>
-
               {!exhibitor && (
                 <p style={{ fontSize: '0.72rem', color: '#4B5563', textAlign: 'center', marginTop: 10 }}>
-                  <button onClick={() => navigate('/login', { state: { redirect: `/event/${code}` } })}
-                    style={{ background: 'none', border: 'none', color: accent, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
-                    Login
-                  </button>
+                  <button onClick={() => navigate('/login', { state: { redirect: `/event/${code}` } })} style={{ background: 'none', border: 'none', color: accent, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>Login</button>
                   {' '}or{' '}
-                  <button onClick={() => navigate('/register')}
-                    style={{ background: 'none', border: 'none', color: accent, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
-                    Register
-                  </button>
+                  <button onClick={() => navigate('/register')} style={{ background: 'none', border: 'none', color: accent, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>Register</button>
                   {' '}to book a stall
                 </p>
               )}
-              {exhibitor && (
-                <p style={{ fontSize: '0.7rem', color: '#374151', textAlign: 'center', marginTop: 10 }}>
-                  Free to register · Secure payment
-                </p>
-              )}
+              {exhibitor && <p style={{ fontSize: '0.7rem', color: '#374151', textAlign: 'center', marginTop: 10 }}>Free to register · Secure payment</p>}
             </div>
           </div>
 
@@ -438,7 +387,7 @@ export default function EventDetail() {
   )
 }
 
-// ── Exhibitor Row ─────────────────────────────────────────────
+// ── Components ────────────────────────────────────────────────
 function ExhibitorRow({ ex, accent, onOpenBooth }) {
   const [hov, setHov] = useState(false)
   const hasBooth = !!ex.has_digital_booth
@@ -452,9 +401,7 @@ function ExhibitorRow({ ex, accent, onOpenBooth }) {
         <div style={{ minWidth: 0 }}>
           <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#E5E7EB', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ex.company_name}</div>
           <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 1 }}>{ex.industry}</div>
-          {hasBooth && ex.booth_tagline && (
-            <div style={{ fontSize: '0.7rem', color: accent, marginTop: 3, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>"{ex.booth_tagline}"</div>
-          )}
+          {hasBooth && ex.booth_tagline && <div style={{ fontSize: '0.7rem', color: accent, marginTop: 3, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>"{ex.booth_tagline}"</div>}
         </div>
       </div>
       {hasBooth ? (
@@ -488,7 +435,7 @@ function SectionTitle({ title, accent }) {
   )
 }
 
-function HallCard({ hall, accent, selectedDim, onSelectDim }) {
+function HallCard({ hall, accent, selected, onToggleDim }) {
   const [open, setOpen] = useState(true)
   return (
     <div style={{ background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s' }}
@@ -515,8 +462,8 @@ function HallCard({ hall, accent, selectedDim, onSelectDim }) {
               key={di}
               dim={dim}
               accent={accent}
-              isSelected={selectedDim?.dim === dim}
-              onClick={() => onSelectDim(dim)}
+              isSelected={selected.has(getDimKey(hall, dim))}
+              onClick={() => onToggleDim(hall, dim)}
             />
           ))}
         </div>
@@ -534,26 +481,12 @@ function DimCard({ dim, accent, isSelected, onClick }) {
   const totalPrice = (dim.base_price || 0) * stallArea
 
   return (
-    <div
-      onClick={onClick}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        background: isSelected ? accent + '12' : hov ? accent + '0A' : '#141414',
-        border: `1px solid ${isSelected ? accent : hov ? accent + '40' : '#1F1F1F'}`,
-        borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s',
-        cursor: 'pointer',
-        boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none',
-      }}
-    >
+    <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
+      style={{ background: isSelected ? accent + '12' : hov ? accent + '0A' : '#141414', border: `1px solid ${isSelected ? accent : hov ? accent + '40' : '#1F1F1F'}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s', cursor: 'pointer', boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-        <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5' }}>
-          {dim.dimension_label} m
-        </div>
+        <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5' }}>{dim.dimension_label} m</div>
         {isSelected && (
-          <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100, letterSpacing: '0.05em' }}>
-            SELECTED
-          </div>
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100, letterSpacing: '0.05em' }}>✓</div>
         )}
       </div>
       <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>
@@ -569,9 +502,7 @@ function DimCard({ dim, accent, isSelected, onClick }) {
         <span style={{ color: pct > 20 ? accent : '#F87171', fontWeight: 700 }}>{available}</span>
         <span> / {total} available</span>
       </div>
-      {dim.corner_premium > 0 && (
-        <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 5 }}>+{dim.corner_premium}% corner premium</div>
-      )}
+      {dim.corner_premium > 0 && <div style={{ fontSize: '0.65rem', color: '#374151', marginTop: 5 }}>+{dim.corner_premium}% corner premium</div>}
     </div>
   )
 }
@@ -582,9 +513,7 @@ function ServiceCard({ svc }) {
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: hov ? '#141414' : '#0F0F0F', border: `1px solid ${hov ? color + '30' : '#1A1A1A'}`, borderRadius: 12, padding: '14px 16px', transition: 'all 0.2s' }}>
-      <div style={{ width: 42, height: 42, borderRadius: 10, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>
-        {SVC_ICON[svc.category] || '🔧'}
-      </div>
+      <div style={{ width: 42, height: 42, borderRadius: 10, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{SVC_ICON[svc.category] || '🔧'}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: '#E5E7EB', marginBottom: 2 }}>{svc.service_name}</div>
         <div style={{ fontSize: '0.72rem', color: '#4B5563', marginBottom: svc.description ? 4 : 0 }}>
