@@ -58,15 +58,33 @@ export default function EventDetail() {
   const location      = useLocation()
   const { exhibitor } = useAuth()
 
-  const [detail, setDetail]       = useState(null)
-  const [loading, setLoading]     = useState(true)
-  const [activeTab, setActiveTab] = useState('halls')
+  const [detail, setDetail]           = useState(null)
+  const [loading, setLoading]         = useState(true)
+  const [activeTab, setActiveTab]     = useState('halls')
+  const [selectedDim, setSelectedDim] = useState(null)  // { dim, hallName }
 
   useEffect(() => {
     window.scrollTo(0, 0)
     setLoading(true)
     getEventDetail(code)
-      .then(d => { setDetail(d); setLoading(false) })
+      .then(d => {
+        setDetail(d)
+        setLoading(false)
+        // default: set cheapest dim as selected
+        const allDims = (d.halls || []).flatMap(h =>
+          (h.dimensions || []).map(dim => ({ dim, hallName: h.hall_name }))
+        )
+        if (allDims.length > 0) {
+          const cheapest = allDims.reduce((m, x) => {
+            const area  = x.dim.area || ((x.dim.width || 0) * (x.dim.depth || 0))
+            const price = (x.dim.base_price || 0) * area
+            const mArea = m.dim.area || ((m.dim.width || 0) * (m.dim.depth || 0))
+            const mPrice = (m.dim.base_price || 0) * mArea
+            return price < mPrice ? x : m
+          })
+          setSelectedDim(cheapest)
+        }
+      })
       .catch(() => setLoading(false))
   }, [code])
 
@@ -103,15 +121,13 @@ export default function EventDetail() {
   const logo       = getFrappeImageUrl(event.logo)
   const facilities = FACILITY_MAP.filter(([key]) => event[key])
 
-  // ── Price: base_price × area ──
-  const minPrice = halls.flatMap(h => h.dimensions || []).reduce((m, d) => {
-    const stallArea  = d.area || ((d.width || 0) * (d.depth || 0))
-    const stallPrice = (d.base_price || 0) * stallArea
-    return stallPrice > 0 ? Math.min(m, stallPrice) : m
-  }, Infinity)
-
   const availStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.available_stalls || 0), 0)
   const totalStalls = halls.flatMap(h => h.dimensions || []).reduce((s, d) => s + (d.total_stalls || 0), 0)
+
+  // ── Sidebar price: selected dim or cheapest ──
+  const sidebarDim   = selectedDim?.dim
+  const sidebarArea  = sidebarDim ? (sidebarDim.area || ((sidebarDim.width || 0) * (sidebarDim.depth || 0))) : 0
+  const sidebarPrice = sidebarDim ? (sidebarDim.base_price || 0) * sidebarArea : Infinity
 
   const tabs = [
     { id: 'halls',      label: 'Halls & Stalls', count: halls.length },
@@ -128,6 +144,7 @@ export default function EventDetail() {
         @keyframes fadeUp    { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes spin      { to{transform:rotate(360deg)} }
         @keyframes livePulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+        @keyframes priceFlash { 0%{opacity:0;transform:scale(0.95)} 100%{opacity:1;transform:scale(1)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0F0F0F; }
@@ -268,7 +285,15 @@ export default function EventDetail() {
 
             {activeTab === 'halls' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {halls.map((hall, i) => <HallCard key={i} hall={hall} accent={accent} />)}
+                {halls.map((hall, i) => (
+                  <HallCard
+                    key={i}
+                    hall={hall}
+                    accent={accent}
+                    selectedDim={selectedDim}
+                    onSelectDim={(dim) => setSelectedDim({ dim, hallName: hall.hall_name })}
+                  />
+                ))}
               </div>
             )}
             {activeTab === 'services' && (
@@ -310,15 +335,28 @@ export default function EventDetail() {
           </div>
         </div>
 
-        {/* SIDEBAR */}
+        {/* ── SIDEBAR ── */}
         <div style={{ position: 'sticky', top: 76, animation: 'fadeIn 0.5s ease 0.2s both' }}>
           <div style={{ background: '#0F0F0F', border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden', boxShadow: `0 0 40px ${accent}08` }}>
+
+            {/* Price section — updates on dim click */}
             <div style={{ padding: '22px 22px 18px', background: `linear-gradient(135deg, ${accent}15, transparent)`, borderBottom: '1px solid #1A1A1A' }}>
-              <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>STARTING FROM</div>
-              <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em' }}>
-                {minPrice === Infinity ? '—' : `₹${minPrice.toLocaleString()}`}
+              <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>
+                {selectedDim ? 'SELECTED STALL' : 'STARTING FROM'}
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>smallest stall · excl. GST</div>
+              <div
+                key={sidebarPrice}  /* key change triggers re-render animation */
+                style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'priceFlash 0.25s ease both' }}
+              >
+                {sidebarPrice === Infinity ? '—' : `₹${sidebarPrice.toLocaleString()}`}
+              </div>
+              {selectedDim ? (
+                <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>
+                  {selectedDim.dim.dimension_label} m · {selectedDim.hallName?.split('–')[0]?.trim()} · excl. GST
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>smallest stall · excl. GST</div>
+              )}
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
@@ -482,7 +520,7 @@ function SectionTitle({ title, accent }) {
   )
 }
 
-function HallCard({ hall, accent }) {
+function HallCard({ hall, accent, selectedDim, onSelectDim }) {
   const [open, setOpen] = useState(true)
   return (
     <div style={{ background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s' }}
@@ -504,15 +542,23 @@ function HallCard({ hall, accent }) {
       </div>
       {open && (hall.dimensions || []).length > 0 && (
         <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
-          {(hall.dimensions || []).map((dim, di) => <DimCard key={di} dim={dim} accent={accent} />)}
+          {(hall.dimensions || []).map((dim, di) => (
+            <DimCard
+              key={di}
+              dim={dim}
+              accent={accent}
+              isSelected={selectedDim?.dim === dim}
+              onClick={() => onSelectDim(dim)}
+            />
+          ))}
         </div>
       )}
     </div>
   )
 }
 
-// ── DimCard — total price + per sqft ─────────────────────────
-function DimCard({ dim, accent }) {
+// ── DimCard — clickable, updates sidebar ──────────────────────
+function DimCard({ dim, accent, isSelected, onClick }) {
   const [hov, setHov] = useState(false)
   const available  = dim.available_stalls || 0
   const total      = dim.total_stalls || 0
@@ -521,20 +567,36 @@ function DimCard({ dim, accent }) {
   const totalPrice = (dim.base_price || 0) * stallArea
 
   return (
-    <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ background: hov ? accent + '0A' : '#141414', border: `1px solid ${hov ? accent + '40' : '#1F1F1F'}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s' }}>
-
-      {/* Dimension label */}
-      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5', marginBottom: 6 }}>
-        {dim.dimension_label} m
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        background: isSelected ? accent + '12' : hov ? accent + '0A' : '#141414',
+        border: `1px solid ${isSelected ? accent : hov ? accent + '40' : '#1F1F1F'}`,
+        borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s',
+        cursor: 'pointer',
+        boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none',
+      }}
+    >
+      {/* Selected indicator */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+        <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5' }}>
+          {dim.dimension_label} m
+        </div>
+        {isSelected && (
+          <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100, letterSpacing: '0.05em' }}>
+            SELECTED
+          </div>
+        )}
       </div>
 
-      {/* Total price — prominent */}
+      {/* Total price */}
       <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>
         ₹{totalPrice.toLocaleString()}
       </div>
 
-      {/* Per sqft — subtle */}
+      {/* Per sqft subtle */}
       <div style={{ fontSize: '0.7rem', color: '#4B5563', marginBottom: 10 }}>
         ₹{dim.base_price?.toLocaleString()}/sqft · {stallArea} sqm
       </div>
