@@ -52,7 +52,7 @@
    "fieldtype": "Link",
    "label": "Stall",
    "options": "Expo Stall",
-   "reqd": 1,
+   "reqd": 0,
    "in_list_view": 1
   },
   {
