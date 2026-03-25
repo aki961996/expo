@@ -270,11 +270,21 @@ def create_booking(
 		frappe.throw("Exhibitor profile not found. Please complete your registration.")
 
 	# Create Stall Booking — only fields that exist in doctype
+	# NOTE: stall (Link) field is intentionally omitted —
+	# specific stall number will be assigned after payment/admin approval
+	
+	# Build stall_number from selected dimensions for reference
+	stall_number_ref = " | ".join([
+		d.get("dimension_label", "") + " m"
+		for d in selected_dims
+	])
+
 	booking = frappe.get_doc({
 		"doctype":        "Stall Booking",
 		"expo_event":     expo_event,
 		"exhibitor":      exhibitor.name,
 		"exhibitor_name": exhibitor.exhibitor_name,
+		"stall_number":   stall_number_ref,   # e.g. "3×3 m | 6×6 m"
 		"booking_date":   now(),
 		"payment_status": "Pending",
 		"base_amount":    float(stall_amount or 0),
