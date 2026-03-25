@@ -114,12 +114,8 @@ export default function BookingPage() {
         deposit_paid: depositAmt,
         balance_due: grandTotal - depositAmt,
       }
-      // Uncomment when API ready:
-      // const result = await createBooking(payload)
-      // setBookingDone(result)
-      // For now simulate success:
-      await new Promise(r => setTimeout(r, 1200))
-      setBookingDone({ booking_id: 'BK-' + Date.now(), ...payload })
+      const result = await createBooking(payload)
+      setBookingDone(result)
     } catch (e) {
       console.error(e)
     } finally {

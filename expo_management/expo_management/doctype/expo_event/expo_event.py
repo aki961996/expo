@@ -1,7 +1,7 @@
-
 import frappe
+import json
 from frappe.model.document import Document
-from frappe.utils import today, getdate
+from frappe.utils import today, getdate, now
 
 
 class ExpoEvent(Document):
@@ -33,34 +33,18 @@ class ExpoEvent(Document):
 
 
 # ─────────────────────────────────────────────────────────────
-#  Helper 
+#  Helper
 # ─────────────────────────────────────────────────────────────
 
 def _get_existing_tables():
-	"""
-	SRS document-ൽ mention ചെയ്ത എല്ലാ DocTypes-നും
-	table exist ആണോ എന്ന് ഒരിക്കൽ check ചെയ്യുന്നു.
-	migrate ചെയ്യാത്ത DocTypes error ഉണ്ടാക്കില്ല.
-	"""
 	return {
-		# Hall & Stall Management
 		"Expo Hall":            frappe.db.table_exists("Expo Hall"),
 		"Expo Stall":           frappe.db.table_exists("Expo Stall"),
 		"Expo Stall Dimension": frappe.db.table_exists("Expo Stall Dimension"),
-
-		# Booking & Payment
 		"Stall Booking":        frappe.db.table_exists("Stall Booking"),
-
-		# Exhibitor Management
 		"Exhibitor Profile":    frappe.db.table_exists("Exhibitor Profile"),
-
-		# Services Management
 		"Expo Service":         frappe.db.table_exists("Expo Service"),
-
-		# CRM Module
 		"CRM Lead":             frappe.db.table_exists("CRM Lead"),
-
-		# Facilities (future)
 		"Expo Facility":        frappe.db.table_exists("Expo Facility"),
 	}
 
@@ -71,11 +55,6 @@ def _get_existing_tables():
 
 @frappe.whitelist(allow_guest=True)
 def get_published_events(status=None, category=None, search=None, limit=20, offset=0):
-	"""
-	React Event Listing page-ൽ ഉപയോഗിക്കുന്നു.
-	Published events list + counts return ചെയ്യുന്നു.
-	"""
-
 	filters = {"is_published": 1}
 
 	if status and status != "All":
@@ -98,21 +77,15 @@ def get_published_events(status=None, category=None, search=None, limit=20, offs
 		filters=filters,
 		or_filters=or_filters,
 		fields=[
-			# Basic info
 			"name", "event_name", "event_short_code",
 			"category", "business_type", "organizer_name",
 			"description", "logo", "banner",
-			# Dates
 			"start_date", "end_date", "setup_start_date", "dismantle_date",
-			# Venue
 			"venue_name", "city", "country",
-			# Status
 			"status", "visitor_capacity", "exhibitor_capacity",
-			# Facilities (SRS: facilities section)
 			"has_wifi", "has_ac", "has_food_court", "has_atm",
 			"has_first_aid", "has_fire_safety", "has_security",
 			"has_drinking_water", "has_prayer_room",
-			# Parking (SRS: Vehicle Parking)
 			"parking_cars", "parking_trucks",
 			"washrooms_male", "washrooms_female", "washrooms_accessible",
 		],
@@ -121,19 +94,14 @@ def get_published_events(status=None, category=None, search=None, limit=20, offs
 		start=int(offset),
 	)
 
-	# ── Table existence check — one time──────────────
 	t = _get_existing_tables()
 
 	for ev in events:
 		n = ev["name"]
-
-		# ── Hall count (SRS: Hall/Stall Management) ───────────
 		ev["hall_count"] = (
 			frappe.db.count("Expo Hall", {"expo_event": n})
 			if t["Expo Hall"] else 0
 		)
-
-		# ── Stall counts (SRS: Stall inventory) ───────────────
 		ev["total_stalls"] = (
 			frappe.db.count("Expo Stall", {"expo_event": n})
 			if t["Expo Stall"] else 0
@@ -142,22 +110,16 @@ def get_published_events(status=None, category=None, search=None, limit=20, offs
 			frappe.db.count("Expo Stall", {"expo_event": n, "status": "Available"})
 			if t["Expo Stall"] else 0
 		)
-
-		# ── Exhibitor count (SRS: Exhibitor management) ───────
-		# Confirmed bookings = docstatus 1 (submitted)
 		ev["exhibitor_count"] = (
 			frappe.db.count("Stall Booking", {"expo_event": n, "docstatus": 1})
 			if t["Stall Booking"] else 0
 		)
-
-		# ── Service count (SRS: Services Management) ──────────
 		ev["service_count"] = (
 			frappe.db.count("Expo Service", {"expo_event": n})
 			if t["Expo Service"] else 0
 		)
 
 	total = frappe.db.count("Expo Event", filters)
-
 	return {"events": events, "total": total}
 
 
@@ -167,11 +129,6 @@ def get_published_events(status=None, category=None, search=None, limit=20, offs
 
 @frappe.whitelist(allow_guest=True)
 def get_event_detail(event_code):
-	"""
-	React Event Detail page-ൽ ഉപയോഗിക്കുന്നു.
-	One event-ന്റെ full data return ചെയ്യുന്നു.
-	"""
-
 	if not frappe.db.exists("Expo Event", event_code):
 		frappe.throw(f"Event '{event_code}' not found", frappe.DoesNotExistError)
 
@@ -182,8 +139,7 @@ def get_event_detail(event_code):
 
 	t = _get_existing_tables()
 
-	# ── 1. Halls + Dimensions + Stall summary ─────────────────
-	# SRS: Hall/Stall Specifications, Stall inventory
+	# ── Halls + Dimensions ────────────────────────────────────
 	halls = []
 	if t["Expo Hall"]:
 		halls = frappe.get_all(
@@ -195,10 +151,7 @@ def get_event_detail(event_code):
 				"price", "floor_plan",
 			],
 		)
-
 		for hall in halls:
-
-			# Stall dimensions (SRS: Dimensions, Base Price, Corner/Island Premium)
 			hall["dimensions"] = (
 				frappe.get_all(
 					"Expo Stall Dimension",
@@ -212,8 +165,6 @@ def get_event_detail(event_code):
 				)
 				if t["Expo Stall Dimension"] else []
 			)
-
-			# Stall status counts (SRS: Status — available, hold, blocked)
 			hall["stall_summary"] = (
 				{
 					"available": frappe.db.count("Expo Stall", {"expo_hall": hall["name"], "status": "Available"}),
@@ -225,9 +176,7 @@ def get_event_detail(event_code):
 				{"available": 0, "hold": 0, "booked": 0, "blocked": 0}
 			)
 
-	# ── 2. Services ───────────────────────────────────────────
-	# SRS: Additional Power Load, Extra Chairs, Booth Fabrication,
-	#      Internet Line, Branding Standee + custom services
+	# ── Services ──────────────────────────────────────────────
 	services = []
 	if t["Expo Service"]:
 		services = frappe.get_all(
@@ -242,20 +191,9 @@ def get_event_detail(event_code):
 			order_by="is_mandatory desc, category asc",
 		)
 
-	# ── 3. Exhibitors (public info) ───────────────────────────
-	# SRS: Exhibitor listing — Company name, Industry, Logo
+	# ── Exhibitors ────────────────────────────────────────────
 	exhibitors = []
 	if t["Exhibitor Profile"]:
-		# exhibitors = frappe.get_all(
-		# 	"Exhibitor Profile",
-		# 	filters={"expo_event": event.name, "status": "Active"},
-		# 	fields=[
-		# 		"name", "exhibitor_name", "company_name",
-		# 		"industry", "company_logo", "description",
-		# 		"website", "product_categories",
-		# 	],
-		# 	limit=50,
-		# )
 		exhibitors = frappe.get_all(
 			"Exhibitor Profile",
 			filters={"expo_event": event.name, "status": "Active"},
@@ -263,7 +201,6 @@ def get_event_detail(event_code):
 				"name", "exhibitor_name", "company_name",
 				"industry", "company_logo", "description",
 				"website", "product_categories",
-				# Digital booth fields
 				"has_digital_booth",
 				"booth_tagline", "booth_description", "booth_products",
 				"booth_website", "booth_video_url",
@@ -272,8 +209,7 @@ def get_event_detail(event_code):
 			limit=50,
 		)
 
-	# ── 4. Booking summary ────────────────────────────────────
-	# SRS: Booking and Payment control
+	# ── Booking summary ───────────────────────────────────────
 	booking_summary = (
 		{
 			"total":           frappe.db.count("Stall Booking", {"expo_event": event.name}),
@@ -285,8 +221,6 @@ def get_event_detail(event_code):
 		{"total": 0, "confirmed": 0, "pending_payment": 0, "paid": 0}
 	)
 
-	# ── 5. CRM lead count ─────────────────────────────────────
-	# SRS: Exhibitor CRM Module
 	crm_lead_count = (
 		frappe.db.count("CRM Lead", {"expo_event": event.name})
 		if t["CRM Lead"] else 0
@@ -294,9 +228,106 @@ def get_event_detail(event_code):
 
 	return {
 		"event":           event.as_dict(),
-		"halls":           halls,          # Hall + dimensions + stall summary
-		"services":        services,       # All services for this event
-		"exhibitors":      exhibitors,     # Active exhibitors
-		"booking_summary": booking_summary,# Payment & booking stats
-		"crm_lead_count":  crm_lead_count, # Total CRM leads
+		"halls":           halls,
+		"services":        services,
+		"exhibitors":      exhibitors,
+		"booking_summary": booking_summary,
+		"crm_lead_count":  crm_lead_count,
 	}
+
+
+# ─────────────────────────────────────────────────────────────
+#  API 3 — Create Booking
+# ─────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def create_booking(
+	expo_event,
+	selected_dims,
+	selected_services,
+	stall_amount,
+	service_amount,
+	tax_amount,
+	total_amount,
+	deposit_paid,
+	balance_due,
+):
+	# Parse JSON strings
+	if isinstance(selected_dims, str):
+		selected_dims = json.loads(selected_dims)
+	if isinstance(selected_services, str):
+		selected_services = json.loads(selected_services)
+
+	# Get logged-in exhibitor
+	user_email = frappe.session.user
+	exhibitor = frappe.db.get_value(
+		"Exhibitor Profile",
+		{"email": user_email},
+		["name", "exhibitor_name"],
+		as_dict=True,
+	)
+	if not exhibitor:
+		frappe.throw("Exhibitor profile not found. Please complete your registration.")
+
+	# Create Stall Booking — only fields that exist in doctype
+	booking = frappe.get_doc({
+		"doctype":        "Stall Booking",
+		"expo_event":     expo_event,
+		"exhibitor":      exhibitor.name,
+		"exhibitor_name": exhibitor.exhibitor_name,
+		"booking_date":   now(),
+		"payment_status": "Pending",
+		"base_amount":    float(stall_amount or 0),
+		"tax_amount":     float(tax_amount or 0),
+		"total_amount":   float(total_amount or 0),
+		"deposit_paid":   float(deposit_paid or 0),
+		"balance_due":    float(balance_due or 0),
+	})
+
+	# Add services to child table
+	for svc in selected_services:
+		booking.append("services", {
+			"service": svc.get("service") or svc.get("name", ""),
+			"price":   float(svc.get("price", 0)),
+		})
+
+	booking.insert(ignore_permissions=True)
+	frappe.db.commit()
+
+	return {
+		"booking_id":   booking.name,
+		"status":       "success",
+		"total_amount": float(total_amount or 0),
+		"deposit_paid": float(deposit_paid or 0),
+		"balance_due":  float(balance_due or 0),
+	}
+
+
+# ─────────────────────────────────────────────────────────────
+#  API 4 — Get My Bookings
+# ─────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def get_my_bookings(expo_event=None):
+	user_email = frappe.session.user
+	exhibitor_name = frappe.db.get_value(
+		"Exhibitor Profile", {"email": user_email}, "name"
+	)
+	if not exhibitor_name:
+		return []
+
+	filters = {"exhibitor": exhibitor_name}
+	if expo_event:
+		filters["expo_event"] = expo_event
+
+	return frappe.get_all(
+		"Stall Booking",
+		filters=filters,
+		fields=[
+			"name", "expo_event", "exhibitor_name",
+			"stall", "stall_number", "booking_date",
+			"payment_status", "base_amount", "tax_amount",
+			"total_amount", "deposit_paid", "balance_due",
+		],
+		order_by="creation desc",
+	)

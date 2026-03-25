@@ -46,3 +46,42 @@ export async function getEventDetail(eventCode) {
     { event_code: eventCode }
   )
 }
+
+// ── CREATE BOOKING ───────────────────────────────────────────
+export async function createBooking(payload) {
+  /**
+   * payload = {
+   *   expo_event,
+   *   selected_dims:     [...],   // array of { dimension_label, hall, area, base_price, total_price }
+   *   selected_services: [...],   // array of { service, price }
+   *   stall_amount,
+   *   service_amount,
+   *   tax_amount,
+   *   total_amount,
+   *   deposit_paid,
+   *   balance_due,
+   * }
+   */
+  return frappeCall(
+    'expo_management.expo_management.doctype.expo_event.expo_event.create_booking',
+    {
+      expo_event:        payload.expo_event,
+      selected_dims:     JSON.stringify(payload.selected_dims),
+      selected_services: JSON.stringify(payload.selected_services),
+      stall_amount:      payload.stall_amount,
+      service_amount:    payload.service_amount,
+      tax_amount:        payload.tax_amount,
+      total_amount:      payload.total_amount,
+      deposit_paid:      payload.deposit_paid,
+      balance_due:       payload.balance_due,
+    }
+  )
+}
+ 
+// ── GET MY BOOKINGS ──────────────────────────────────────────
+export async function getMyBookings(expo_event = null) {
+  return frappeCall(
+    'expo_management.expo_management.doctype.expo_event.expo_event.get_my_bookings',
+    expo_event ? { expo_event } : {}
+  )
+}
