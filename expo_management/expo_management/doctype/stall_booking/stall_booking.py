@@ -10,26 +10,31 @@ class StallBooking(Document):
 
 	def on_submit(self):
 		# Mark stall as Booked
-		self._update_stall_status("Booked")
+		if self.stall:
+			self._update_stall_status("Booked")
 		self._generate_invoice_number()
 
 	def on_cancel(self):
 		# Release stall back to Available
-		self._update_stall_status("Available")
+		if self.stall:
+			self._update_stall_status("Available")
 
 	def _calculate_amounts(self):
 		"""Auto-calculate tax and total from base amount."""
-		stall = frappe.get_doc("Expo Stall", self.stall)
-		self.base_amount = flt(stall.final_price)
+		# stall ഇല്ലെങ്കിൽ (dimension-based booking) base_amount as-is use ചെയ്യുക
+		if self.stall:
+			stall = frappe.get_doc("Expo Stall", self.stall)
+			self.base_amount = flt(stall.final_price)
+			tax_rate = flt(stall.tax_percent) / 100
+		else:
+			tax_rate = 0.18  # default 18% GST
 
 		# Add service amounts
-		service_total = sum(flt(s.amount) for s in self.services)
-		self.base_amount += service_total
+		service_total = sum(flt(s.price) for s in (self.services or []))
 
-		# GST on total
-		tax_rate = flt(stall.tax_percent) / 100
-		self.tax_amount = flt(self.base_amount * tax_rate, 2)
-		self.total_amount = flt(self.base_amount + self.tax_amount, 2)
+		# GST on base + services
+		self.tax_amount   = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
+		self.total_amount = flt(flt(self.base_amount) + service_total + self.tax_amount, 2)
 
 		# Balance due
 		self.balance_due = flt(self.total_amount - flt(self.deposit_paid), 2)
