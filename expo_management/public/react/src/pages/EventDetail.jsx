@@ -60,15 +60,14 @@ function getDimPrice(dim) {
 }
 
 export default function EventDetail() {
-  const { code }    = useParams()
-  const navigate    = useNavigate()
+  const { code }      = useParams()
+  const navigate      = useNavigate()
   const { exhibitor } = useAuth()
 
-  const [detail, setDetail]         = useState(null)
-  const [loading, setLoading]       = useState(true)
-  const [activeTab, setActiveTab]   = useState('halls')
-  // selected: Map of key → { dim, hall }
-  const [selected, setSelected]     = useState(new Map())
+  const [detail, setDetail]       = useState(null)
+  const [loading, setLoading]     = useState(true)
+  const [activeTab, setActiveTab] = useState('halls')
+  const [selected, setSelected]   = useState(new Map()) // key → { dim, hall }
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -77,7 +76,6 @@ export default function EventDetail() {
       .then(d => {
         setDetail(d)
         setLoading(false)
-        // default: cheapest dim pre-selected
         const allEntries = (d.halls || []).flatMap(hall =>
           (hall.dimensions || []).map(dim => ({ dim, hall }))
         )
@@ -96,20 +94,17 @@ export default function EventDetail() {
     const key = getDimKey(hall, dim)
     setSelected(prev => {
       const next = new Map(prev)
-      if (next.has(key)) {
-        next.delete(key)
-      } else {
-        next.set(key, { dim, hall })
-      }
+      next.has(key) ? next.delete(key) : next.set(key, { dim, hall })
       return next
     })
   }
 
+  // ── UPDATED: pass selected dims to BookingPage ──
   const handleBookStall = () => {
     if (!exhibitor) {
       navigate('/login', { state: { redirect: `/event/${code}` } })
     } else {
-      navigate(`/book/${code}`)
+      navigate(`/book/${code}`, { state: { selected: [...selected.values()] } })
     }
   }
 
@@ -136,14 +131,11 @@ export default function EventDetail() {
   const logo       = getFrappeImageUrl(event.logo)
   const facilities = FACILITY_MAP.filter(([key]) => event[key])
 
-  // ── Sidebar calculations ──────────────────────────────────
-  const selectedArr   = [...selected.values()]
-  const hasSelection  = selectedArr.length > 0
-  const totalPrice    = selectedArr.reduce((s, x) => s + getDimPrice(x.dim), 0)
-
-  // Available/Total: if single dim selected → that dim's count; if multiple → sum
-  const statAvail = selectedArr.reduce((s, x) => s + (x.dim.available_stalls || 0), 0)
-  const statTotal = selectedArr.reduce((s, x) => s + (x.dim.total_stalls || 0), 0)
+  const selectedArr  = [...selected.values()]
+  const hasSelection = selectedArr.length > 0
+  const totalPrice   = selectedArr.reduce((s, x) => s + getDimPrice(x.dim), 0)
+  const statAvail    = selectedArr.reduce((s, x) => s + (x.dim.available_stalls || 0), 0)
+  const statTotal    = selectedArr.reduce((s, x) => s + (x.dim.total_stalls || 0), 0)
 
   const tabs = [
     { id: 'halls',      label: 'Halls & Stalls', count: halls.length },
@@ -232,8 +224,6 @@ export default function EventDetail() {
 
       {/* ── MAIN LAYOUT ── */}
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem 6rem', display: 'grid', gridTemplateColumns: '1fr 300px', gap: 28, alignItems: 'start' }}>
-
-        {/* LEFT */}
         <div>
           {event.description && (
             <div style={{ background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 16, padding: 24, marginBottom: 20, animation: 'fadeUp 0.5s ease 0.1s both' }}>
@@ -241,7 +231,6 @@ export default function EventDetail() {
               <div style={{ color: '#9CA3AF', lineHeight: 1.8, fontSize: '0.92rem' }} dangerouslySetInnerHTML={{ __html: event.description }} />
             </div>
           )}
-
           <div style={{ animation: 'fadeUp 0.5s ease 0.15s both' }}>
             <div style={{ display: 'flex', gap: 4, background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 12, padding: 4, marginBottom: 16 }}>
               {tabs.filter(t => t.count > 0).map(tab => (
@@ -251,7 +240,6 @@ export default function EventDetail() {
                 </button>
               ))}
             </div>
-
             {activeTab === 'halls' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ fontSize: '0.73rem', color: '#4B5563', padding: '6px 2px' }}>
@@ -291,8 +279,6 @@ export default function EventDetail() {
         {/* ── SIDEBAR ── */}
         <div style={{ position: 'sticky', top: 76, animation: 'fadeIn 0.5s ease 0.2s both' }}>
           <div style={{ background: '#0F0F0F', border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden', boxShadow: `0 0 40px ${accent}08` }}>
-
-            {/* Price block */}
             <div style={{ padding: '22px 22px 18px', background: `linear-gradient(135deg, ${accent}15, transparent)`, borderBottom: '1px solid #1A1A1A' }}>
               <div style={{ fontSize: '0.68rem', color: '#4B5563', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 4 }}>
                 {selected.size > 1 ? `${selected.size} STALL TYPES SELECTED` : hasSelection ? 'SELECTED STALL' : 'STARTING FROM'}
@@ -300,22 +286,14 @@ export default function EventDetail() {
               <div key={totalPrice} style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2.2rem', color: '#F5F5F5', letterSpacing: '-0.03em', animation: 'flash 0.2s ease both' }}>
                 {hasSelection ? `₹${totalPrice.toLocaleString()}` : '—'}
               </div>
-
-              {/* Selected breakdown */}
               {hasSelection && selected.size === 1 && (() => {
                 const [{ dim, hall }] = selectedArr
-                const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
-                return (
-                  <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>
-                    {dim.dimension_label} m · {hall?.hall_name?.split('–')[0]?.trim()} · excl. GST
-                  </div>
-                )
+                return <div style={{ fontSize: '0.72rem', color: '#4B5563', marginTop: 2 }}>{dim.dimension_label} m · {hall?.hall_name?.split('–')[0]?.trim()} · excl. GST</div>
               })()}
               {hasSelection && selected.size > 1 && (
                 <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {selectedArr.map(({ dim, hall }) => {
-                    const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
-                    const price = (dim.base_price || 0) * area
+                    const price = getDimPrice(dim)
                     return (
                       <div key={getDimKey(hall, dim)} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: '#6B7280' }}>
                         <span>{dim.dimension_label} m · {hall?.hall_name?.split('–')[0]?.trim()}</span>
@@ -330,21 +308,14 @@ export default function EventDetail() {
                 </div>
               )}
             </div>
-
-            {/* Stats: per selected dims */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', borderBottom: '1px solid #1A1A1A' }}>
-              {[
-                [statAvail, 'Available'],
-                [statTotal, 'Total'],
-                [selected.size || 0, selected.size > 1 ? 'Types' : 'Type'],
-              ].map(([v, l], i) => (
+              {[[statAvail, 'Available'], [statTotal, 'Total'], [selected.size || 0, selected.size > 1 ? 'Types' : 'Type']].map(([v, l], i) => (
                 <div key={l} style={{ padding: '14px 10px', textAlign: 'center', borderRight: i < 2 ? '1px solid #1A1A1A' : 'none' }}>
                   <div key={`${v}`} style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.3rem', color: i === 0 ? accent : '#F5F5F5', animation: 'flash 0.2s ease both' }}>{v}</div>
                   <div style={{ fontSize: '0.65rem', color: '#4B5563', marginTop: 2, letterSpacing: '0.05em' }}>{l.toUpperCase()}</div>
                 </div>
               ))}
             </div>
-
             <div style={{ padding: '16px 22px', borderBottom: '1px solid #1A1A1A' }}>
               {[['Opens', event.start_date], ['Closes', event.end_date], event.setup_start_date ? ['Setup', event.setup_start_date] : null].filter(Boolean).map(([label, date]) => (
                 <div key={label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #141414' }}>
@@ -353,7 +324,6 @@ export default function EventDetail() {
                 </div>
               ))}
             </div>
-
             <div style={{ padding: 20 }}>
               <button onClick={handleBookStall} style={{ width: '100%', padding: '14px', borderRadius: 12, background: exhibitor ? `linear-gradient(135deg, ${accent}, ${accent}CC)` : '#141414', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: exhibitor ? '#000' : accent, cursor: 'pointer', letterSpacing: '-0.01em', boxShadow: exhibitor ? `0 8px 24px ${accent}30` : 'none', border: exhibitor ? 'none' : `1px solid ${accent}30`, transition: 'transform 0.2s, box-shadow 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                 onMouseEnter={e => { if (exhibitor) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 12px 32px ${accent}40` } }}
@@ -371,7 +341,6 @@ export default function EventDetail() {
               {exhibitor && <p style={{ fontSize: '0.7rem', color: '#374151', textAlign: 'center', marginTop: 10 }}>Free to register · Secure payment</p>}
             </div>
           </div>
-
           <div style={{ marginTop: 14, background: '#0F0F0F', border: '1px solid #1A1A1A', borderRadius: 14, padding: 16 }}>
             <div style={{ fontSize: '0.65rem', color: '#374151', fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>EVENT DETAILS</div>
             {[['Venue', event.venue_name], ['City', `${event.city}, ${event.country || 'India'}`], ['Visitors', event.visitor_capacity?.toLocaleString()], ['Exhibitors', event.exhibitor_capacity], ['Industry', event.business_type]].map(([k, v]) => v ? (
@@ -387,7 +356,6 @@ export default function EventDetail() {
   )
 }
 
-// ── Components ────────────────────────────────────────────────
 function ExhibitorRow({ ex, accent, onOpenBooth }) {
   const [hov, setHov] = useState(false)
   const hasBooth = !!ex.has_digital_booth
@@ -458,13 +426,7 @@ function HallCard({ hall, accent, selected, onToggleDim }) {
       {open && (hall.dimensions || []).length > 0 && (
         <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
           {(hall.dimensions || []).map((dim, di) => (
-            <DimCard
-              key={di}
-              dim={dim}
-              accent={accent}
-              isSelected={selected.has(getDimKey(hall, dim))}
-              onClick={() => onToggleDim(hall, dim)}
-            />
+            <DimCard key={di} dim={dim} accent={accent} isSelected={selected.has(getDimKey(hall, dim))} onClick={() => onToggleDim(hall, dim)} />
           ))}
         </div>
       )}
@@ -479,22 +441,15 @@ function DimCard({ dim, accent, isSelected, onClick }) {
   const pct        = total > 0 ? (available / total) * 100 : 0
   const stallArea  = dim.area || ((dim.width || 0) * (dim.depth || 0))
   const totalPrice = (dim.base_price || 0) * stallArea
-
   return (
     <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ background: isSelected ? accent + '12' : hov ? accent + '0A' : '#141414', border: `1px solid ${isSelected ? accent : hov ? accent + '40' : '#1F1F1F'}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s', cursor: 'pointer', boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5' }}>{dim.dimension_label} m</div>
-        {isSelected && (
-          <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100, letterSpacing: '0.05em' }}>✓</div>
-        )}
+        {isSelected && <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100 }}>✓</div>}
       </div>
-      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>
-        ₹{totalPrice.toLocaleString()}
-      </div>
-      <div style={{ fontSize: '0.7rem', color: '#4B5563', marginBottom: 10 }}>
-        ₹{dim.base_price?.toLocaleString()}/sqft · {stallArea} sqm
-      </div>
+      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.15rem', color: accent, marginBottom: 2 }}>₹{totalPrice.toLocaleString()}</div>
+      <div style={{ fontSize: '0.7rem', color: '#4B5563', marginBottom: 10 }}>₹{dim.base_price?.toLocaleString()}/sqft · {stallArea} sqm</div>
       <div style={{ height: 3, background: '#1F1F1F', borderRadius: 2, marginBottom: 6, overflow: 'hidden' }}>
         <div style={{ height: '100%', borderRadius: 2, width: `${pct}%`, background: pct > 50 ? accent : pct > 20 ? '#F59E0B' : '#F87171', transition: 'width 0.3s ease' }} />
       </div>

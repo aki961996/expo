@@ -6,6 +6,7 @@ import LoginPage    from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import ProfilePage from './pages/ProfilePage'
 import DigitalBoothPage from './pages/DigitalBoothPage'
+import BookingPage from './pages/BookingPage'
 
 // Route guard — login ഇല്ലെങ്കിൽ /login-ലേക്ക്
 function PrivateRoute({ children }) {
@@ -36,6 +37,7 @@ function AppRoutes() {
       <Route path="/register"      element={<RegisterPage />} />
       <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
      <Route path="/booth/:eventCode/:exhibitorId" element={<DigitalBoothPage />} />
+      <Route path="/book/:code" element={<PrivateRoute><BookingPage /></PrivateRoute>} />
 
       {/* Protected — future pages */}
       {/* <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} /> */}
