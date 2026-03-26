@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useThemeStyles } from '../hooks/useThemeStyles'
 
 const INDUSTRIES = [
   'Information Technology', 'Food & Beverage', 'Manufacturing',
@@ -11,6 +12,7 @@ const INDUSTRIES = [
 ]
 
 export default function RegisterPage() {
+  const t = useThemeStyles()
   const navigate      = useNavigate()
   const { register }  = useAuth()
 
@@ -63,14 +65,14 @@ export default function RegisterPage() {
 
   // ── Success screen ────────────────────────────────────────
   if (success) return (
-    <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: t.bgBase, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', fontFamily: 'DM Sans, sans-serif' }}>
       <style>{`@keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}*{box-sizing:border-box}`}</style>
       <div style={{ textAlign: 'center', maxWidth: 380, animation: 'fadeUp 0.4s ease both', padding: '0 1rem' }}>
         <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#00FF8715', border: '2px solid #00FF8740', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '2rem' }}>✅</div>
-        <h2 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: '#F5F5F5', letterSpacing: '-0.03em', marginBottom: 10 }}>
+        <h2 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: t.textPrimary, letterSpacing: '-0.03em', marginBottom: 10 }}>
           Registration Submitted!
         </h2>
-        <p style={{ color: '#6B7280', lineHeight: 1.7, marginBottom: 28, fontSize: '0.9rem' }}>
+        <p style={{ color: t.textMuted, lineHeight: 1.7, marginBottom: 28, fontSize: '0.9rem' }}>
           Your registration is <span style={{ color: '#F59E0B', fontWeight: 600 }}>pending admin approval</span>. You'll be notified on your mobile once approved.
         </p>
         <button onClick={() => navigate('/login')} style={{ padding: '12px 28px', borderRadius: 10, background: '#F59E0B', border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer' }}>
@@ -81,7 +83,7 @@ export default function RegisterPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#080808', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', fontFamily: 'DM Sans, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: t.bgBase, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1.5rem', fontFamily: 'DM Sans, sans-serif' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;12..96,800&family=DM+Sans:wght@400;500;600&display=swap');
         @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
@@ -100,7 +102,7 @@ export default function RegisterPage() {
 
       <div style={{
         width: '100%', maxWidth: 520,
-        background: '#0F0F0F', border: '1px solid #1A1A1A',
+        background: t.bgSurface, border: '1px solid ' + t.borderSubtle,
         borderRadius: 20, overflow: 'hidden',
         animation: 'fadeUp 0.4s ease both',
         boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
@@ -112,13 +114,13 @@ export default function RegisterPage() {
 
           {/* Header */}
           <div style={{ marginBottom: '1.5rem' }}>
-            <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: '#4B5563', fontSize: '0.8rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 16 }}>
+            <button onClick={() => navigate('/login')} style={{ background: 'none', border: 'none', color: t.textFaint, fontSize: '0.8rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 16 }}>
               ← Back to Login
             </button>
-            <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.03em', color: '#F5F5F5', marginBottom: 4 }}>
+            <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.5rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 4 }}>
               Exhibitor Registration
             </h1>
-            <p style={{ fontSize: '0.82rem', color: '#4B5563', lineHeight: 1.6 }}>
+            <p style={{ fontSize: '0.82rem', color: t.textFaint, lineHeight: 1.6 }}>
               Fill in your details. Admin approval required before login.
             </p>
           </div>
@@ -140,7 +142,7 @@ export default function RegisterPage() {
             <div className="reg-grid-2">
               <Field label="Mobile Number *" error={fieldErrors.mobile}>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <div style={{ padding: '10px 10px', background: '#141414', border: '1px solid #1F1F1F', borderRadius: 8, fontSize: '0.82rem', color: '#9CA3AF', flexShrink: 0, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                  <div style={{ padding: '10px 10px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.82rem', color: t.textSecondary, flexShrink: 0, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
                     🇮🇳 +91
                   </div>
                   <Input
@@ -164,7 +166,7 @@ export default function RegisterPage() {
                 onChange={e => set('industry', e.target.value)}
                 style={{
                   width: '100%', padding: '10px 14px',
-                  background: '#141414',
+                  background: t.bgElevated,
                   border: `1px solid ${fieldErrors.industry ? '#F87171' : '#1F1F1F'}`,
                   borderRadius: 8, fontSize: '0.88rem',
                   color: form.industry ? '#F5F5F5' : '#374151',
@@ -189,7 +191,7 @@ export default function RegisterPage() {
                 <select
                   value={form.annual_turnover}
                   onChange={e => set('annual_turnover', e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #1F1F1F', borderRadius: 8, fontSize: '0.88rem', color: form.annual_turnover ? '#F5F5F5' : '#374151', appearance: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: form.annual_turnover ? '#F5F5F5' : '#374151', appearance: 'none', cursor: 'pointer' }}
                   onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                   onBlur={e => e.target.style.borderColor = '#1F1F1F'}
                 >
@@ -213,7 +215,7 @@ export default function RegisterPage() {
                 value={form.address}
                 onChange={e => set('address', e.target.value)}
                 rows={2}
-                style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #1F1F1F', borderRadius: 8, fontSize: '0.88rem', color: '#F5F5F5', resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5 }}
+                style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                 onBlur={e => e.target.style.borderColor = '#1F1F1F'}
               />
@@ -229,7 +231,7 @@ export default function RegisterPage() {
                 value={form.description}
                 onChange={e => set('description', e.target.value)}
                 rows={3}
-                style={{ width: '100%', padding: '10px 14px', background: '#141414', border: '1px solid #1F1F1F', borderRadius: 8, fontSize: '0.88rem', color: '#F5F5F5', resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6 }}
+                style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
                 onBlur={e => e.target.style.borderColor = '#1F1F1F'}
               />
@@ -268,13 +270,14 @@ export default function RegisterPage() {
 // ── Helpers ───────────────────────────────────────────────────
 
 function SectionLabel({ label, style }) {
+  const t = useThemeStyles()
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, ...style }}>
       <div style={{ width: 3, height: 14, borderRadius: 2, background: '#F59E0B', flexShrink: 0 }} />
-      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#6B7280', letterSpacing: '0.1em' }}>
+      <span style={{ fontSize: '0.68rem', fontWeight: 700, color: t.textMuted, letterSpacing: '0.1em' }}>
         {label.toUpperCase()}
       </span>
-      <div style={{ flex: 1, height: 1, background: '#1A1A1A' }} />
+      <div style={{ flex: 1, height: 1, background: t.bgHover }} />
     </div>
   )
 }
@@ -294,16 +297,17 @@ function Field({ label, error, children, style }) {
 }
 
 function Input({ value, onChange, error, style, ...props }) {
+  const t = useThemeStyles()
   return (
     <input
       value={value}
       onChange={e => onChange(e.target.value)}
       style={{
         width: '100%', padding: '10px 14px',
-        background: '#141414',
+        background: t.bgElevated,
         border: `1px solid ${error ? '#F87171' : '#1F1F1F'}`,
         borderRadius: 8, fontSize: '0.88rem',
-        color: '#F5F5F5', fontFamily: 'DM Sans, sans-serif',
+        color: t.textPrimary, fontFamily: 'DM Sans, sans-serif',
         transition: 'border-color 0.2s',
         ...style,
       }}

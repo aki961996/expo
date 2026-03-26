@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { useThemeStyles } from '../hooks/useThemeStyles'
 
 const STEPS = { MOBILE: 'mobile', OTP: 'otp' }
 
 export default function LoginPage() {
+  const t = useThemeStyles()
   const navigate = useNavigate()
   const location = useLocation()
   const { sendOtp, verifyOtp } = useAuth()
@@ -109,7 +111,7 @@ export default function LoginPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#080808',
+      minHeight: '100vh', background: t.bgBase,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: '1.5rem', fontFamily: 'DM Sans, sans-serif',
       position: 'relative', overflow: 'hidden',
@@ -129,7 +131,7 @@ export default function LoginPage() {
       {/* ── Redirect loader ── */}
       {redirecting && (
         <div style={{
-          position: 'fixed', inset: 0, background: '#080808',
+          position: 'fixed', inset: 0, background: t.bgBase,
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, animation: 'fadeIn 0.2s ease both',
@@ -139,7 +141,7 @@ export default function LoginPage() {
             <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#F59E0B', animation: 'spin 0.75s linear infinite' }} />
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', animation: 'pulse 1.2s ease-in-out infinite' }} />
           </div>
-          <p style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: '#F5F5F5', letterSpacing: '-0.03em', margin: 0 }}>
+          <p style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: t.textPrimary, letterSpacing: '-0.03em', margin: 0 }}>
             Taking you in…
           </p>
           <p style={{ fontSize: '0.78rem', color: '#374151', marginTop: 8 }}>Welcome back</p>
@@ -152,7 +154,7 @@ export default function LoginPage() {
       {/* ── CARD ── */}
       <div style={{
         width: '100%', maxWidth: 420,
-        background: '#0F0F0F', border: '1px solid #1A1A1A',
+        background: t.bgSurface, border: '1px solid ' + t.borderSubtle,
         borderRadius: 20, overflow: 'hidden',
         animation: 'fadeUp 0.4s ease both',
         boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
@@ -171,7 +173,7 @@ export default function LoginPage() {
                 <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3" />
               </svg>
             </div>
-            <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: '#F5F5F5' }}>
+            <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: t.textPrimary }}>
               ExpoMgmt
             </span>
           </div>
@@ -193,15 +195,15 @@ export default function LoginPage() {
           {/* ── STEP 1: Mobile ── */}
           {step === STEPS.MOBILE && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
-              <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: '#F5F5F5', marginBottom: 6 }}>
+              <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 6 }}>
                 Exhibitor Login
               </h1>
-              <p style={{ fontSize: '0.85rem', color: '#4B5563', marginBottom: '1.75rem', lineHeight: 1.6 }}>
+              <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
                 Enter your registered mobile number to receive an OTP
               </p>
 
               <form onSubmit={handleSendOtp}>
-                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: '#6B7280', letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
+                <label style={{ fontSize: '0.72rem', fontWeight: 700, color: t.textMuted, letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
                   MOBILE NUMBER
                 </label>
 
@@ -210,8 +212,8 @@ export default function LoginPage() {
                   {/* Country code — fixed width */}
                   <div style={{
                     padding: '13px 14px',
-                    background: '#141414', border: '1px solid #1F1F1F', borderRadius: 10,
-                    fontSize: '0.88rem', color: '#9CA3AF', fontWeight: 600,
+                    background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 10,
+                    fontSize: '0.88rem', color: t.textSecondary, fontWeight: 600,
                     flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
                     whiteSpace: 'nowrap',
                   }}>
@@ -229,10 +231,10 @@ export default function LoginPage() {
                       flex: '1 1 0',
                       minWidth: 0,
                       padding: '13px 16px',
-                      background: '#141414',
+                      background: t.bgElevated,
                       border: `1px solid ${error ? '#F87171' : '#1F1F1F'}`,
                       borderRadius: 10,
-                      fontSize: '1.1rem', color: '#F5F5F5',
+                      fontSize: '1.1rem', color: t.textPrimary,
                       letterSpacing: '0.06em',
                       transition: 'border-color 0.2s',
                     }}
@@ -263,7 +265,7 @@ export default function LoginPage() {
               </form>
 
               <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.82rem', color: '#4B5563' }}>New exhibitor? </span>
+                <span style={{ fontSize: '0.82rem', color: t.textFaint }}>New exhibitor? </span>
                 <button
                   onClick={() => navigate('/register', { state: location.state })}
                   style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#F59E0B', fontWeight: 600, cursor: 'pointer', padding: 0 }}
@@ -277,11 +279,11 @@ export default function LoginPage() {
           {/* ── STEP 2: OTP ── */}
           {step === STEPS.OTP && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
-              <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: '#F5F5F5', marginBottom: 6 }}>
+              <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 6 }}>
                 Enter OTP
               </h1>
-              <p style={{ fontSize: '0.85rem', color: '#4B5563', marginBottom: '1.75rem', lineHeight: 1.6 }}>
-                Sent to <span style={{ color: '#9CA3AF', fontWeight: 600 }}>+91 {mobile}</span>
+              <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
+                Sent to <span style={{ color: t.textSecondary, fontWeight: 600 }}>+91 {mobile}</span>
                 <button
                   onClick={() => { setStep(STEPS.MOBILE); setOtp(['','','','','','']); setError('') }}
                   style={{ background: 'none', border: 'none', color: '#F59E0B', fontSize: '0.82rem', cursor: 'pointer', marginLeft: 8 }}
@@ -310,7 +312,7 @@ export default function LoginPage() {
                       flex: '1 1 0',
                       minWidth: 0,
                       height: 54, textAlign: 'center',
-                      fontSize: '1.4rem', fontWeight: 700, color: '#F5F5F5',
+                      fontSize: '1.4rem', fontWeight: 700, color: t.textPrimary,
                       background: digit ? '#F59E0B15' : '#141414',
                       border: `1.5px solid ${digit ? '#F59E0B50' : error ? '#F87171' : '#1F1F1F'}`,
                       borderRadius: 10, transition: 'all 0.15s', caretColor: '#F59E0B',
@@ -346,7 +348,7 @@ export default function LoginPage() {
                   : 'Verify & Login →'}
               </button>
 
-              <div style={{ textAlign: 'center', fontSize: '0.8rem', color: '#4B5563' }}>
+              <div style={{ textAlign: 'center', fontSize: '0.8rem', color: t.textFaint }}>
                 {timer > 0 ? (
                   <span>Resend OTP in <span style={{ color: '#F59E0B', fontWeight: 600 }}>{timer}s</span></span>
                 ) : (
@@ -366,9 +368,9 @@ export default function LoginPage() {
         onClick={() => navigate('/')}
         style={{
           position: 'absolute', top: 24, left: 24,
-          background: 'none', border: '1px solid #1F1F1F',
+          background: 'none', border: '1px solid ' + t.borderDefault,
           borderRadius: 8, padding: '7px 14px',
-          color: '#4B5563', fontSize: '0.8rem',
+          color: t.textFaint, fontSize: '0.8rem',
           cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
           display: 'flex', alignItems: 'center', gap: 6,
           transition: 'color 0.2s',

@@ -1,0 +1,203 @@
+/* ═══════════════════════════════════════════════════════════
+   EXPO MANAGEMENT — THEME SYSTEM
+   Import in main.jsx: import './theme.css'
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ──────────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --bg-base:        #080808;
+  --bg-surface:     #0F0F0F;
+  --bg-elevated:    #141414;
+  --bg-hover:       #1A1A1A;
+  --bg-active:      #1F1F1F;
+  --bg-card:        #0F0F0F;
+
+  --border-subtle:  #1A1A1A;
+  --border-default: #1F1F1F;
+  --border-hover:   #2F2F2F;
+
+  --text-primary:   #F5F5F5;
+  --text-secondary: #9CA3AF;
+  --text-muted:     #6B7280;
+  --text-faint:     #4B5563;
+  --text-ghost:     #374151;
+
+  --nav-bg:         rgba(8, 8, 8, 0.90);
+  --overlay-bg:     rgba(8, 8, 8, 0.92);
+
+  --shadow-sm:      0 4px 12px rgba(0,0,0,0.4);
+  --shadow-md:      0 8px 24px rgba(0,0,0,0.5);
+  --shadow-lg:      0 16px 40px rgba(0,0,0,0.6);
+}
+
+[data-theme="light"] {
+  --bg-base:        #F5F4F0;
+  --bg-surface:     #FFFFFF;
+  --bg-elevated:    #F0EFE9;
+  --bg-hover:       #E8E7E1;
+  --bg-active:      #DDDCD6;
+  --bg-card:        #FFFFFF;
+
+  --border-subtle:  #E2E1DB;
+  --border-default: #D4D3CD;
+  --border-hover:   #B8B7B1;
+
+  --text-primary:   #111110;
+  --text-secondary: #3D3C3A;
+  --text-muted:     #6B6A68;
+  --text-faint:     #8B8A88;
+  --text-ghost:     #A8A7A5;
+
+  --nav-bg:         rgba(245, 244, 240, 0.92);
+  --overlay-bg:     rgba(245, 244, 240, 0.92);
+
+  --shadow-sm:      0 4px 12px rgba(0,0,0,0.06);
+  --shadow-md:      0 8px 24px rgba(0,0,0,0.10);
+  --shadow-lg:      0 16px 40px rgba(0,0,0,0.12);
+}
+
+/* ── Base ────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg-base) !important;
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Smooth theme transitions ────────────────────────────────── */
+body,
+body * {
+  transition:
+    background-color 0.25s ease,
+    border-color     0.25s ease,
+    color            0.15s ease,
+    box-shadow       0.25s ease;
+}
+
+/* Exclude animations from transition override */
+[style*="animation"],
+[style*="transform"] {
+  transition: none !important;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-faint); }
+
+/* ── Light mode overrides for inline styles ─────────────────── */
+/* These override the hardcoded dark colors in all JSX files     */
+
+[data-theme="light"] {
+
+  /* Page backgrounds */
+  [style*="background: #080808"],
+  [style*="background:#080808"] {
+    background: var(--bg-base) !important;
+  }
+  [style*="background: #0F0F0F"],
+  [style*="background:#0F0F0F"] {
+    background: var(--bg-surface) !important;
+  }
+  [style*="background: #141414"],
+  [style*="background:#141414"] {
+    background: var(--bg-elevated) !important;
+  }
+  [style*="background: #1A1A1A"],
+  [style*="background:#1A1A1A"] {
+    background: var(--bg-hover) !important;
+  }
+
+  /* Text colors */
+  [style*="color: #F5F5F5"],
+  [style*="color:#F5F5F5"] {
+    color: var(--text-primary) !important;
+  }
+  [style*="color: #E5E7EB"],
+  [style*="color:#E5E7EB"] {
+    color: var(--text-secondary) !important;
+  }
+  [style*="color: #9CA3AF"],
+  [style*="color:#9CA3AF"] {
+    color: var(--text-muted) !important;
+  }
+  [style*="color: #6B7280"],
+  [style*="color:#6B7280"] {
+    color: var(--text-muted) !important;
+  }
+  [style*="color: #4B5563"],
+  [style*="color:#4B5563"] {
+    color: var(--text-faint) !important;
+  }
+  [style*="color: #374151"],
+  [style*="color:#374151"] {
+    color: var(--text-ghost) !important;
+  }
+
+  /* Border colors */
+  [style*="border: 1px solid #1A1A1A"],
+  [style*="border:1px solid #1A1A1A"] {
+    border-color: var(--border-subtle) !important;
+  }
+  [style*="border: 1px solid #1F1F1F"],
+  [style*="border:1px solid #1F1F1F"] {
+    border-color: var(--border-default) !important;
+  }
+  [style*="border: 1px solid #2F2F2F"],
+  [style*="border:1px solid #2F2F2F"] {
+    border-color: var(--border-hover) !important;
+  }
+  [style*="border: 2px solid #1F1F1F"],
+  [style*="border:2px solid #1F1F1F"] {
+    border-color: var(--border-default) !important;
+  }
+
+  /* borderBottom colors */
+  [style*="borderBottom: 1px solid #1A1A1A"],
+  [style*="borderBottom: 1px solid #141414"],
+  [style*="borderBottom: 1px solid #1F1F1F"] {
+    border-bottom-color: var(--border-subtle) !important;
+  }
+
+  /* Nav background */
+  [style*="rgba(8,8,8"],
+  [style*="rgba(8, 8, 8"] {
+    background: var(--nav-bg) !important;
+  }
+
+  /* Gradient backgrounds on hero/cards */
+  [style*="radial-gradient(ellipse at 20%"][style*="#F59E0B15"] {
+    opacity: 0.5;
+  }
+}
+
+/* ── Input styles for light mode ─────────────────────────────── */
+[data-theme="light"] input,
+[data-theme="light"] textarea,
+[data-theme="light"] select {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border-color: var(--border-default) !important;
+}
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  color: var(--text-faint) !important;
+}
+
+/* ── Fix gradient text in light mode ────────────────────────── */
+[data-theme="light"] [style*="WebkitTextFillColor: transparent"],
+[data-theme="light"] [style*="-webkit-text-fill-color: transparent"] {
+  /* Keep gradient text as-is — looks good in both modes */
+}
+
+/* ── Card/surface shadows in light mode ─────────────────────── */
+[data-theme="light"] [style*="boxShadow"][style*="#F59E0B08"] {
+  box-shadow: var(--shadow-sm) !important;
+}
