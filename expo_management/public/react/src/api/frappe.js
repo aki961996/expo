@@ -26,7 +26,6 @@ async function frappeCall(method, args = {}) {
 }
 
 function getCsrf() {
-  // Frappe injects csrf_token as a cookie
   const match = document.cookie.match(/csrftoken=([^;]+)/)
   return match ? match[1] : 'none'
 }
@@ -47,12 +46,25 @@ export async function getEventDetail(eventCode) {
   )
 }
 
+// ── GET AVAILABLE STALLS ─────────────────────────────────────
+export async function getAvailableStalls(expo_event, expo_hall, dimension_label) {
+  /**
+   * Returns available stalls for a specific hall + dimension.
+   * expo_hall = hall.name (Frappe doc name, e.g. "BCON2026-HALL-1")
+   * dimension_label = "3×3", "6×6" etc.
+   */
+  return frappeCall(
+    'expo_management.expo_management.doctype.expo_event.expo_event.get_available_stalls',
+    { expo_event, expo_hall, dimension_label }
+  )
+}
+
 // ── CREATE BOOKING ───────────────────────────────────────────
 export async function createBooking(payload) {
   /**
    * payload = {
    *   expo_event,
-   *   selected_dims:     [...],   // array of { dimension_label, hall, area, base_price, total_price }
+   *   selected_dims:     [...],   // array of { dimension_label, hall, area, base_price, total_price, stall_name, stall_number }
    *   selected_services: [...],   // array of { service, price }
    *   stall_amount,
    *   service_amount,
@@ -77,7 +89,7 @@ export async function createBooking(payload) {
     }
   )
 }
- 
+
 // ── GET MY BOOKINGS ──────────────────────────────────────────
 export async function getMyBookings(expo_event = null) {
   return frappeCall(

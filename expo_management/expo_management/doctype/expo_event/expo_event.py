@@ -317,6 +317,34 @@ def create_booking(
 #  API 4 — Get My Bookings
 # ─────────────────────────────────────────────────────────────
 
+# ─────────────────────────────────────────────────────────────
+#  API 5 — Get Available Stalls for a Hall + Dimension
+# ─────────────────────────────────────────────────────────────
+
+@frappe.whitelist()
+def get_available_stalls(expo_event, expo_hall, dimension_label):
+	"""Return available stalls for a specific hall + dimension combo."""
+	if not frappe.db.table_exists("Expo Stall"):
+		return []
+
+	stalls = frappe.get_all(
+		"Expo Stall",
+		filters={
+			"expo_event":      expo_event,
+			"expo_hall":       expo_hall,
+			"dimension_label": dimension_label,
+			"status":          "Available",
+		},
+		fields=[
+			"name", "stall_number", "stall_type",
+			"dimension_label", "base_price", "final_price",
+			"status", "expo_hall",
+		],
+		order_by="stall_number asc",
+	)
+	return stalls
+
+
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
 	user_email = frappe.session.user

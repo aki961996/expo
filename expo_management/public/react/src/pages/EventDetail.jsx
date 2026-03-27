@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { getEventDetail } from '../api/frappe'
 import { useAuth } from '../context/AuthContext'
 import { useThemeStyles } from '../hooks/useThemeStyles'
+import StallPickerModal from '../components/StallPickerModal'
 
 const CAT_ACCENT = {
   'Trade Fair':     '#F59E0B',
@@ -69,7 +70,8 @@ export default function EventDetail() {
   const [detail, setDetail]       = useState(null)
   const [loading, setLoading]     = useState(true)
   const [activeTab, setActiveTab] = useState('services')
-  const [selected, setSelected]   = useState(new Map()) // key → { dim, hall }
+  const [selected, setSelected]       = useState(new Map()) // key → { dim, hall }
+  const [showStallPicker, setShowStallPicker] = useState(false)
 
   // Switch to halls tab when logged in, services when logged out
   useEffect(() => {
@@ -112,13 +114,21 @@ export default function EventDetail() {
     })
   }
 
-  // ── UPDATED: pass selected dims to BookingPage ──
   const handleBookStall = () => {
     if (!exhibitor) {
       navigate('/login', { state: { redirect: `/event/${code}` } })
+    } else if (selected.size === 0) {
+      // No dimension selected — scroll to halls tab
+      setActiveTab('halls')
     } else {
-      navigate(`/book/${code}`, { state: { selected: [...selected.values()] } })
+      // Open stall picker modal
+      setShowStallPicker(true)
     }
+  }
+
+  const handleStallPickerConfirm = (pickedStalls) => {
+    setShowStallPicker(false)
+    navigate(`/book/${code}`, { state: { selected: pickedStalls } })
   }
 
   if (loading) return (
@@ -172,6 +182,16 @@ export default function EventDetail() {
         ::-webkit-scrollbar-thumb { background: #2F2F2F; border-radius: 3px; }
       `}</style>
 
+      {/* Stall Picker Modal */}
+      <StallPickerModal
+        open={showStallPicker}
+        onClose={() => setShowStallPicker(false)}
+        selectedDims={[...selected.values()]}
+        eventCode={code}
+        accent={accent}
+        onConfirm={handleStallPickerConfirm}
+      />
+
       {/* ── NAVBAR ── */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '1px solid ' + t.borderSubtle }}>
         <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid ' + t.borderDefault, background: 'transparent', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
@@ -187,11 +207,11 @@ export default function EventDetail() {
               <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#00FF87', letterSpacing: '0.1em' }}>LIVE NOW</span>
             </div>
           )}
-          {/* <button onClick={handleBookStall} style={{ padding: '7px 18px', borderRadius: 8, background: exhibitor ? accent : '#1A1A1A', border: exhibitor ? 'none' : `1px solid ${accent}40`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
+          <button onClick={handleBookStall} style={{ padding: '7px 18px', borderRadius: 8, background: exhibitor ? accent : '#1A1A1A', border: exhibitor ? 'none' : `1px solid ${accent}40`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             {exhibitor ? 'Book a Stall →' : '🔒 Login to Book'}
-          </button> */}
+          </button>
         </div>
       </nav>
 
