@@ -20,18 +20,18 @@ export default function EventList() {
   const { exhibitor, logout } = useAuth()
   const { isDark, toggle: toggleTheme } = useTheme()
 
-  const [events, setEvents]             = useState([])
-  const [total, setTotal]               = useState(null)
-  const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(null)
-  const [search, setSearch]             = useState('')
-  const [status, setStatus]             = useState('All')
-  const [category, setCategory]         = useState('All')
+  const [events, setEvents]               = useState([])
+  const [total, setTotal]                 = useState(null)
+  const [loading, setLoading]             = useState(true)
+  const [error, setError]                 = useState(null)
+  const [search, setSearch]               = useState('')
+  const [status, setStatus]               = useState('All')
+  const [category, setCategory]           = useState('All')
   const [searchFocused, setSearchFocused] = useState(false)
-  const [showDropdown, setShowDropdown] = useState(false)
-  const [loggingOut, setLoggingOut]     = useState(false)
+  const [showDropdown, setShowDropdown]   = useState(false)
+  const [loggingOut, setLoggingOut]       = useState(false)
 
-  // ── Theme color helpers ─────────────────────────────────────
+  // ── Theme color object ────────────────────────────────────
   const c = {
     bg:        isDark ? '#080808' : '#F8F7F4',
     card:      isDark ? '#0F0F0F' : '#FFFFFF',
@@ -92,7 +92,8 @@ export default function EventList() {
         @keyframes shimmer   { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
         @keyframes spin      { to{transform:rotate(360deg)} }
         @keyframes scaleIn   { from{opacity:0;transform:scale(0.9)} to{opacity:1;transform:scale(1)} }
-        ::-webkit-scrollbar { width:6px; }
+        input::placeholder   { color: ${isDark ? '#4B5563' : '#B0AFA9'}; }
+        ::-webkit-scrollbar  { width:6px; }
         ::-webkit-scrollbar-track { background:${c.bg}; }
         ::-webkit-scrollbar-thumb { background:${c.border}; border-radius:3px; }
       `}</style>
@@ -117,35 +118,32 @@ export default function EventList() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-              <rect x="3" y="3" width="7" height="7" rx="1" fill="white"/>
-              <rect x="14" y="3" width="7" height="7" rx="1" fill="white" opacity="0.6"/>
-              <rect x="3" y="14" width="7" height="7" rx="1" fill="white" opacity="0.6"/>
+              <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white"/>
+              <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6"/>
+              <rect x="3"  y="14" width="7" height="7" rx="1" fill="white" opacity="0.6"/>
               <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3"/>
             </svg>
           </div>
           <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: c.text }}>ExpoMgmt</span>
         </div>
 
-        {/* Right */}
+        {/* Right section */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
 
-          {/* ── THEME TOGGLE BUTTON ── */}
+          {/* Theme toggle */}
           <button onClick={toggleTheme} title={isDark ? 'Light Mode' : 'Dark Mode'}
             style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${c.border}`, background: c.btnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = c.borderHov; e.currentTarget.style.background = isDark ? '#1A1A1A' : '#E8E7E4' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.btnBg }}
-          >
+            onMouseLeave={e => { e.currentTarget.style.borderColor = c.border; e.currentTarget.style.background = c.btnBg }}>
             {isDark ? (
-              /* ☀ Sun */
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round">
                 <circle cx="12" cy="12" r="5"/>
-                <line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
+                <line x1="12" y1="1"  x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
+                <line x1="4.22" y1="4.22"  x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+                <line x1="1"    y1="12"    x2="3"    y2="12"/>  <line x1="21"    y1="12"    x2="23"    y2="12"/>
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
             ) : (
-              /* ☾ Moon */
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B7280" strokeWidth="2" strokeLinecap="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
               </svg>
@@ -158,8 +156,7 @@ export default function EventList() {
               <button onClick={() => setShowDropdown(d => !d)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 6px 6px', borderRadius: 10, border: `1px solid ${c.border}`, background: c.btnBg, cursor: 'pointer', transition: 'border-color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = c.borderHov}
-                onMouseLeave={e => e.currentTarget.style.borderColor = c.border}
-              >
+                onMouseLeave={e => e.currentTarget.style.borderColor = c.border}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F59E0B20', border: '1px solid #F59E0B50', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.75rem', color: '#F59E0B', flexShrink: 0 }}>
                   {exhibitor.exhibitor_name?.charAt(0)?.toUpperCase() || 'E'}
                 </div>
@@ -167,7 +164,8 @@ export default function EventList() {
                   <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text, lineHeight: 1.2 }}>{exhibitor.exhibitor_name || exhibitor.company_name}</div>
                   <div style={{ fontSize: '0.65rem', color: c.textDim, lineHeight: 1.2 }}>{exhibitor.company_name}</div>
                 </div>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.textDim} strokeWidth="2.5" strokeLinecap="round" style={{ transition: 'transform 0.2s', transform: showDropdown ? 'rotate(180deg)' : 'rotate(0)' }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.textDim} strokeWidth="2.5" strokeLinecap="round"
+                  style={{ transition: 'transform 0.2s', transform: showDropdown ? 'rotate(180deg)' : 'rotate(0)' }}>
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
               </button>
@@ -177,9 +175,9 @@ export default function EventList() {
                   <div style={{ padding: '12px 14px', borderBottom: `1px solid ${c.border}` }}>
                     <div style={{ fontSize: '0.75rem', color: c.textMuted, fontWeight: 500 }}>{exhibitor.mobile || exhibitor.email}</div>
                   </div>
-                  <DropItem icon="🏠" label="My Dashboard" c={c} onClick={() => { navigate('/dashboard'); setShowDropdown(false) }} />
+                  <DropItem icon="🏠" label="My Dashboard" c={c} onClick={() => { navigate('/dashboard');    setShowDropdown(false) }} />
                   <DropItem icon="📋" label="My Bookings"  c={c} onClick={() => { navigate('/my-bookings'); setShowDropdown(false) }} />
-                  <DropItem icon="👤" label="My Profile"   c={c} onClick={() => { navigate('/profile'); setShowDropdown(false) }} />
+                  <DropItem icon="👤" label="My Profile"   c={c} onClick={() => { navigate('/profile');     setShowDropdown(false) }} />
                   <div style={{ height: 1, background: c.border }} />
                   <DropItem icon="🚪" label="Logout" c={c} color="#F87171" onClick={handleLogout} />
                 </div>
@@ -189,8 +187,9 @@ export default function EventList() {
             <button onClick={() => navigate('/login')}
               style={{ padding: '7px 18px', borderRadius: 8, background: '#F59E0B', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '0.82rem', fontWeight: 600, color: '#000', cursor: 'pointer', transition: 'opacity 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
-              onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-            >Exhibitor Login</button>
+              onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
+              Exhibitor Login
+            </button>
           )}
         </div>
       </nav>
@@ -223,7 +222,7 @@ export default function EventList() {
           ))}
         </div>
 
-        {/* Search */}
+        {/* Search + Filters */}
         <div style={{ animation: 'fadeIn 0.6s ease 0.35s both' }}>
           <div style={{ position: 'relative', marginBottom: 16, maxWidth: 560 }}>
             <svg style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: searchFocused ? '#F59E0B' : c.textFaint, transition: 'color 0.2s' }} width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -251,18 +250,20 @@ export default function EventList() {
 
       {/* ── EVENTS GRID ── */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 2rem 6rem' }}>
-        {loading    ? <SkeletonGrid c={c} />
-         : error    ? <ErrorState message={error} onRetry={load} c={c} />
-         : events.length === 0 ? <EmptyState c={c} />
-         : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
-            {events.map((ev, i) => <EventCard key={ev.name} event={ev} index={i} />)}
-          </div>
-        )}
+        {loading ? <SkeletonGrid c={c} />
+          : error ? <ErrorState message={error} onRetry={load} />
+          : events.length === 0 ? <EmptyState c={c} />
+          : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 20 }}>
+              {events.map((ev, i) => <EventCard key={ev.name} event={ev} index={i} />)}
+            </div>
+          )}
       </section>
     </div>
   )
 }
+
+// ── Sub-components ────────────────────────────────────────────
 
 function DropItem({ icon, label, onClick, color, c }) {
   const [hov, setHov] = useState(false)
@@ -276,11 +277,11 @@ function DropItem({ icon, label, onClick, color, c }) {
 
 function FilterChip({ label, active, activeColor, onClick, isDark }) {
   const [hov, setHov] = useState(false)
-  const border  = isDark ? '#1A1A1A' : '#E5E4E0'
-  const bHov    = isDark ? '#2F2F2F' : '#C4C3BF'
-  const txt     = isDark ? '#4B5563' : '#9CA3AF'
-  const tHov    = isDark ? '#9CA3AF' : '#4B5563'
-  const bgHov   = isDark ? '#141414' : '#EBEBEB'
+  const border = isDark ? '#1A1A1A' : '#E5E4E0'
+  const bHov   = isDark ? '#2F2F2F' : '#C4C3BF'
+  const txt    = isDark ? '#4B5563' : '#9CA3AF'
+  const tHov   = isDark ? '#9CA3AF' : '#4B5563'
+  const bgHov  = isDark ? '#141414' : '#EBEBEB'
   return (
     <button onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{ padding: '5px 13px', borderRadius: 100, border: `1px solid ${active ? activeColor + '60' : hov ? bHov : border}`, background: active ? activeColor + '15' : hov ? bgHov : 'transparent', color: active ? activeColor : hov ? tHov : txt, fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.18s', fontFamily: 'DM Sans, sans-serif', letterSpacing: '0.02em' }}>
