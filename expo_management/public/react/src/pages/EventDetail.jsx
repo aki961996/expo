@@ -80,11 +80,6 @@ export default function EventDetail() {
   }, [exhibitor])
 
   useEffect(() => {
-    if (exhibitor) setActiveTab('halls')
-    else setActiveTab('services')
-  }, [exhibitor])
-
-  useEffect(() => {
     window.scrollTo(0, 0)
     setLoading(true)
     getEventDetail(code)
@@ -195,8 +190,8 @@ export default function EventDetail() {
       {/* ── NAVBAR ── */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '1px solid ' + t.borderSubtle }}>
         <button onClick={() => navigate('/')} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid ' + t.borderDefault, background: 'transparent', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#2F2F2F'; e.currentTarget.style.color = '#F5F5F5' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1F1F1F'; e.currentTarget.style.color = '#9CA3AF' }}>
+          onMouseEnter={e => { e.currentTarget.style.borderColor = t.borderHover; e.currentTarget.style.color = '#F5F5F5' }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = t.borderDefault; e.currentTarget.style.color = '#9CA3AF' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           All Events
         </button>
@@ -207,7 +202,7 @@ export default function EventDetail() {
               <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#00FF87', letterSpacing: '0.1em' }}>LIVE NOW</span>
             </div>
           )}
-          <button onClick={handleBookStall} style={{ padding: '7px 18px', borderRadius: 8, background: exhibitor ? accent : '#1A1A1A', border: exhibitor ? 'none' : `1px solid ${accent}40`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
+          <button onClick={handleBookStall} style={{ padding: '7px 18px', borderRadius: 8, background: exhibitor ? accent : t.borderSubtle, border: exhibitor ? 'none' : `1px solid ${accent}40`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: 6 }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             {exhibitor ? 'Book a Stall →' : '🔒 Login to Book'}
@@ -428,9 +423,9 @@ function ExhibitorRow({ ex, accent, onOpenBooth }) {
   const hasBooth = !!ex.has_digital_booth
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '14px 16px', borderRadius: 12, background: hov ? (hasBooth ? accent + '08' : '#111') : '#0F0F0F', border: `1px solid ${hov ? (hasBooth ? accent + '40' : '#2A2A2A') : '#1A1A1A'}`, transition: 'all 0.2s' }}>
+      style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14, padding: '14px 16px', borderRadius: 12, background: hov ? (hasBooth ? accent + '08' : t.bgHover) : t.bgSurface, border: `1px solid ${hov ? (hasBooth ? accent + '40' : t.borderHover) : t.borderSubtle}`, transition: 'all 0.2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1, minWidth: 0 }}>
-        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: hasBooth ? accent + '20' : '#1A1A1A', border: `1px solid ${hasBooth ? accent + '40' : '#2A2A2A'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.85rem', color: hasBooth ? accent : '#4B5563' }}>
+        <div style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, background: hasBooth ? accent + '20' : t.bgHover, border: `1px solid ${hasBooth ? accent + '40' : t.borderDefault}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.85rem', color: hasBooth ? accent : t.textFaint }}>
           {ex.company_name?.charAt(0)}
         </div>
         <div style={{ minWidth: 0 }}>
@@ -446,7 +441,7 @@ function ExhibitorRow({ ex, accent, onOpenBooth }) {
           <span style={{ fontSize: '0.8rem' }}>🏪</span>View Digital Booth
         </button>
       ) : (
-        <span style={{ fontSize: '0.68rem', color: '#2A2A2A', fontWeight: 500, padding: '5px 10px', borderRadius: 6, background: t.bgElevated, border: '1px solid ' + t.borderDefault, flexShrink: 0, whiteSpace: 'nowrap' }}>No booth yet</span>
+        <span style={{ fontSize: '0.68rem', color: t.borderHover, fontWeight: 500, padding: '5px 10px', borderRadius: 6, background: t.bgElevated, border: '1px solid ' + t.borderDefault, flexShrink: 0, whiteSpace: 'nowrap' }}>No booth yet</span>
       )}
     </div>
   )
@@ -475,10 +470,18 @@ function SectionTitle({ title, accent }) {
 function HallCard({ hall, accent, selected, onToggleDim }) {
   const t = useThemeStyles()
   const [open, setOpen] = useState(true)
+  const [showFloorPlan, setShowFloorPlan] = useState(false)
+
+  const floorPlanUrl = hall.floor_plan
+    ? (hall.floor_plan.startsWith('http') ? hall.floor_plan : hall.floor_plan)
+    : null
+
   return (
     <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.2s' }}
       onMouseEnter={e => e.currentTarget.style.borderColor = accent + '30'}
-      onMouseLeave={e => e.currentTarget.style.borderColor = '#1A1A1A'}>
+      onMouseLeave={e => e.currentTarget.style.borderColor = t.borderSubtle}>
+
+      {/* Header */}
       <div onClick={() => setOpen(o => !o)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', cursor: 'pointer', background: open ? accent + '08' : 'transparent', borderBottom: open ? '1px solid ' + t.borderSubtle : 'none', transition: 'background 0.2s' }}>
         <div>
           <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700, fontSize: '0.95rem', color: t.textSecondary, marginBottom: 4 }}>{hall.hall_name}</h3>
@@ -490,9 +493,41 @@ function HallCard({ hall, accent, selected, onToggleDim }) {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ padding: '3px 10px', borderRadius: 6, background: hall.hall_type === 'AC' ? '#60A5FA20' : '#F59E0B15', color: hall.hall_type === 'AC' ? '#60A5FA' : '#F59E0B', fontSize: '0.68rem', fontWeight: 700 }}>{hall.hall_type}</span>
+          {floorPlanUrl && (
+            <button
+              onClick={e => { e.stopPropagation(); setShowFloorPlan(s => !s) }}
+              style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 6, border: `1px solid ${accent}40`, background: showFloorPlan ? accent + '20' : 'transparent', color: accent, fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer', transition: 'all 0.2s' }}>
+              🗺 {showFloorPlan ? 'Hide' : 'Floor Plan'}
+            </button>
+          )}
           <span style={{ color: t.textFaint, fontSize: '0.8rem', transition: 'transform 0.2s', transform: open ? 'rotate(180deg)' : 'rotate(0)' }}>▼</span>
         </div>
       </div>
+
+      {/* Floor Plan Image */}
+      {open && floorPlanUrl && showFloorPlan && (
+        <div style={{ padding: '12px 20px', borderBottom: '1px solid ' + t.borderSubtle, background: t.bgElevated }}>
+          <div style={{ fontSize: '0.7rem', color: t.textFaint, marginBottom: 8, fontWeight: 600, letterSpacing: '0.06em' }}>FLOOR PLAN</div>
+          <div style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid ' + t.borderDefault, position: 'relative', background: t.bgSurface }}>
+            <img
+              src={floorPlanUrl}
+              alt={`${hall.hall_name} Floor Plan`}
+              style={{ width: '100%', height: 'auto', maxHeight: 400, objectFit: 'contain', display: 'block' }}
+              onError={e => { e.target.parentElement.innerHTML = `<div style="padding:24px;text-align:center;color:#6B7280;font-size:0.82rem">Floor plan image unavailable</div>` }}
+            />
+          </div>
+          <a
+            href={floorPlanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 5, marginTop: 8, fontSize: '0.72rem', color: accent, fontWeight: 600, textDecoration: 'none' }}
+          >
+            ↗ Open full size
+          </a>
+        </div>
+      )}
+
+      {/* Dim Cards */}
       {open && (hall.dimensions || []).length > 0 && (
         <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
           {(hall.dimensions || []).map((dim, di) => (
@@ -514,7 +549,7 @@ function DimCard({ dim, accent, isSelected, onClick }) {
   const totalPrice = (dim.base_price || 0) * stallArea
   return (
     <div onClick={onClick} onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ background: isSelected ? accent + '12' : hov ? accent + '0A' : '#141414', border: `1px solid ${isSelected ? accent : hov ? accent + '40' : '#1F1F1F'}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s', cursor: 'pointer', boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none' }}>
+      style={{ background: isSelected ? accent + '12' : hov ? accent + '0A' : t.bgElevated, border: `1px solid ${isSelected ? accent : hov ? accent + '40' : t.borderDefault}`, borderRadius: 10, padding: '14px 14px 12px', transition: 'all 0.2s', cursor: 'pointer', boxShadow: isSelected ? `0 0 0 1px ${accent}40` : 'none' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
         <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: t.textPrimary }}>{dim.dimension_label} m</div>
         {isSelected && <div style={{ fontSize: '0.6rem', fontWeight: 700, color: accent, background: accent + '20', padding: '2px 7px', borderRadius: 100 }}>✓</div>}
@@ -539,7 +574,7 @@ function ServiceCard({ svc }) {
   const [hov, setHov] = useState(false)
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: hov ? '#141414' : '#0F0F0F', border: `1px solid ${hov ? color + '30' : '#1A1A1A'}`, borderRadius: 12, padding: '14px 16px', transition: 'all 0.2s' }}>
+      style={{ display: 'flex', gap: 14, alignItems: 'flex-start', background: hov ? t.bgElevated : t.bgSurface, border: `1px solid ${hov ? color + '30' : t.borderSubtle}`, borderRadius: 12, padding: '14px 16px', transition: 'all 0.2s' }}>
       <div style={{ width: 42, height: 42, borderRadius: 10, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{SVC_ICON[svc.category] || '🔧'}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: '0.88rem', color: t.textSecondary, marginBottom: 2 }}>{svc.service_name}</div>
@@ -562,7 +597,7 @@ function FacilityCard({ icon, label, accent }) {
   const [hov, setHov] = useState(false)
   return (
     <div onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ background: hov ? accent + '08' : '#0F0F0F', border: `1px solid ${hov ? accent + '30' : '#1A1A1A'}`, borderRadius: 10, padding: '14px 10px', textAlign: 'center', transition: 'all 0.2s' }}>
+      style={{ background: hov ? accent + '08' : t.bgSurface, border: `1px solid ${hov ? accent + '30' : t.borderSubtle}`, borderRadius: 10, padding: '14px 10px', textAlign: 'center', transition: 'all 0.2s' }}>
       <div style={{ fontSize: '1.6rem', marginBottom: 6 }}>{icon}</div>
       <div style={{ fontSize: '0.72rem', color: t.textMuted, fontWeight: 500 }}>{label}</div>
     </div>
