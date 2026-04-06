@@ -269,22 +269,27 @@ def create_booking(
 	if not exhibitor:
 		frappe.throw("Exhibitor profile not found. Please complete your registration.")
 
-	# Create Stall Booking — only fields that exist in doctype
-	# NOTE: stall (Link) field is intentionally omitted —
-	# specific stall number will be assigned after payment/admin approval
-	
-	# Build stall_number from selected dimensions for reference
+	# Collect stall names and numbers from selected dims
+	stall_names   = [d.get("stall_name")   for d in selected_dims if d.get("stall_name")]
+	stall_numbers = [d.get("stall_number") for d in selected_dims if d.get("stall_number")]
+
+	# Build readable stall reference string
+	# Format: "H1-004 (3×3 m) | H1-010 (3×3 m) | H1-102 (6×6 m)"
 	stall_number_ref = " | ".join([
-		d.get("dimension_label", "") + " m"
+		f"{d.get('stall_number', '')} ({d.get('dimension_label', '')} m)"
 		for d in selected_dims
 	])
+
+	# First stall name for the Link field (admin can update later)
+	primary_stall = stall_names[0] if stall_names else None
 
 	booking = frappe.get_doc({
 		"doctype":        "Stall Booking",
 		"expo_event":     expo_event,
 		"exhibitor":      exhibitor.name,
 		"exhibitor_name": exhibitor.exhibitor_name,
-		"stall_number":   stall_number_ref,   # e.g. "3×3 m | 6×6 m"
+		"stall":          primary_stall,    # Link field — first stall
+		"stall_number":   stall_number_ref, # Full readable reference
 		"booking_date":   now(),
 		"payment_status": "Pending",
 		"base_amount":    float(stall_amount or 0),
@@ -301,15 +306,24 @@ def create_booking(
 			"price":   float(svc.get("price", 0)),
 		})
 
+	booking.flags.ignore_mandatory = True
+	booking.flags.ignore_links      = True
 	booking.insert(ignore_permissions=True)
+
+	# Mark all picked stalls as "Hold" (Booked after payment)
+	for stall_name in stall_names:
+		if frappe.db.exists("Expo Stall", stall_name):
+			frappe.db.set_value("Expo Stall", stall_name, "status", "Hold")
+
 	frappe.db.commit()
 
 	return {
-		"booking_id":   booking.name,
-		"status":       "success",
-		"total_amount": float(total_amount or 0),
-		"deposit_paid": float(deposit_paid or 0),
-		"balance_due":  float(balance_due or 0),
+		"booking_id":    booking.name,
+		"status":        "success",
+		"stall_numbers": stall_numbers,
+		"total_amount":  float(total_amount or 0),
+		"deposit_paid":  float(deposit_paid or 0),
+		"balance_due":   float(balance_due or 0),
 	}
 
 
@@ -327,6 +341,9 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 	if not frappe.db.table_exists("Expo Stall"):
 		return []
 
+	# Normalize dimension_label: replace 'x' with '×' for consistency
+	dimension_label = dimension_label.replace('x', '×').strip()
+
 	stalls = frappe.get_all(
 		"Expo Stall",
 		filters={
@@ -342,6 +359,26 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		],
 		order_by="stall_number asc",
 	)
+
+	# If no results with ×, try with x as fallback
+	if not stalls:
+		fallback_label = dimension_label.replace('×', 'x')
+		stalls = frappe.get_all(
+			"Expo Stall",
+			filters={
+				"expo_event":      expo_event,
+				"expo_hall":       expo_hall,
+				"dimension_label": fallback_label,
+				"status":          "Available",
+			},
+			fields=[
+				"name", "stall_number", "stall_type",
+				"dimension_label", "base_price", "final_price",
+				"status", "expo_hall",
+			],
+			order_by="stall_number asc",
+		)
+
 	return stalls
 
 
