@@ -60,8 +60,12 @@ export default function BookingPage() {
   const { exhibitor } = useAuth()
   const t             = useThemeStyles()
 
-  // Normalize selected stalls from either flow
-  const passedSelected = normalizeSelected(location.state?.selected)
+  // Normalize selected stalls — state so user can remove items
+  const [passedSelected, setPassedSelected] = useState(() => normalizeSelected(location.state?.selected))
+
+  const removeStall = (index) => {
+    setPassedSelected(prev => prev.filter((_, i) => i !== index))
+  }
 
   const [detail, setDetail]             = useState(null)
   const [loading, setLoading]           = useState(true)
@@ -283,9 +287,21 @@ export default function BookingPage() {
                             </div>
                           )}
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{price.toLocaleString()}</div>
-                          <div style={{ fontSize: '0.7rem', color: t.textFaint }}>₹{x.dim.base_price?.toLocaleString()}/sqft · {area} sqm</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{price.toLocaleString()}</div>
+                            <div style={{ fontSize: '0.7rem', color: t.textFaint }}>₹{x.dim.base_price?.toLocaleString()}/sqft · {area} sqm</div>
+                          </div>
+                          <button
+                            onClick={() => removeStall(i)}
+                            title="Remove stall"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #F8717130', background: '#F8717108', color: '#F87171', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#F8717120'; e.currentTarget.style.borderColor = '#F87171' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = '#F8717108'; e.currentTarget.style.borderColor = '#F8717130' }}
+                          >
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+                            Remove
+                          </button>
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
@@ -299,7 +315,14 @@ export default function BookingPage() {
                     </div>
                   )
                 })}
-                <button onClick={() => navigate(`/event/${code}`)} style={{ marginTop: 4, padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.78rem', color: t.textMuted, cursor: 'pointer' }}>
+                <button onClick={() => navigate(`/event/${code}`, {
+                    state: {
+                      restoreSelected: passedSelected.map(x => ({
+                        hallCode: x.hall?.hall_code || x.hall?.name,
+                        dimLabel: x.dim?.dimension_label,
+                      }))
+                    }
+                  })} style={{ marginTop: 4, padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.78rem', color: t.textMuted, cursor: 'pointer' }}>
                   + Add / Change Stalls
                 </button>
               </div>

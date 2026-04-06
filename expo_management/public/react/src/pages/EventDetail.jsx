@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { getEventDetail } from '../api/frappe'
 import { useAuth } from '../context/AuthContext'
 import { useThemeStyles } from '../hooks/useThemeStyles'
@@ -65,6 +65,7 @@ export default function EventDetail() {
   const { code }      = useParams()
   const navigate      = useNavigate()
   const { exhibitor } = useAuth()
+  const location = useLocation()
   const t = useThemeStyles()
 
   const [detail, setDetail]       = useState(null)
@@ -89,6 +90,23 @@ export default function EventDetail() {
         const allEntries = (d.halls || []).flatMap(hall =>
           (hall.dimensions || []).map(dim => ({ dim, hall }))
         )
+        // Restore previously selected dims (from "Add/Change Stalls" button)
+        const toRestore = location.state?.restoreSelected
+        if (toRestore?.length > 0) {
+          const restoredMap = new Map()
+          toRestore.forEach(({ hallCode, dimLabel }) => {
+            const hall = (d.halls || []).find(h => h.hall_code === hallCode || h.name === hallCode)
+            if (!hall) return
+            const dim = (hall.dimensions || []).find(d => d.dimension_label === dimLabel)
+            if (!dim) return
+            const key = getDimKey(hall, dim)
+            restoredMap.set(key, { dim, hall })
+          })
+          if (restoredMap.size > 0) {
+            setSelected(restoredMap)
+            return
+          }
+        }
         if (allEntries.length > 0) {
           const cheapest = allEntries.reduce((m, x) =>
             getDimPrice(x.dim) < getDimPrice(m.dim) ? x : m
