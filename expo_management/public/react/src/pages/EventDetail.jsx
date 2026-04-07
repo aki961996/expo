@@ -315,7 +315,7 @@ export default function EventDetail() {
             {/* Tab: Services */}
             {activeTab === 'services' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {services.map((svc, i) => <ServiceCard key={i} svc={svc} />)}
+                {services.map((svc, i) => <ServiceCard key={i} svc={svc} isLoggedIn={!!exhibitor} />)}
               </div>
             )}
 
@@ -621,7 +621,7 @@ function ExhibitorRow({ ex, accent, onOpenBooth }) {
   )
 }
 
-function ServiceCard({ svc }) {
+function ServiceCard({ svc, isLoggedIn = false }) {
   const t = useThemeStyles()
   const color = SVC_CATEGORY_COLOR[svc.category] || '#9CA3AF'
   const [hov, setHov] = useState(false)
@@ -637,9 +637,15 @@ function ServiceCard({ svc }) {
         {svc.description && <div style={{ fontSize: '0.73rem', color: t.textMuted }}>{svc.description}</div>}
       </div>
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-        <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '0.95rem' }}>₹{svc.price?.toLocaleString()}</div>
-        <div style={{ fontSize: '0.62rem', color: t.textGhost, marginTop: 2 }}>+{svc.tax_percent}% GST</div>
-        {svc.is_mandatory && <div style={{ fontSize: '0.6rem', color: '#F87171', fontWeight: 700, marginTop: 3 }}>MANDATORY</div>}
+        {isLoggedIn ? (
+          <>
+            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '0.95rem' }}>₹{svc.price?.toLocaleString()}</div>
+            <div style={{ fontSize: '0.62rem', color: t.textGhost, marginTop: 2 }}>+{svc.tax_percent}% GST</div>
+            {!!svc.is_mandatory && <div style={{ fontSize: '0.6rem', color: '#F87171', fontWeight: 700, marginTop: 3 }}>MANDATORY</div>}
+          </>
+        ) : (
+          <div style={{ fontSize: '0.72rem', color: t.textFaint, whiteSpace: 'nowrap' }}>Login to see price</div>
+        )}
       </div>
     </div>
   )
