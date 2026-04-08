@@ -494,7 +494,7 @@ function FloorPlanLightbox({ url, hallName, accent, onClose }) {
       <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 1000, borderRadius: 14, overflow: 'hidden', border: '1px solid #2A2A2A', background: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img src={url} alt={hallName + ' Floor Plan'} style={{ width: '100%', maxHeight: 'calc(88vh - 80px)', objectFit: 'contain', display: 'block' }} onError={e => { e.target.parentElement.innerHTML = '<div style="padding:40px;color:#6B7280;text-align:center">Floor plan unavailable</div>' }} />
       </div>
-      <div style={{ marginTop: 10, fontSize: '0.67rem', color: '#4B5563' }}>Press ESC or click outside to close</div>
+      <div style={{ marginTop: 10, fontSize: '0.67rem', color: '#d8e2f1' }}>Press ESC or click outside to close</div>
     </div>
   )
 }

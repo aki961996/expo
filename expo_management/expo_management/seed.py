@@ -6,9 +6,6 @@ Run:
 
 Clean all:
   bench --site ex.local execute expo_management.expo_management.seed.clean_seed
-
-Clean only new 3 events:
-  bench --site ex.local execute expo_management.expo_management.seed.clean_extra_seed
 """
 
 import frappe
@@ -53,31 +50,278 @@ def _seed_expo_events():
 
 
 # ─────────────────────────────────────────────────────────────
-# 2. EXPO HALLS
+# 2. EXPO HALLS  (25 halls across 6 events)
 # ─────────────────────────────────────────────────────────────
 
 def _seed_expo_halls():
     print("\n  Creating Expo Halls...")
+
+    DIM_3x3  = {"dimension_label": "3×3",  "width": 3,  "depth": 3,  "area": 9,   "corner_premium": 12, "island_premium": 20, "tax_percent": 18}
+    DIM_6x3  = {"dimension_label": "6×3",  "width": 6,  "depth": 3,  "area": 18,  "corner_premium": 10, "island_premium": 15, "tax_percent": 18}
+    DIM_6x6  = {"dimension_label": "6×6",  "width": 6,  "depth": 6,  "area": 36,  "corner_premium": 12, "island_premium": 18, "tax_percent": 18}
+    DIM_9x6  = {"dimension_label": "9×6",  "width": 9,  "depth": 6,  "area": 54,  "corner_premium": 10, "island_premium": 15, "tax_percent": 18}
+    DIM_9x9  = {"dimension_label": "9×9",  "width": 9,  "depth": 9,  "area": 81,  "corner_premium": 10, "island_premium": 15, "tax_percent": 18}
+    DIM_12x6 = {"dimension_label": "12×6", "width": 12, "depth": 6,  "area": 72,  "corner_premium": 10, "island_premium": 12, "tax_percent": 18}
+    DIM_12x9 = {"dimension_label": "12×9", "width": 12, "depth": 9,  "area": 108, "corner_premium": 8,  "island_premium": 12, "tax_percent": 18}
+    DIM_18x12= {"dimension_label": "18×12","width": 18, "depth": 12, "area": 216, "corner_premium": 8,  "island_premium": 10, "tax_percent": 18}
+
+    def dim(base, bp, dep, tot, avail):
+        return {**base, "base_price": bp, "deposit": dep, "total_stalls": tot, "available_stalls": avail}
+
     halls = [
-        {"doctype": "Expo Hall", "hall_name": "Hall A – Technology & Startups",           "hall_code": "KTE2026-HALL-A",        "expo_event": "KTE2026",      "hall_type": "AC",     "area": 8000,  "ceiling_height": 14, "power_capacity": "500 KW",  "price": 500000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1200, "corner_premium": 15, "island_premium": 25, "tax_percent": 18, "deposit": 5000,  "total_stalls": 80,  "available_stalls": 80}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36,  "base_price": 1000, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 15000, "total_stalls": 30,  "available_stalls": 30}, {"dimension_label": "9×9", "width": 9, "depth": 9, "area": 81,  "base_price": 900,  "corner_premium": 10, "island_premium": 20, "tax_percent": 18, "deposit": 30000, "total_stalls": 10,  "available_stalls": 10}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall B – Electronics & Hardware",           "hall_code": "KTE2026-HALL-B",        "expo_event": "KTE2026",      "hall_type": "AC",     "area": 6000,  "ceiling_height": 12, "power_capacity": "400 KW",  "price": 400000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1100, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 5000,  "total_stalls": 60,  "available_stalls": 60}, {"dimension_label": "6×3", "width": 6, "depth": 3, "area": 18,  "base_price": 1000, "corner_premium": 10, "island_premium": 15, "tax_percent": 18, "deposit": 10000, "total_stalls": 25,  "available_stalls": 25}]},
-        {"doctype": "Expo Hall", "hall_name": "Main Pavilion – Food & Beverage",           "hall_code": "SIFS2026-HALL-A",       "expo_event": "SIFS2026",     "hall_type": "AC",     "area": 10000, "ceiling_height": 16, "power_capacity": "600 KW",  "price": 700000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1300, "corner_premium": 15, "island_premium": 25, "tax_percent": 18, "deposit": 6000,  "total_stalls": 100, "available_stalls": 100}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 1100, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 18000, "total_stalls": 40,  "available_stalls": 40}, {"dimension_label": "9×6", "width": 9, "depth": 6, "area": 54, "base_price": 1000, "corner_premium": 10, "island_premium": 20, "tax_percent": 18, "deposit": 25000, "total_stalls": 20,  "available_stalls": 20}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall 1 – Building Materials",               "hall_code": "BCON2026-HALL-1",       "expo_event": "BCON2026",     "hall_type": "Non-AC", "area": 12000, "ceiling_height": 18, "power_capacity": "800 KW",  "price": 600000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 900,  "corner_premium": 12, "island_premium": 20, "tax_percent": 18, "deposit": 4000,  "total_stalls": 120, "available_stalls": 45}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 800,  "corner_premium": 12, "island_premium": 18, "tax_percent": 18, "deposit": 12000, "total_stalls": 50,  "available_stalls": 12}, {"dimension_label": "12×6", "width": 12, "depth": 6, "area": 72, "base_price": 750, "corner_premium": 10, "island_premium": 15, "tax_percent": 18, "deposit": 30000, "total_stalls": 15, "available_stalls": 3}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall M1 – Medical Devices & Diagnostics",   "hall_code": "HMCE2026-HALL-M1",      "expo_event": "HMCE2026",     "hall_type": "AC",     "area": 7000,  "ceiling_height": 13, "power_capacity": "450 KW",  "price": 550000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1400, "corner_premium": 15, "island_premium": 25, "tax_percent": 18, "deposit": 6000,  "total_stalls": 70,  "available_stalls": 70}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 1200, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 20000, "total_stalls": 25,  "available_stalls": 25}, {"dimension_label": "9×6", "width": 9, "depth": 6, "area": 54, "base_price": 1100, "corner_premium": 10, "island_premium": 20, "tax_percent": 18, "deposit": 35000, "total_stalls": 8,   "available_stalls": 8}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall M2 – Pharma & Hospital Management",    "hall_code": "HMCE2026-HALL-M2",      "expo_event": "HMCE2026",     "hall_type": "AC",     "area": 5000,  "ceiling_height": 12, "power_capacity": "300 KW",  "price": 400000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1350, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 6000,  "total_stalls": 55,  "available_stalls": 55}, {"dimension_label": "6×3", "width": 6, "depth": 3, "area": 18, "base_price": 1200, "corner_premium": 10, "island_premium": 15, "tax_percent": 18, "deposit": 12000, "total_stalls": 20,  "available_stalls": 20}]},
-        {"doctype": "Expo Hall", "hall_name": "Pavilion A – Farm Machinery & Equipment",   "hall_code": "AGRIINDIA2026-HALL-A",  "expo_event": "AGRIINDIA2026","hall_type": "Non-AC", "area": 15000, "ceiling_height": 20, "power_capacity": "1000 KW", "price": 800000, "stall_dimensions": [{"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 850, "corner_premium": 12, "island_premium": 18, "tax_percent": 18, "deposit": 10000, "total_stalls": 80, "available_stalls": 80}, {"dimension_label": "12×9", "width": 12, "depth": 9, "area": 108, "base_price": 750, "corner_premium": 10, "island_premium": 15, "tax_percent": 18, "deposit": 40000, "total_stalls": 20, "available_stalls": 20}, {"dimension_label": "18×12", "width": 18, "depth": 12, "area": 216, "base_price": 700, "corner_premium": 8, "island_premium": 12, "tax_percent": 18, "deposit": 80000, "total_stalls": 5, "available_stalls": 5}]},
-        {"doctype": "Expo Hall", "hall_name": "Pavilion B – Seeds, Fertilizers & AgriTech","hall_code": "AGRIINDIA2026-HALL-B",  "expo_event": "AGRIINDIA2026","hall_type": "Non-AC", "area": 10000, "ceiling_height": 16, "power_capacity": "600 KW",  "price": 500000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 700, "corner_premium": 12, "island_premium": 18, "tax_percent": 18, "deposit": 4000, "total_stalls": 100, "available_stalls": 100}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 650, "corner_premium": 10, "island_premium": 15, "tax_percent": 18, "deposit": 10000, "total_stalls": 40, "available_stalls": 40}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall E1 – EdTech Platforms & e-Learning",   "hall_code": "EDUTECH2026-HALL-E1",   "expo_event": "EDUTECH2026",  "hall_type": "AC",     "area": 5000,  "ceiling_height": 11, "power_capacity": "250 KW",  "price": 350000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1100, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 5000,  "total_stalls": 60,  "available_stalls": 60}, {"dimension_label": "6×3", "width": 6, "depth": 3, "area": 18, "base_price": 1000, "corner_premium": 12, "island_premium": 18, "tax_percent": 18, "deposit": 10000, "total_stalls": 20,  "available_stalls": 20}]},
-        {"doctype": "Expo Hall", "hall_name": "Hall E2 – School Infrastructure & Skills",  "hall_code": "EDUTECH2026-HALL-E2",   "expo_event": "EDUTECH2026",  "hall_type": "AC",     "area": 4000,  "ceiling_height": 11, "power_capacity": "200 KW",  "price": 280000, "stall_dimensions": [{"dimension_label": "3×3", "width": 3, "depth": 3, "area": 9, "base_price": 1050, "corner_premium": 15, "island_premium": 20, "tax_percent": 18, "deposit": 5000,  "total_stalls": 50,  "available_stalls": 50}, {"dimension_label": "6×6", "width": 6, "depth": 6, "area": 36, "base_price": 950,  "corner_premium": 12, "island_premium": 18, "tax_percent": 18, "deposit": 15000, "total_stalls": 15,  "available_stalls": 15}]},
+        # ── KTE2026 (4 halls) ─────────────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall A – Technology & Startups",
+            "hall_code": "KTE2026-HALL-A", "expo_event": "KTE2026",
+            "hall_type": "AC", "area": 8000, "ceiling_height": 14, "power_capacity": "500 KW", "price": 500000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1200, 5000,  80, 62),
+                dim(DIM_6x6, 1000, 15000, 30, 22),
+                dim(DIM_9x9,  900, 30000, 10,  7),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall B – Electronics & Hardware",
+            "hall_code": "KTE2026-HALL-B", "expo_event": "KTE2026",
+            "hall_type": "AC", "area": 6000, "ceiling_height": 12, "power_capacity": "400 KW", "price": 400000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1100, 5000,  60, 48),
+                dim(DIM_6x3, 1000, 10000, 25, 18),
+                dim(DIM_6x6,  950, 14000, 15, 10),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall C – Cloud & SaaS Pavilion",
+            "hall_code": "KTE2026-HALL-C", "expo_event": "KTE2026",
+            "hall_type": "AC", "area": 5000, "ceiling_height": 11, "power_capacity": "300 KW", "price": 350000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1050, 5000,  50, 38),
+                dim(DIM_6x3,  950, 9000,  20, 15),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall D – Startup Arena",
+            "hall_code": "KTE2026-HALL-D", "expo_event": "KTE2026",
+            "hall_type": "AC", "area": 3000, "ceiling_height": 10, "power_capacity": "200 KW", "price": 200000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 950, 4000, 40, 32),
+            ]
+        },
+
+        # ── SIFS2026 (4 halls) ────────────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Main Pavilion – Food & Beverage",
+            "hall_code": "SIFS2026-HALL-A", "expo_event": "SIFS2026",
+            "hall_type": "AC", "area": 10000, "ceiling_height": 16, "power_capacity": "600 KW", "price": 700000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1300, 6000,  100, 78),
+                dim(DIM_6x6, 1100, 18000,  40, 28),
+                dim(DIM_9x6, 1000, 25000,  20, 14),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall B – Food Machinery & Processing",
+            "hall_code": "SIFS2026-HALL-B", "expo_event": "SIFS2026",
+            "hall_type": "Non-AC", "area": 8000, "ceiling_height": 15, "power_capacity": "700 KW", "price": 500000,
+            "stall_dimensions": [
+                dim(DIM_6x6,  950, 14000, 50, 36),
+                dim(DIM_12x6, 850, 28000, 20, 12),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall C – Packaging & Ingredients",
+            "hall_code": "SIFS2026-HALL-C", "expo_event": "SIFS2026",
+            "hall_type": "AC", "area": 5000, "ceiling_height": 12, "power_capacity": "250 KW", "price": 350000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1150, 5500, 60, 44),
+                dim(DIM_6x3, 1050, 11000, 20, 14),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall D – Organic & Specialty Foods",
+            "hall_code": "SIFS2026-HALL-D", "expo_event": "SIFS2026",
+            "hall_type": "AC", "area": 3500, "ceiling_height": 11, "power_capacity": "180 KW", "price": 250000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1050, 5000, 45, 35),
+            ]
+        },
+
+        # ── BCON2026 (5 halls) ────────────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall 1 – Building Materials",
+            "hall_code": "BCON2026-HALL-1", "expo_event": "BCON2026",
+            "hall_type": "Non-AC", "area": 12000, "ceiling_height": 18, "power_capacity": "800 KW", "price": 600000,
+            "stall_dimensions": [
+                dim(DIM_3x3,  900, 4000,  120, 45),
+                dim(DIM_6x6,  800, 12000,  50, 12),
+                dim(DIM_12x6, 750, 30000,  15,  3),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall 2 – Interior Design & Décor",
+            "hall_code": "BCON2026-HALL-2", "expo_event": "BCON2026",
+            "hall_type": "AC", "area": 9000, "ceiling_height": 14, "power_capacity": "500 KW", "price": 500000,
+            "stall_dimensions": [
+                dim(DIM_3x3,  980, 4500,  90, 62),
+                dim(DIM_6x6,  870, 13000, 35, 22),
+                dim(DIM_9x6,  820, 22000, 12,  8),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall 3 – Smart Home & Automation",
+            "hall_code": "BCON2026-HALL-3", "expo_event": "BCON2026",
+            "hall_type": "AC", "area": 7000, "ceiling_height": 12, "power_capacity": "400 KW", "price": 420000,
+            "stall_dimensions": [
+                dim(DIM_3x3,  950, 4200,  70, 50),
+                dim(DIM_6x3,  880, 9500,  25, 18),
+                dim(DIM_6x6,  830, 12500, 18, 12),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall 4 – Plumbing, Electricals & MEP",
+            "hall_code": "BCON2026-HALL-4", "expo_event": "BCON2026",
+            "hall_type": "Non-AC", "area": 8000, "ceiling_height": 16, "power_capacity": "600 KW", "price": 450000,
+            "stall_dimensions": [
+                dim(DIM_3x3,  880, 4000,  80, 55),
+                dim(DIM_6x6,  780, 11000, 30, 18),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Outdoor Pavilion – Heavy Machinery",
+            "hall_code": "BCON2026-HALL-OD", "expo_event": "BCON2026",
+            "hall_type": "Non-AC", "area": 20000, "ceiling_height": 0, "power_capacity": "1200 KW", "price": 800000,
+            "stall_dimensions": [
+                dim(DIM_12x6, 700, 28000, 30, 18),
+                dim(DIM_12x9, 650, 40000, 15,  8),
+                dim(DIM_18x12,600, 75000,  5,  3),
+            ]
+        },
+
+        # ── HMCE2026 (4 halls) ────────────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall M1 – Medical Devices & Diagnostics",
+            "hall_code": "HMCE2026-HALL-M1", "expo_event": "HMCE2026",
+            "hall_type": "AC", "area": 7000, "ceiling_height": 13, "power_capacity": "450 KW", "price": 550000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1400, 6000,  70, 52),
+                dim(DIM_6x6, 1200, 20000, 25, 17),
+                dim(DIM_9x6, 1100, 35000,  8,  6),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall M2 – Pharma & Hospital Management",
+            "hall_code": "HMCE2026-HALL-M2", "expo_event": "HMCE2026",
+            "hall_type": "AC", "area": 5000, "ceiling_height": 12, "power_capacity": "300 KW", "price": 400000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1350, 6000,  55, 40),
+                dim(DIM_6x3, 1200, 12000, 20, 14),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall M3 – Telemedicine & HealthIT",
+            "hall_code": "HMCE2026-HALL-M3", "expo_event": "HMCE2026",
+            "hall_type": "AC", "area": 4500, "ceiling_height": 11, "power_capacity": "250 KW", "price": 320000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1280, 5500, 50, 36),
+                dim(DIM_6x3, 1150, 11000, 18, 12),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall M4 – Rehabilitation & Wellness",
+            "hall_code": "HMCE2026-HALL-M4", "expo_event": "HMCE2026",
+            "hall_type": "AC", "area": 3500, "ceiling_height": 11, "power_capacity": "200 KW", "price": 260000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1200, 5000, 40, 30),
+            ]
+        },
+
+        # ── AGRIINDIA2026 (4 halls) ───────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Pavilion A – Farm Machinery & Equipment",
+            "hall_code": "AGRIINDIA2026-HALL-A", "expo_event": "AGRIINDIA2026",
+            "hall_type": "Non-AC", "area": 15000, "ceiling_height": 20, "power_capacity": "1000 KW", "price": 800000,
+            "stall_dimensions": [
+                dim(DIM_6x6,  850, 10000, 80, 58),
+                dim(DIM_12x9, 750, 40000, 20, 13),
+                dim(DIM_18x12,700, 80000,  5,  3),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Pavilion B – Seeds, Fertilizers & AgriTech",
+            "hall_code": "AGRIINDIA2026-HALL-B", "expo_event": "AGRIINDIA2026",
+            "hall_type": "Non-AC", "area": 10000, "ceiling_height": 16, "power_capacity": "600 KW", "price": 500000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 700, 4000, 100, 74),
+                dim(DIM_6x6, 650, 10000, 40, 28),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Pavilion C – Irrigation & Water Management",
+            "hall_code": "AGRIINDIA2026-HALL-C", "expo_event": "AGRIINDIA2026",
+            "hall_type": "Non-AC", "area": 7000, "ceiling_height": 14, "power_capacity": "400 KW", "price": 380000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 680, 3800, 70, 50),
+                dim(DIM_6x3, 620, 8000, 25, 18),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Pavilion D – Drone & Precision Farming",
+            "hall_code": "AGRIINDIA2026-HALL-D", "expo_event": "AGRIINDIA2026",
+            "hall_type": "Non-AC", "area": 6000, "ceiling_height": 12, "power_capacity": "300 KW", "price": 320000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 720, 4000, 55, 40),
+                dim(DIM_6x6, 670, 9500, 20, 14),
+            ]
+        },
+
+        # ── EDUTECH2026 (4 halls) ─────────────────────────────
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall E1 – EdTech Platforms & e-Learning",
+            "hall_code": "EDUTECH2026-HALL-E1", "expo_event": "EDUTECH2026",
+            "hall_type": "AC", "area": 5000, "ceiling_height": 11, "power_capacity": "250 KW", "price": 350000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1100, 5000, 60, 44),
+                dim(DIM_6x3, 1000, 10000, 20, 14),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall E2 – School Infrastructure & Skills",
+            "hall_code": "EDUTECH2026-HALL-E2", "expo_event": "EDUTECH2026",
+            "hall_type": "AC", "area": 4000, "ceiling_height": 11, "power_capacity": "200 KW", "price": 280000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 1050, 5000, 50, 36),
+                dim(DIM_6x6,  950, 15000, 15, 10),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall E3 – Higher Education & Coaching",
+            "hall_code": "EDUTECH2026-HALL-E3", "expo_event": "EDUTECH2026",
+            "hall_type": "AC", "area": 3500, "ceiling_height": 10, "power_capacity": "180 KW", "price": 230000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 980, 4500, 42, 30),
+                dim(DIM_6x3, 900, 9000, 15, 10),
+            ]
+        },
+        {
+            "doctype": "Expo Hall", "hall_name": "Hall E4 – EdTech Conference & Workshop",
+            "hall_code": "EDUTECH2026-HALL-E4", "expo_event": "EDUTECH2026",
+            "hall_type": "AC", "area": 2500, "ceiling_height": 10, "power_capacity": "150 KW", "price": 180000,
+            "stall_dimensions": [
+                dim(DIM_3x3, 920, 4000, 30, 22),
+            ]
+        },
     ]
+
     for hall in halls:
         if frappe.db.exists("Expo Hall", hall["hall_code"]):
             print(f"   ⏭  Hall '{hall['hall_code']}' already exists, skipping.")
             continue
         doc = frappe.get_doc(hall)
-        doc.name = hall["hall_code"]  # ← force name = hall_code to prevent duplicates on re-run
+        doc.name = hall["hall_code"]
         doc.insert(ignore_permissions=True)
         print(f"    Created Hall: {hall['hall_name']}")
+
+    print(f"   Total: {len(halls)} halls across 6 events")
 
 
 # ─────────────────────────────────────────────────────────────
@@ -87,68 +331,129 @@ def _seed_expo_halls():
 def _seed_expo_stalls():
     print("\n  Creating Expo Stalls...")
     stalls = [
-        {"stall_number": "A-101",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 10800,  "final_price": 12420},
-        {"stall_number": "A-102",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 10800,  "final_price": 10800},
-        {"stall_number": "A-103",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Standard", "dimension_label": "3×3",   "status": "Hold",      "base_price": 10800,  "final_price": 10800},
-        {"stall_number": "A-104",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 10800,  "final_price": 10800},
-        {"stall_number": "A-201",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Island",   "dimension_label": "6×6",   "status": "Available", "base_price": 36000,  "final_price": 45000},
-        {"stall_number": "A-202",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Standard", "dimension_label": "6×6",   "status": "Available", "base_price": 36000,  "final_price": 36000},
-        {"stall_number": "A-301",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-A",       "stall_type": "Premium",  "dimension_label": "9×9",   "status": "Booked",    "base_price": 72900,  "final_price": 80190},
-        {"stall_number": "B-101",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-B",       "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 9900,   "final_price": 11385},
-        {"stall_number": "B-102",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-B",       "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 9900,   "final_price": 9900},
-        {"stall_number": "B-103",  "expo_event": "KTE2026",      "expo_hall": "KTE2026-HALL-B",       "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 9900,   "final_price": 9900},
-        {"stall_number": "H1-001", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Booked",    "base_price": 8100,   "final_price": 9072},
-        {"stall_number": "H1-002", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-003", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-004", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-005", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-006", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 9072},
-        {"stall_number": "H1-007", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-008", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Hold",      "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-009", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-010", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 8100,   "final_price": 8100},
-        {"stall_number": "H1-101", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Island",   "dimension_label": "6×6",   "status": "Booked",    "base_price": 28800,  "final_price": 34000},
-        {"stall_number": "H1-102", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "6×6",   "status": "Available", "base_price": 28800,  "final_price": 28800},
-        {"stall_number": "H1-103", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "6×6",   "status": "Available", "base_price": 28800,  "final_price": 28800},
-        {"stall_number": "H1-104", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Corner",   "dimension_label": "6×6",   "status": "Available", "base_price": 28800,  "final_price": 32256},
-        {"stall_number": "H1-201", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Standard", "dimension_label": "12×6",  "status": "Available", "base_price": 54000,  "final_price": 54000},
-        {"stall_number": "H1-202", "expo_event": "BCON2026",     "expo_hall": "BCON2026-HALL-1",      "stall_type": "Corner",   "dimension_label": "12×6",  "status": "Available", "base_price": 54000,  "final_price": 59400},
-        {"stall_number": "M1-101", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 12600,  "final_price": 14490},
-        {"stall_number": "M1-102", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 12600,  "final_price": 12600},
-        {"stall_number": "M1-103", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Standard", "dimension_label": "3×3",   "status": "Hold",      "base_price": 12600,  "final_price": 12600},
-        {"stall_number": "M1-104", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 12600,  "final_price": 12600},
-        {"stall_number": "M1-201", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Island",   "dimension_label": "6×6",   "status": "Available", "base_price": 43200,  "final_price": 54000},
-        {"stall_number": "M1-202", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Standard", "dimension_label": "6×6",   "status": "Booked",    "base_price": 43200,  "final_price": 43200},
-        {"stall_number": "M1-301", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M1",     "stall_type": "Premium",  "dimension_label": "9×6",   "status": "Available", "base_price": 59400,  "final_price": 65340},
-        {"stall_number": "M2-101", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M2",     "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 12150,  "final_price": 13973},
-        {"stall_number": "M2-102", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M2",     "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 12150,  "final_price": 12150},
-        {"stall_number": "M2-103", "expo_event": "HMCE2026",     "expo_hall": "HMCE2026-HALL-M2",     "stall_type": "Standard", "dimension_label": "6×3",   "status": "Booked",    "base_price": 21600,  "final_price": 21600},
-        {"stall_number": "PA-101", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Corner",   "dimension_label": "6×6",   "status": "Available", "base_price": 30600,  "final_price": 34272},
-        {"stall_number": "PA-102", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6",   "status": "Available", "base_price": 30600,  "final_price": 30600},
-        {"stall_number": "PA-103", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6",   "status": "Hold",      "base_price": 30600,  "final_price": 30600},
-        {"stall_number": "PA-201", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Island",   "dimension_label": "12×9",  "status": "Available", "base_price": 81000,  "final_price": 93150},
-        {"stall_number": "PA-202", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "12×9",  "status": "Available", "base_price": 81000,  "final_price": 81000},
-        {"stall_number": "PA-301", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Premium",  "dimension_label": "18×12", "status": "Booked",    "base_price": 151200, "final_price": 169344},
-        {"stall_number": "PB-101", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 6300,   "final_price": 7056},
-        {"stall_number": "PB-102", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 6300,   "final_price": 6300},
-        {"stall_number": "PB-103", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 6300,   "final_price": 6300},
-        {"stall_number": "PB-201", "expo_event": "AGRIINDIA2026","expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "6×6",   "status": "Available", "base_price": 23400,  "final_price": 23400},
-        {"stall_number": "E1-101", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 9900,   "final_price": 11385},
-        {"stall_number": "E1-102", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Standard", "dimension_label": "3×3",   "status": "Available", "base_price": 9900,   "final_price": 9900},
-        {"stall_number": "E1-103", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Standard", "dimension_label": "3×3",   "status": "Hold",      "base_price": 9900,   "final_price": 9900},
-        {"stall_number": "E1-104", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 9900,   "final_price": 9900},
-        {"stall_number": "E1-201", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Island",   "dimension_label": "6×3",   "status": "Available", "base_price": 18000,  "final_price": 21600},
-        {"stall_number": "E1-202", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E1",  "stall_type": "Standard", "dimension_label": "6×3",   "status": "Available", "base_price": 18000,  "final_price": 18000},
-        {"stall_number": "E2-101", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E2",  "stall_type": "Corner",   "dimension_label": "3×3",   "status": "Available", "base_price": 9450,   "final_price": 10868},
-        {"stall_number": "E2-102", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E2",  "stall_type": "Standard", "dimension_label": "3×3",   "status": "Booked",    "base_price": 9450,   "final_price": 9450},
-        {"stall_number": "E2-201", "expo_event": "EDUTECH2026",  "expo_hall": "EDUTECH2026-HALL-E2",  "stall_type": "Island",   "dimension_label": "6×6",   "status": "Available", "base_price": 34200,  "final_price": 41040},
+        # KTE2026 – Hall A
+        {"stall_number": "A-101",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 10800, "final_price": 12420},
+        {"stall_number": "A-102",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 10800, "final_price": 10800},
+        {"stall_number": "A-103",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Standard", "dimension_label": "3×3", "status": "Hold",      "base_price": 10800, "final_price": 10800},
+        {"stall_number": "A-104",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Standard", "dimension_label": "3×3", "status": "Booked",    "base_price": 10800, "final_price": 10800},
+        {"stall_number": "A-105",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 10800, "final_price": 10800},
+        {"stall_number": "A-106",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 10800, "final_price": 12420},
+        {"stall_number": "A-201",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Island",   "dimension_label": "6×6", "status": "Available", "base_price": 36000, "final_price": 43200},
+        {"stall_number": "A-202",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6", "status": "Available", "base_price": 36000, "final_price": 36000},
+        {"stall_number": "A-301",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-A", "stall_type": "Premium",  "dimension_label": "9×9", "status": "Booked",    "base_price": 72900, "final_price": 80190},
+        # KTE2026 – Hall B
+        {"stall_number": "B-101",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 11385},
+        {"stall_number": "B-102",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 9900},
+        {"stall_number": "B-103",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Booked",    "base_price": 9900, "final_price": 9900},
+        {"stall_number": "B-104",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 9900},
+        {"stall_number": "B-201",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 18000, "final_price": 18000},
+        {"stall_number": "B-202",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-B", "stall_type": "Corner",   "dimension_label": "6×3", "status": "Available", "base_price": 18000, "final_price": 19800},
+        # KTE2026 – Hall C
+        {"stall_number": "C-101",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-C", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9450, "final_price": 9450},
+        {"stall_number": "C-102",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-C", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 9450, "final_price": 10868},
+        {"stall_number": "C-103",  "expo_event": "KTE2026", "expo_hall": "KTE2026-HALL-C", "stall_type": "Standard", "dimension_label": "3×3", "status": "Hold",      "base_price": 9450, "final_price": 9450},
+        # BCON2026 – Hall 1
+        {"stall_number": "H1-001", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Corner",   "dimension_label": "3×3",  "status": "Booked",    "base_price": 8100,  "final_price": 9072},
+        {"stall_number": "H1-002", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Booked",    "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-003", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-004", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-005", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-006", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Corner",   "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 9072},
+        {"stall_number": "H1-007", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-008", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Hold",      "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-009", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-010", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "3×3",  "status": "Available", "base_price": 8100,  "final_price": 8100},
+        {"stall_number": "H1-101", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Island",   "dimension_label": "6×6",  "status": "Booked",    "base_price": 28800, "final_price": 34000},
+        {"stall_number": "H1-102", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "6×6",  "status": "Available", "base_price": 28800, "final_price": 28800},
+        {"stall_number": "H1-103", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "6×6",  "status": "Available", "base_price": 28800, "final_price": 28800},
+        {"stall_number": "H1-104", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Corner",   "dimension_label": "6×6",  "status": "Available", "base_price": 28800, "final_price": 32256},
+        {"stall_number": "H1-201", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Standard", "dimension_label": "12×6", "status": "Available", "base_price": 54000, "final_price": 54000},
+        {"stall_number": "H1-202", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-1", "stall_type": "Corner",   "dimension_label": "12×6", "status": "Available", "base_price": 54000, "final_price": 59400},
+        # BCON2026 – Hall 2
+        {"stall_number": "H2-101", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 8820, "final_price": 10143},
+        {"stall_number": "H2-102", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 8820, "final_price": 8820},
+        {"stall_number": "H2-103", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Hold",      "base_price": 8820, "final_price": 8820},
+        {"stall_number": "H2-104", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 8820, "final_price": 8820},
+        {"stall_number": "H2-201", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Island",   "dimension_label": "6×6", "status": "Available", "base_price": 31320, "final_price": 37584},
+        {"stall_number": "H2-202", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-2", "stall_type": "Standard", "dimension_label": "6×6", "status": "Available", "base_price": 31320, "final_price": 31320},
+        # BCON2026 – Hall 3
+        {"stall_number": "H3-101", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-3", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 8550, "final_price": 9833},
+        {"stall_number": "H3-102", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-3", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 8550, "final_price": 8550},
+        {"stall_number": "H3-103", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-3", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 8550, "final_price": 8550},
+        {"stall_number": "H3-201", "expo_event": "BCON2026", "expo_hall": "BCON2026-HALL-3", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 15840, "final_price": 15840},
+        # HMCE2026 – Hall M1
+        {"stall_number": "M1-101", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 12600, "final_price": 14490},
+        {"stall_number": "M1-102", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 12600, "final_price": 12600},
+        {"stall_number": "M1-103", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Hold",      "base_price": 12600, "final_price": 12600},
+        {"stall_number": "M1-104", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 12600, "final_price": 12600},
+        {"stall_number": "M1-105", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 12600, "final_price": 12600},
+        {"stall_number": "M1-201", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Island",   "dimension_label": "6×6", "status": "Available", "base_price": 43200, "final_price": 51840},
+        {"stall_number": "M1-202", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "6×6", "status": "Booked",    "base_price": 43200, "final_price": 43200},
+        {"stall_number": "M1-203", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Standard", "dimension_label": "6×6", "status": "Available", "base_price": 43200, "final_price": 43200},
+        {"stall_number": "M1-301", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M1", "stall_type": "Premium",  "dimension_label": "9×6", "status": "Available", "base_price": 59400, "final_price": 65340},
+        # HMCE2026 – Hall M2
+        {"stall_number": "M2-101", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M2", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 12150, "final_price": 13973},
+        {"stall_number": "M2-102", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 12150, "final_price": 12150},
+        {"stall_number": "M2-103", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M2", "stall_type": "Standard", "dimension_label": "6×3", "status": "Booked",    "base_price": 21600, "final_price": 21600},
+        {"stall_number": "M2-104", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M2", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 21600, "final_price": 21600},
+        # HMCE2026 – Hall M3
+        {"stall_number": "M3-101", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M3", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 11520, "final_price": 13248},
+        {"stall_number": "M3-102", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M3", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 11520, "final_price": 11520},
+        {"stall_number": "M3-103", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M3", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 11520, "final_price": 11520},
+        {"stall_number": "M3-201", "expo_event": "HMCE2026", "expo_hall": "HMCE2026-HALL-M3", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 20700, "final_price": 20700},
+        # AGRIINDIA2026 – Pavilion A
+        {"stall_number": "PA-101", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Corner",   "dimension_label": "6×6",  "status": "Available", "base_price": 30600,  "final_price": 34272},
+        {"stall_number": "PA-102", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6",  "status": "Available", "base_price": 30600,  "final_price": 30600},
+        {"stall_number": "PA-103", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6",  "status": "Hold",      "base_price": 30600,  "final_price": 30600},
+        {"stall_number": "PA-104", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "6×6",  "status": "Available", "base_price": 30600,  "final_price": 30600},
+        {"stall_number": "PA-201", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Island",   "dimension_label": "12×9", "status": "Available", "base_price": 81000,  "final_price": 93150},
+        {"stall_number": "PA-202", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Standard", "dimension_label": "12×9", "status": "Available", "base_price": 81000,  "final_price": 81000},
+        {"stall_number": "PA-301", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-A", "stall_type": "Premium",  "dimension_label": "18×12","status": "Booked",    "base_price": 151200, "final_price": 169344},
+        # AGRIINDIA2026 – Pavilion B
+        {"stall_number": "PB-101", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 6300, "final_price": 7056},
+        {"stall_number": "PB-102", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 6300, "final_price": 6300},
+        {"stall_number": "PB-103", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Booked",    "base_price": 6300, "final_price": 6300},
+        {"stall_number": "PB-104", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 6300, "final_price": 6300},
+        {"stall_number": "PB-201", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Standard", "dimension_label": "6×6", "status": "Available", "base_price": 23400, "final_price": 23400},
+        {"stall_number": "PB-202", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-B", "stall_type": "Island",   "dimension_label": "6×6", "status": "Available", "base_price": 23400, "final_price": 28080},
+        # AGRIINDIA2026 – Pavilion C
+        {"stall_number": "PC-101", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-C", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 6120, "final_price": 7054},
+        {"stall_number": "PC-102", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-C", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 6120, "final_price": 6120},
+        {"stall_number": "PC-103", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-C", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 6120, "final_price": 6120},
+        {"stall_number": "PC-201", "expo_event": "AGRIINDIA2026", "expo_hall": "AGRIINDIA2026-HALL-C", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 11160, "final_price": 11160},
+        # EDUTECH2026
+        {"stall_number": "E1-101", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 11385},
+        {"stall_number": "E1-102", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 9900},
+        {"stall_number": "E1-103", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Hold",      "base_price": 9900, "final_price": 9900},
+        {"stall_number": "E1-104", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Booked",    "base_price": 9900, "final_price": 9900},
+        {"stall_number": "E1-105", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9900, "final_price": 9900},
+        {"stall_number": "E1-201", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Island",   "dimension_label": "6×3", "status": "Available", "base_price": 18000, "final_price": 21600},
+        {"stall_number": "E1-202", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E1", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 18000, "final_price": 18000},
+        {"stall_number": "E2-101", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E2", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 9450, "final_price": 10868},
+        {"stall_number": "E2-102", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Booked",    "base_price": 9450, "final_price": 9450},
+        {"stall_number": "E2-103", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E2", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 9450, "final_price": 9450},
+        {"stall_number": "E2-201", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E2", "stall_type": "Island",   "dimension_label": "6×6", "status": "Available", "base_price": 34200, "final_price": 41040},
+        {"stall_number": "E3-101", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E3", "stall_type": "Corner",   "dimension_label": "3×3", "status": "Available", "base_price": 8820, "final_price": 10143},
+        {"stall_number": "E3-102", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E3", "stall_type": "Standard", "dimension_label": "3×3", "status": "Available", "base_price": 8820, "final_price": 8820},
+        {"stall_number": "E3-201", "expo_event": "EDUTECH2026", "expo_hall": "EDUTECH2026-HALL-E3", "stall_type": "Standard", "dimension_label": "6×3", "status": "Available", "base_price": 16200, "final_price": 16200},
     ]
     for stall in stalls:
         stall_id = f"{stall['expo_event']}-{stall['stall_number']}"
         if frappe.db.exists("Expo Stall", stall_id):
             print(f"   ⏭  Stall '{stall_id}' already exists, skipping.")
             continue
-        doc = frappe.get_doc({"doctype": "Expo Stall", "stall_number": stall["stall_number"], "expo_event": stall["expo_event"], "expo_hall": stall["expo_hall"], "stall_type": stall["stall_type"], "dimension_label": stall["dimension_label"], "status": stall["status"], "base_price": stall["base_price"], "final_price": stall["final_price"], "tax_percent": 18})
+        doc = frappe.get_doc({
+            "doctype": "Expo Stall",
+            "stall_number": stall["stall_number"],
+            "expo_event": stall["expo_event"],
+            "expo_hall": stall["expo_hall"],
+            "stall_type": stall["stall_type"],
+            "dimension_label": stall["dimension_label"],
+            "status": stall["status"],
+            "base_price": stall["base_price"],
+            "final_price": stall["final_price"],
+            "tax_percent": 18,
+        })
         doc.insert(ignore_permissions=True)
     print(f"    Created {len(stalls)} Expo Stalls")
 
@@ -170,6 +475,8 @@ def _seed_expo_services():
         {"doctype": "Expo Service", "service_name": "SIFS2026-Additional Power Load",          "expo_event": "SIFS2026",     "category": "Electricity", "description": "Extra power for cooking equipment",                             "charge_type": "One-time",  "price": 6000,  "tax_percent": 18, "is_mandatory": 0},
         {"doctype": "Expo Service", "service_name": "BCON2026-Heavy Machinery Handling",       "expo_event": "BCON2026",     "category": "Logistics",   "description": "Forklift and crane service for heavy exhibits",                 "charge_type": "One-time",  "price": 8000,  "tax_percent": 18, "is_mandatory": 0, "vendor_name": "Bangalore Cargo Services"},
         {"doctype": "Expo Service", "service_name": "BCON2026-Additional Power Load",          "expo_event": "BCON2026",     "category": "Electricity", "description": "Extra power up to 10KW for machinery demos",                    "charge_type": "One-time",  "price": 7000,  "tax_percent": 18, "is_mandatory": 0},
+        {"doctype": "Expo Service", "service_name": "BCON2026-Booth Fabrication",              "expo_event": "BCON2026",     "category": "Branding",    "description": "Complete stall build with branded panels and signage",          "charge_type": "Per Stall", "price": 22000, "tax_percent": 18, "is_mandatory": 0},
+        {"doctype": "Expo Service", "service_name": "BCON2026-Internet Line",                  "expo_event": "BCON2026",     "category": "IT",          "description": "Dedicated 50 Mbps broadband line",                             "charge_type": "Per Day",   "price": 2000,  "tax_percent": 18, "is_mandatory": 0},
         {"doctype": "Expo Service", "service_name": "HMCE2026-Medical Gas Supply",             "expo_event": "HMCE2026",     "category": "Logistics",   "description": "Piped oxygen/nitrogen for medical device demos",                "charge_type": "Per Day",   "price": 4000,  "tax_percent": 18, "is_mandatory": 0, "vendor_name": "MedGas Kerala"},
         {"doctype": "Expo Service", "service_name": "HMCE2026-Cold Chain Storage",             "expo_event": "HMCE2026",     "category": "Logistics",   "description": "Refrigerated storage unit for pharma samples",                  "charge_type": "Per Day",   "price": 3500,  "tax_percent": 18, "is_mandatory": 0},
         {"doctype": "Expo Service", "service_name": "HMCE2026-Additional Power Load",          "expo_event": "HMCE2026",     "category": "Electricity", "description": "Extra 3 KW power for imaging / diagnostic equipment",           "charge_type": "One-time",  "price": 5500,  "tax_percent": 18, "is_mandatory": 0},
@@ -196,236 +503,29 @@ def _seed_expo_services():
 
 
 # ─────────────────────────────────────────────────────────────
-# 5. EXHIBITOR PROFILES  (with digital booth data)
+# 5. EXHIBITOR PROFILES
 # ─────────────────────────────────────────────────────────────
 
 def _seed_exhibitor_profiles():
     print("\n  Creating Exhibitor Profiles...")
-
     exhibitors = [
-        # ── KTE2026 — all 3 have digital booth ────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Rahul Menon", "company_name": "TechSpark Solutions",
-            "industry": "Information Technology", "gst_number": "32AABCT1234A1Z5", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919876543210", "email": "rahul@techspark.in", "website": "https://techspark.in",
-            "communication_address": "Infopark, Kakkanad, Kochi - 682030",
-            "product_categories": "SaaS, Mobile Apps, Cloud Solutions",
-            "description": "<p>TechSpark is a leading IT solutions provider specializing in enterprise SaaS products and mobile app development.</p>",
-            "expo_event": "KTE2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Building software that scales with your business",
-            "booth_description": "<p>TechSpark Solutions has been powering enterprise digital transformation since 2018. Our flagship SaaS platform, <strong>SparkCore</strong>, serves 500+ businesses across India and the Middle East. At KTE2026, we're showcasing our latest AI-powered automation suite and mobile-first ERP solution.</p><p>Visit our booth to see live demos, speak with our engineers, and get exclusive expo pricing.</p>",
-            "booth_products": "SparkCore ERP, Mobile App Development, Cloud Migration, AI Automation, Custom SaaS",
-            "booth_website": "https://techspark.in", "booth_video_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-            "booth_contact_email": "sales@techspark.in", "booth_contact_phone": "+919876543210",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Priya Nair", "company_name": "DataViz Analytics",
-            "industry": "Data Science & AI", "gst_number": "32AABCD5678A1Z3", "annual_turnover": "Below 1 Cr",
-            "contact_number": "+919123456789", "email": "priya@dataviz.io", "website": "https://dataviz.io",
-            "communication_address": "Technopark Phase 3, Trivandrum - 695581",
-            "product_categories": "AI Tools, Data Analytics, Business Intelligence",
-            "description": "<p>DataViz provides cutting-edge AI-powered analytics solutions for enterprises.</p>",
-            "expo_event": "KTE2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Turn your data into decisions",
-            "booth_description": "<p>DataViz Analytics helps businesses make sense of their data through beautiful, real-time dashboards and AI-driven insights. Our platform connects to 50+ data sources and generates automated reports that your team will actually read.</p><p>At KTE2026, we're launching <strong>DataViz 3.0</strong> with natural language querying — ask your data a question in plain English and get instant answers.</p>",
-            "booth_products": "DataViz Dashboard, AI Insights Engine, BI Reports, Predictive Analytics, Data Connectors",
-            "booth_website": "https://dataviz.io", "booth_video_url": "",
-            "booth_contact_email": "priya@dataviz.io", "booth_contact_phone": "+919123456789",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Anoop Krishnan", "company_name": "ByteForge Labs",
-            "industry": "Hardware & IoT", "gst_number": "32AABCB9012A1Z1", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919988776655", "email": "anoop@byteforge.in", "website": "https://byteforge.in",
-            "communication_address": "SmartCity Kochi, Kakkanad - 682037",
-            "product_categories": "IoT Devices, Embedded Systems, Robotics",
-            "description": "<p>ByteForge Labs designs innovative IoT and embedded systems for industrial automation.</p>",
-            "expo_event": "KTE2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Smart devices for a smarter world",
-            "booth_description": "<p>ByteForge Labs specializes in designing and manufacturing IoT devices and embedded systems for industrial, agricultural, and smart home applications. Our devices are deployed in 200+ factories across South India.</p><p>At KTE2026 we're unveiling our <strong>ForgeEdge</strong> industrial IoT gateway — zero-code setup, works offline, and integrates with any PLC or SCADA system.</p>",
-            "booth_products": "ForgeEdge IoT Gateway, Industrial Sensors, Robotic Arms, Smart Agriculture Kit, Embedded Development",
-            "booth_website": "https://byteforge.in", "booth_video_url": "",
-            "booth_contact_email": "anoop@byteforge.in", "booth_contact_phone": "+919988776655",
-        },
-        # ── SIFS2026 — 1 booth, 1 without ─────────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Suresh Kumar", "company_name": "Spice Garden Foods",
-            "industry": "Food & Beverage", "gst_number": "33AABCS3456A1Z2", "annual_turnover": "5-25 Cr",
-            "contact_number": "+919765432100", "email": "suresh@spicegarden.com", "website": "https://spicegarden.com",
-            "communication_address": "SIPCOT Industrial Area, Coimbatore - 641021",
-            "product_categories": "Spice Blends, Ready-to-cook, Organic Foods",
-            "description": "<p>Spice Garden Foods is a heritage brand offering authentic South Indian spice blends and ready-to-cook products.</p>",
-            "expo_event": "SIFS2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Authentic flavours, straight from the source",
-            "booth_description": "<p>Spice Garden Foods has been bringing the authentic taste of South India to kitchens across the country since 1998. Our spice blends are stone-ground using traditional methods, free from artificial colours and preservatives.</p><p>At SIFS2026, taste our newest range of <strong>Ready-to-Cook Malabar curries</strong> and explore B2B bulk pricing for restaurant chains and cloud kitchens.</p>",
-            "booth_products": "Spice Blends, Ready-to-Cook Kits, Organic Masalas, Coconut Products, B2B Bulk Supply",
-            "booth_website": "https://spicegarden.com", "booth_video_url": "",
-            "booth_contact_email": "b2b@spicegarden.com", "booth_contact_phone": "+919765432100",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Meena Iyer", "company_name": "FreshPack Industries",
-            "industry": "Food Packaging", "gst_number": "33AABCF7890A1Z4", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919845001122", "email": "meena@freshpack.in", "website": "https://freshpack.in",
-            "communication_address": "Peelamedu, Coimbatore - 641004",
-            "product_categories": "Eco Packaging, Vacuum Packs, Food Containers",
-            "description": "<p>FreshPack provides sustainable and innovative food packaging solutions.</p>",
-            "expo_event": "SIFS2026", "status": "Pending Approval",
-            "has_digital_booth": 0,
-        },
-        # ── BCON2026 — 1 booth, 1 without ─────────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Ramesh Gowda", "company_name": "StoneCraft Builders",
-            "industry": "Construction Materials", "gst_number": "29AABCS1122A1Z6", "annual_turnover": "5-25 Cr",
-            "contact_number": "+919900112233", "email": "ramesh@stonecraft.co.in", "website": "https://stonecraft.co.in",
-            "communication_address": "Peenya Industrial Area, Bangalore - 560058",
-            "product_categories": "Granite, Marble, Tiles, Stone Cladding",
-            "description": "<p>StoneCraft specializes in premium natural stone products for residential and commercial construction.</p>",
-            "expo_event": "BCON2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Premium stone, crafted for legacy",
-            "booth_description": "<p>StoneCraft Builders sources the finest granite and marble from quarries across Rajasthan, Karnataka, and Andhra Pradesh. With in-house processing and a 50,000 sqft warehouse in Bangalore, we guarantee quality and timely delivery for projects of any scale.</p><p>At BCON2026, explore our new <strong>Italian Marble Collection</strong> and Porcelain Slab range, plus get custom quotes for your next luxury project.</p>",
-            "booth_products": "Granite Slabs, Italian Marble, Porcelain Tiles, Stone Cladding, Custom Cutting",
-            "booth_website": "https://stonecraft.co.in", "booth_video_url": "",
-            "booth_contact_email": "sales@stonecraft.co.in", "booth_contact_phone": "+919900112233",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Kavitha Reddy", "company_name": "SmartHome Interiors",
-            "industry": "Interior Design & Smart Home", "gst_number": "29AABCR4455A1Z8", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919812233445", "email": "kavitha@smarthome.in", "website": "https://smarthomeinteriors.in",
-            "communication_address": "Whitefield, Bangalore - 560066",
-            "product_categories": "Smart Lighting, Home Automation, Modular Furniture",
-            "description": "<p>SmartHome Interiors brings cutting-edge home automation and design solutions.</p>",
-            "expo_event": "BCON2026", "status": "Active",
-            "has_digital_booth": 0,
-        },
-        # ── HMCE2026 — 2 booth, 1 without ─────────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Dr. Anil Kumar", "company_name": "MediScan Diagnostics",
-            "industry": "Medical Devices", "gst_number": "32AABCM1234A1Z9", "annual_turnover": "5-25 Cr",
-            "contact_number": "+919876500001", "email": "anil@mediscan.in", "website": "https://mediscan.in",
-            "communication_address": "Lakeshore Hospital Complex, Kochi - 682304",
-            "product_categories": "MRI Equipment, Ultrasound, Portable Diagnostics",
-            "description": "<p>MediScan is a leading distributor of advanced diagnostic imaging equipment for hospitals and clinics.</p>",
-            "expo_event": "HMCE2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Precision diagnostics, trusted by 500+ hospitals",
-            "booth_description": "<p>MediScan Diagnostics is the authorised distributor of leading global medical imaging brands across Kerala, Tamil Nadu, and Karnataka. We supply, install, and service MRI systems, CT scanners, ultrasound machines, and portable diagnostics for hospitals of all sizes.</p><p>At HMCE2026, visit us for live equipment demonstrations and to learn about our <strong>zero-cost EMI financing</strong> for new hospital setups.</p>",
-            "booth_products": "MRI Systems, CT Scanners, Ultrasound Machines, Portable ECG, X-Ray Equipment, AMC Contracts",
-            "booth_website": "https://mediscan.in", "booth_video_url": "",
-            "booth_contact_email": "anil@mediscan.in", "booth_contact_phone": "+919876500001",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Roshni George", "company_name": "HealthTech Solutions",
-            "industry": "Healthcare IT", "gst_number": "32AABCH5678A1Z7", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919876500002", "email": "roshni@healthtech.in", "website": "https://healthtech.in",
-            "communication_address": "Infopark Campus 2, Kochi - 682303",
-            "product_categories": "Hospital Management System, Telemedicine, EHR",
-            "description": "<p>HealthTech builds cloud-based hospital management and telemedicine platforms for mid-sized hospitals.</p>",
-            "expo_event": "HMCE2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "One platform for your entire hospital",
-            "booth_description": "<p>HealthTech Solutions offers a fully integrated, ABDM-compliant Hospital Management System (HMS) that covers OPD, IPD, pharmacy, billing, lab, radiology, and HR — all in one cloud platform. Our telemedicine module connects your doctors with patients anywhere, anytime.</p><p>Live demo at HMCE2026: see how a 50-bed hospital went paperless in 3 weeks using HealthTech HMS.</p>",
-            "booth_products": "HealthTech HMS, Telemedicine Platform, EHR, ABDM Integration, Lab Management, Pharmacy Module",
-            "booth_website": "https://healthtech.in", "booth_video_url": "",
-            "booth_contact_email": "roshni@healthtech.in", "booth_contact_phone": "+919876500002",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Faisal Rahman", "company_name": "PharmaCure Distributors",
-            "industry": "Pharmaceuticals", "gst_number": "32AABCP9012A1Z5", "annual_turnover": "25-100 Cr",
-            "contact_number": "+919876500003", "email": "faisal@pharmacure.in", "website": "https://pharmacure.in",
-            "communication_address": "Edappally, Kochi - 682024",
-            "product_categories": "Generic Medicines, OTC Products, Nutraceuticals",
-            "description": "<p>PharmaCure is a multi-state pharma distributor with a network of 2000+ pharmacies.</p>",
-            "expo_event": "HMCE2026", "status": "Active",
-            "has_digital_booth": 0,
-        },
-        # ── AGRIINDIA2026 — 2 booth, 1 without ────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Venkatesh Reddy", "company_name": "AgroForce Machinery",
-            "industry": "Agricultural Equipment", "gst_number": "36AABCA1234A1Z2", "annual_turnover": "5-25 Cr",
-            "contact_number": "+919876500004", "email": "venkatesh@agroforce.in", "website": "https://agroforce.in",
-            "communication_address": "IDA Nacharam, Hyderabad - 500076",
-            "product_categories": "Tractors, Mini Harvesters, Soil Tillers, Sprayers",
-            "description": "<p>AgroForce manufactures affordable precision farming machinery tailored for small and mid-sized Indian farms.</p>",
-            "expo_event": "AGRIINDIA2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Farm machinery built for Bharat",
-            "booth_description": "<p>AgroForce Machinery designs and manufactures rugged, affordable farm equipment specifically engineered for Indian soil conditions and farm sizes. Our machines are used by 10,000+ farmers across Telangana, Andhra Pradesh, and Karnataka.</p><p>At AgroIndia 2026, we're showcasing our new <strong>AgroForce Mini 2.0 Harvester</strong> — 40% lighter, 30% more fuel efficient, and priced under ₹4 lakh with NABARD subsidy.</p>",
-            "booth_products": "Mini Harvesters, Soil Tillers, Power Sprayers, Paddy Transplanters, Custom Implements",
-            "booth_website": "https://agroforce.in", "booth_video_url": "",
-            "booth_contact_email": "venkatesh@agroforce.in", "booth_contact_phone": "+919876500004",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Lakshmi Devi", "company_name": "GreenRoot Organics",
-            "industry": "Organic Farming", "gst_number": "36AABCG5678A1Z0", "annual_turnover": "Below 1 Cr",
-            "contact_number": "+919876500005", "email": "lakshmi@greenroot.in", "website": "https://greenrootorganics.in",
-            "communication_address": "Warangal Rural, Telangana - 506167",
-            "product_categories": "Organic Seeds, Bio Fertilizers, Natural Pesticides",
-            "description": "<p>GreenRoot Organics is a farmer-led collective producing certified organic inputs.</p>",
-            "expo_event": "AGRIINDIA2026", "status": "Active",
-            "has_digital_booth": 0,
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Mohan Das", "company_name": "SkyFarm Drones",
-            "industry": "AgriTech", "gst_number": "36AABCS3456A1Z8", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919876500006", "email": "mohan@skyfarmdrones.in", "website": "https://skyfarmdrones.in",
-            "communication_address": "T-Hub, HICC Complex, Hyderabad - 500081",
-            "product_categories": "Agricultural Drones, Precision Spraying, Crop Monitoring",
-            "description": "<p>SkyFarm Drones builds autonomous drones for precision crop spraying and real-time field monitoring.</p>",
-            "expo_event": "AGRIINDIA2026", "status": "Pending Approval",
-            "has_digital_booth": 1,
-            "booth_tagline": "The sky is your farm's best friend",
-            "booth_description": "<p>SkyFarm Drones builds DGCA-certified agricultural drones that spray pesticides 8x faster than manual methods, reducing chemical usage by 30%. Our AI-powered crop monitoring drones detect disease, water stress, and nutrient deficiencies before they become visible to the naked eye.</p><p>At AgroIndia 2026, watch a <strong>live drone spraying demo</strong> at our outdoor demo zone every 2 hours.</p>",
-            "booth_products": "SkySpray Pro Drone, CropScan AI, Drone-as-a-Service, Pilot Training, DGCA Compliance",
-            "booth_website": "https://skyfarmdrones.in", "booth_video_url": "",
-            "booth_contact_email": "mohan@skyfarmdrones.in", "booth_contact_phone": "+919876500006",
-        },
-        # ── EDUTECH2026 — 2 booth, 1 without ──────────────────
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Ananya Krishnaswamy", "company_name": "LearnSphere EdTech",
-            "industry": "Education Technology", "gst_number": "33AABCL1234A1Z3", "annual_turnover": "1-5 Cr",
-            "contact_number": "+919876500007", "email": "ananya@learnsphere.in", "website": "https://learnsphere.in",
-            "communication_address": "Sholinganallur, Chennai - 600119",
-            "product_categories": "Adaptive Learning Platform, STEM Kits, Online Tutoring",
-            "description": "<p>LearnSphere builds AI-driven adaptive learning platforms for K-12 and competitive exam preparation.</p>",
-            "expo_event": "EDUTECH2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "Every student learns differently. So should their platform.",
-            "booth_description": "<p>LearnSphere is an AI-powered adaptive learning platform that personalises the study path for each student based on their strengths, weaknesses, and learning speed. Used by 80,000+ students across 500 schools in Tamil Nadu and Karnataka.</p><p>At EduTech South 2026, try our <strong>live AI tutor demo</strong> and see how students improved their board exam scores by 22% in one semester.</p>",
-            "booth_products": "Adaptive Learning Platform, AI Tutor, STEM Kits, Mock Test Engine, School Analytics Dashboard",
-            "booth_website": "https://learnsphere.in", "booth_video_url": "",
-            "booth_contact_email": "ananya@learnsphere.in", "booth_contact_phone": "+919876500007",
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Karthikeyan S", "company_name": "SkillBridge Academy",
-            "industry": "Vocational Training", "gst_number": "33AABCS7890A1Z1", "annual_turnover": "Below 1 Cr",
-            "contact_number": "+919876500008", "email": "karthik@skillbridge.in", "website": "https://skillbridge.in",
-            "communication_address": "Anna Nagar, Chennai - 600040",
-            "product_categories": "Coding Bootcamps, Skill Certification, Campus Hiring",
-            "description": "<p>SkillBridge runs industry-aligned coding and vocational bootcamps with guaranteed placement support.</p>",
-            "expo_event": "EDUTECH2026", "status": "Active",
-            "has_digital_booth": 0,
-        },
-        {
-            "doctype": "Exhibitor Profile", "exhibitor_name": "Deepa Sundaram", "company_name": "ClassRoom Connect",
-            "industry": "School Infrastructure", "gst_number": "33AABCC4567A1Z9", "annual_turnover": "5-25 Cr",
-            "contact_number": "+919876500009", "email": "deepa@classroomconnect.in", "website": "https://classroomconnect.in",
-            "communication_address": "OMR Road, Perungudi, Chennai - 600096",
-            "product_categories": "Smart Boards, AV Systems, Language Labs, Furniture",
-            "description": "<p>ClassRoom Connect supplies complete smart classroom infrastructure to schools and colleges across South India.</p>",
-            "expo_event": "EDUTECH2026", "status": "Active",
-            "has_digital_booth": 1,
-            "booth_tagline": "The complete smart classroom, delivered and installed",
-            "booth_description": "<p>ClassRoom Connect is South India's most trusted supplier of smart classroom infrastructure. We supply, install, and maintain interactive flat panels, audio-visual systems, language labs, and modular furniture for K-12 schools, colleges, and coaching centres.</p><p>At EduTech South 2026, visit our booth to see a <strong>fully equipped smart classroom setup</strong> and get a turnkey quote for your institution within 24 hours.</p>",
-            "booth_products": "Interactive Flat Panels, Smart Boards, Language Labs, AV Systems, Modular Furniture, AMC",
-            "booth_website": "https://classroomconnect.in", "booth_video_url": "",
-            "booth_contact_email": "deepa@classroomconnect.in", "booth_contact_phone": "+919876500009",
-        },
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Rahul Menon", "company_name": "TechSpark Solutions", "industry": "Information Technology", "gst_number": "32AABCT1234A1Z5", "annual_turnover": "1-5 Cr", "contact_number": "+919876543210", "email": "rahul@techspark.in", "website": "https://techspark.in", "communication_address": "Infopark, Kakkanad, Kochi - 682030", "product_categories": "SaaS, Mobile Apps, Cloud Solutions", "description": "<p>TechSpark is a leading IT solutions provider specializing in enterprise SaaS products and mobile app development.</p>", "expo_event": "KTE2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Building software that scales with your business", "booth_description": "<p>TechSpark Solutions has been powering enterprise digital transformation since 2018. Our flagship SaaS platform, <strong>SparkCore</strong>, serves 500+ businesses across India and the Middle East.</p>", "booth_products": "SparkCore ERP, Mobile App Development, Cloud Migration, AI Automation, Custom SaaS", "booth_website": "https://techspark.in", "booth_video_url": "", "booth_contact_email": "sales@techspark.in", "booth_contact_phone": "+919876543210"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Priya Nair", "company_name": "DataViz Analytics", "industry": "Data Science & AI", "gst_number": "32AABCD5678A1Z3", "annual_turnover": "Below 1 Cr", "contact_number": "+919123456789", "email": "priya@dataviz.io", "website": "https://dataviz.io", "communication_address": "Technopark Phase 3, Trivandrum - 695581", "product_categories": "AI Tools, Data Analytics, Business Intelligence", "description": "<p>DataViz provides cutting-edge AI-powered analytics solutions for enterprises.</p>", "expo_event": "KTE2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Turn your data into decisions", "booth_description": "<p>DataViz Analytics helps businesses make sense of their data through beautiful, real-time dashboards and AI-driven insights.</p>", "booth_products": "DataViz Dashboard, AI Insights Engine, BI Reports, Predictive Analytics", "booth_website": "https://dataviz.io", "booth_video_url": "", "booth_contact_email": "priya@dataviz.io", "booth_contact_phone": "+919123456789"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Anoop Krishnan", "company_name": "ByteForge Labs", "industry": "Hardware & IoT", "gst_number": "32AABCB9012A1Z1", "annual_turnover": "1-5 Cr", "contact_number": "+919988776655", "email": "anoop@byteforge.in", "website": "https://byteforge.in", "communication_address": "SmartCity Kochi, Kakkanad - 682037", "product_categories": "IoT Devices, Embedded Systems, Robotics", "description": "<p>ByteForge Labs designs innovative IoT and embedded systems for industrial automation.</p>", "expo_event": "KTE2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Smart devices for a smarter world", "booth_description": "<p>ByteForge Labs specializes in designing IoT devices for industrial, agricultural, and smart home applications.</p>", "booth_products": "ForgeEdge IoT Gateway, Industrial Sensors, Robotic Arms, Smart Agriculture Kit", "booth_website": "https://byteforge.in", "booth_video_url": "", "booth_contact_email": "anoop@byteforge.in", "booth_contact_phone": "+919988776655"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Suresh Kumar", "company_name": "Spice Garden Foods", "industry": "Food & Beverage", "gst_number": "33AABCS3456A1Z2", "annual_turnover": "5-25 Cr", "contact_number": "+919765432100", "email": "suresh@spicegarden.com", "website": "https://spicegarden.com", "communication_address": "SIPCOT Industrial Area, Coimbatore - 641021", "product_categories": "Spice Blends, Ready-to-cook, Organic Foods", "description": "<p>Spice Garden Foods is a heritage brand offering authentic South Indian spice blends.</p>", "expo_event": "SIFS2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Authentic flavours, straight from the source", "booth_description": "<p>Spice Garden Foods has been bringing the authentic taste of South India to kitchens since 1998.</p>", "booth_products": "Spice Blends, Ready-to-Cook Kits, Organic Masalas, Coconut Products", "booth_website": "https://spicegarden.com", "booth_video_url": "", "booth_contact_email": "b2b@spicegarden.com", "booth_contact_phone": "+919765432100"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Meena Iyer", "company_name": "FreshPack Industries", "industry": "Food Packaging", "gst_number": "33AABCF7890A1Z4", "annual_turnover": "1-5 Cr", "contact_number": "+919845001122", "email": "meena@freshpack.in", "website": "https://freshpack.in", "communication_address": "Peelamedu, Coimbatore - 641004", "product_categories": "Eco Packaging, Vacuum Packs, Food Containers", "description": "<p>FreshPack provides sustainable and innovative food packaging solutions.</p>", "expo_event": "SIFS2026", "status": "Pending Approval", "has_digital_booth": 0},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Ramesh Gowda", "company_name": "StoneCraft Builders", "industry": "Construction Materials", "gst_number": "29AABCS1122A1Z6", "annual_turnover": "5-25 Cr", "contact_number": "+919900112233", "email": "ramesh@stonecraft.co.in", "website": "https://stonecraft.co.in", "communication_address": "Peenya Industrial Area, Bangalore - 560058", "product_categories": "Granite, Marble, Tiles, Stone Cladding", "description": "<p>StoneCraft specializes in premium natural stone products for residential and commercial construction.</p>", "expo_event": "BCON2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Premium stone, crafted for legacy", "booth_description": "<p>StoneCraft Builders sources the finest granite and marble from quarries across India.</p>", "booth_products": "Granite Slabs, Italian Marble, Porcelain Tiles, Stone Cladding, Custom Cutting", "booth_website": "https://stonecraft.co.in", "booth_video_url": "", "booth_contact_email": "sales@stonecraft.co.in", "booth_contact_phone": "+919900112233"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Kavitha Reddy", "company_name": "SmartHome Interiors", "industry": "Interior Design & Smart Home", "gst_number": "29AABCR4455A1Z8", "annual_turnover": "1-5 Cr", "contact_number": "+919812233445", "email": "kavitha@smarthome.in", "website": "https://smarthomeinteriors.in", "communication_address": "Whitefield, Bangalore - 560066", "product_categories": "Smart Lighting, Home Automation, Modular Furniture", "description": "<p>SmartHome Interiors brings cutting-edge home automation and design solutions.</p>", "expo_event": "BCON2026", "status": "Active", "has_digital_booth": 0},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Dr. Anil Kumar", "company_name": "MediScan Diagnostics", "industry": "Medical Devices", "gst_number": "32AABCM1234A1Z9", "annual_turnover": "5-25 Cr", "contact_number": "+919876500001", "email": "anil@mediscan.in", "website": "https://mediscan.in", "communication_address": "Lakeshore Hospital Complex, Kochi - 682304", "product_categories": "MRI Equipment, Ultrasound, Portable Diagnostics", "description": "<p>MediScan is a leading distributor of advanced diagnostic imaging equipment.</p>", "expo_event": "HMCE2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Precision diagnostics, trusted by 500+ hospitals", "booth_description": "<p>MediScan Diagnostics is the authorised distributor of leading global medical imaging brands across Kerala, Tamil Nadu, and Karnataka.</p>", "booth_products": "MRI Systems, CT Scanners, Ultrasound Machines, Portable ECG, X-Ray Equipment", "booth_website": "https://mediscan.in", "booth_video_url": "", "booth_contact_email": "anil@mediscan.in", "booth_contact_phone": "+919876500001"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Roshni George", "company_name": "HealthTech Solutions", "industry": "Healthcare IT", "gst_number": "32AABCH5678A1Z7", "annual_turnover": "1-5 Cr", "contact_number": "+919876500002", "email": "roshni@healthtech.in", "website": "https://healthtech.in", "communication_address": "Infopark Campus 2, Kochi - 682303", "product_categories": "Hospital Management System, Telemedicine, EHR", "description": "<p>HealthTech builds cloud-based hospital management and telemedicine platforms.</p>", "expo_event": "HMCE2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "One platform for your entire hospital", "booth_description": "<p>HealthTech Solutions offers a fully integrated, ABDM-compliant Hospital Management System.</p>", "booth_products": "HealthTech HMS, Telemedicine Platform, EHR, ABDM Integration, Lab Management", "booth_website": "https://healthtech.in", "booth_video_url": "", "booth_contact_email": "roshni@healthtech.in", "booth_contact_phone": "+919876500002"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Faisal Rahman", "company_name": "PharmaCure Distributors", "industry": "Pharmaceuticals", "gst_number": "32AABCP9012A1Z5", "annual_turnover": "25-100 Cr", "contact_number": "+919876500003", "email": "faisal@pharmacure.in", "website": "https://pharmacure.in", "communication_address": "Edappally, Kochi - 682024", "product_categories": "Generic Medicines, OTC Products, Nutraceuticals", "description": "<p>PharmaCure is a multi-state pharma distributor with a network of 2000+ pharmacies.</p>", "expo_event": "HMCE2026", "status": "Active", "has_digital_booth": 0},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Venkatesh Reddy", "company_name": "AgroForce Machinery", "industry": "Agricultural Equipment", "gst_number": "36AABCA1234A1Z2", "annual_turnover": "5-25 Cr", "contact_number": "+919876500004", "email": "venkatesh@agroforce.in", "website": "https://agroforce.in", "communication_address": "IDA Nacharam, Hyderabad - 500076", "product_categories": "Tractors, Mini Harvesters, Soil Tillers, Sprayers", "description": "<p>AgroForce manufactures affordable precision farming machinery tailored for small and mid-sized Indian farms.</p>", "expo_event": "AGRIINDIA2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Farm machinery built for Bharat", "booth_description": "<p>AgroForce Machinery designs and manufactures rugged, affordable farm equipment for Indian soil conditions.</p>", "booth_products": "Mini Harvesters, Soil Tillers, Power Sprayers, Paddy Transplanters, Custom Implements", "booth_website": "https://agroforce.in", "booth_video_url": "", "booth_contact_email": "venkatesh@agroforce.in", "booth_contact_phone": "+919876500004"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Lakshmi Devi", "company_name": "GreenRoot Organics", "industry": "Organic Farming", "gst_number": "36AABCG5678A1Z0", "annual_turnover": "Below 1 Cr", "contact_number": "+919876500005", "email": "lakshmi@greenroot.in", "website": "https://greenrootorganics.in", "communication_address": "Warangal Rural, Telangana - 506167", "product_categories": "Organic Seeds, Bio Fertilizers, Natural Pesticides", "description": "<p>GreenRoot Organics is a farmer-led collective producing certified organic inputs.</p>", "expo_event": "AGRIINDIA2026", "status": "Active", "has_digital_booth": 0},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Mohan Das", "company_name": "SkyFarm Drones", "industry": "AgriTech", "gst_number": "36AABCS3456A1Z8", "annual_turnover": "1-5 Cr", "contact_number": "+919876500006", "email": "mohan@skyfarmdrones.in", "website": "https://skyfarmdrones.in", "communication_address": "T-Hub, HICC Complex, Hyderabad - 500081", "product_categories": "Agricultural Drones, Precision Spraying, Crop Monitoring", "description": "<p>SkyFarm Drones builds autonomous drones for precision crop spraying and real-time field monitoring.</p>", "expo_event": "AGRIINDIA2026", "status": "Pending Approval", "has_digital_booth": 1, "booth_tagline": "The sky is your farm's best friend", "booth_description": "<p>SkyFarm Drones builds DGCA-certified agricultural drones that spray pesticides 8x faster than manual methods.</p>", "booth_products": "SkySpray Pro Drone, CropScan AI, Drone-as-a-Service, Pilot Training, DGCA Compliance", "booth_website": "https://skyfarmdrones.in", "booth_video_url": "", "booth_contact_email": "mohan@skyfarmdrones.in", "booth_contact_phone": "+919876500006"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Ananya Krishnaswamy", "company_name": "LearnSphere EdTech", "industry": "Education Technology", "gst_number": "33AABCL1234A1Z3", "annual_turnover": "1-5 Cr", "contact_number": "+919876500007", "email": "ananya@learnsphere.in", "website": "https://learnsphere.in", "communication_address": "Sholinganallur, Chennai - 600119", "product_categories": "Adaptive Learning Platform, STEM Kits, Online Tutoring", "description": "<p>LearnSphere builds AI-driven adaptive learning platforms for K-12 and competitive exam preparation.</p>", "expo_event": "EDUTECH2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "Every student learns differently. So should their platform.", "booth_description": "<p>LearnSphere is an AI-powered adaptive learning platform personalising study paths for 80,000+ students.</p>", "booth_products": "Adaptive Learning Platform, AI Tutor, STEM Kits, Mock Test Engine, School Analytics Dashboard", "booth_website": "https://learnsphere.in", "booth_video_url": "", "booth_contact_email": "ananya@learnsphere.in", "booth_contact_phone": "+919876500007"},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Karthikeyan S", "company_name": "SkillBridge Academy", "industry": "Vocational Training", "gst_number": "33AABCS7890A1Z1", "annual_turnover": "Below 1 Cr", "contact_number": "+919876500008", "email": "karthik@skillbridge.in", "website": "https://skillbridge.in", "communication_address": "Anna Nagar, Chennai - 600040", "product_categories": "Coding Bootcamps, Skill Certification, Campus Hiring", "description": "<p>SkillBridge runs industry-aligned coding and vocational bootcamps with guaranteed placement support.</p>", "expo_event": "EDUTECH2026", "status": "Active", "has_digital_booth": 0},
+        {"doctype": "Exhibitor Profile", "exhibitor_name": "Deepa Sundaram", "company_name": "ClassRoom Connect", "industry": "School Infrastructure", "gst_number": "33AABCC4567A1Z9", "annual_turnover": "5-25 Cr", "contact_number": "+919876500009", "email": "deepa@classroomconnect.in", "website": "https://classroomconnect.in", "communication_address": "OMR Road, Perungudi, Chennai - 600096", "product_categories": "Smart Boards, AV Systems, Language Labs, Furniture", "description": "<p>ClassRoom Connect supplies complete smart classroom infrastructure to schools and colleges across South India.</p>", "expo_event": "EDUTECH2026", "status": "Active", "has_digital_booth": 1, "booth_tagline": "The complete smart classroom, delivered and installed", "booth_description": "<p>ClassRoom Connect is South India's most trusted supplier of smart classroom infrastructure.</p>", "booth_products": "Interactive Flat Panels, Smart Boards, Language Labs, AV Systems, Modular Furniture, AMC", "booth_website": "https://classroomconnect.in", "booth_video_url": "", "booth_contact_email": "deepa@classroomconnect.in", "booth_contact_phone": "+919876500009"},
     ]
-
     for ex in exhibitors:
         if frappe.db.exists("Exhibitor Profile", ex["email"]):
             print(f"   ⏭  Exhibitor '{ex['company_name']}' already exists, skipping.")
@@ -456,7 +556,14 @@ def _seed_stall_bookings():
         if not frappe.db.exists("Expo Stall", bk["stall"]):
             print(f"     Stall '{bk['stall']}' not found, skipping booking.")
             continue
-        doc = frappe.get_doc({"doctype": "Stall Booking", "expo_event": bk["expo_event"], "exhibitor": bk["exhibitor"], "stall": bk["stall"], "booking_date": today(), "payment_status": bk["payment_status"], "base_amount": bk["base_amount"], "tax_amount": bk["tax_amount"], "total_amount": bk["total_amount"], "deposit_paid": bk["deposit_paid"], "balance_due": bk["total_amount"] - bk["deposit_paid"]})
+        doc = frappe.get_doc({
+            "doctype": "Stall Booking", "expo_event": bk["expo_event"],
+            "exhibitor": bk["exhibitor"], "stall": bk["stall"],
+            "booking_date": today(), "payment_status": bk["payment_status"],
+            "base_amount": bk["base_amount"], "tax_amount": bk["tax_amount"],
+            "total_amount": bk["total_amount"], "deposit_paid": bk["deposit_paid"],
+            "balance_due": bk["total_amount"] - bk["deposit_paid"],
+        })
         doc.insert(ignore_permissions=True)
     print(f"    Created {len(bookings)} Stall Bookings")
 
@@ -468,24 +575,27 @@ def _seed_stall_bookings():
 def _seed_crm_leads():
     print("\n  Creating CRM Leads...")
     leads = [
-        {"lead_name": "Arun Pillai",          "company": "NexGen Robotics",             "expo_event": "KTE2026",       "contact_number": "+919876001234", "email": "arun@nexgenrobotics.com",        "country": "India",                "product_interest": "IoT Devices, Robotics",               "lead_source": "Manual",  "lead_rating": "Hot",  "exhibitor": "anoop@byteforge.in",        "follow_up_date": add_days(today(), 3),  "notes": "<p>Very interested in bulk IoT order. Schedule demo call this week.</p>"},
-        {"lead_name": "Sandra Thomas",        "company": "Kerala Startups Hub",          "expo_event": "KTE2026",       "contact_number": "+919988001122", "email": "sandra@keralastartuphub.in",     "country": "India",                "product_interest": "SaaS Platform, Cloud Solutions",      "lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "rahul@techspark.in",        "follow_up_date": add_days(today(), 7),  "notes": "<p>Interested in annual subscription. Send pricing deck.</p>"},
-        {"lead_name": "Mohammed Fazil",       "company": "Gulf Trade Connect",           "expo_event": "KTE2026",       "contact_number": "+919765009988", "email": "fazil@gulftrade.ae",             "country": "United Arab Emirates", "product_interest": "AI Analytics Tools",                  "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "priya@dataviz.io",          "follow_up_date": add_days(today(), 2),  "notes": "<p>UAE government project. Very high potential. Priority follow-up.</p>"},
-        {"lead_name": "Deepa Narayanan",      "company": "FoodTech Ventures",            "expo_event": "SIFS2026",      "contact_number": "+919900223344", "email": "deepa@foodtechventures.in",      "country": "India",                "product_interest": "Spice Blends, Organic Products",      "lead_source": "Manual",  "lead_rating": "Warm", "exhibitor": "suresh@spicegarden.com",    "follow_up_date": add_days(today(), 10), "notes": "<p>Looking to source organic spices for restaurant chain. 200+ outlets.</p>"},
-        {"lead_name": "Sanjay Mehta",         "company": "Prestige Constructions",       "expo_event": "BCON2026",      "contact_number": "+919811223344", "email": "sanjay@prestigeconstructions.in","country": "India",                "product_interest": "Granite, Premium Tiles",              "lead_source": "Scan",    "lead_rating": "Hot",  "exhibitor": "ramesh@stonecraft.co.in",   "follow_up_date": add_days(today(), 1),  "notes": "<p>3 upcoming luxury villa projects. Needs granite quote for 15,000 sqft.</p>"},
-        {"lead_name": "Ritu Sharma",          "company": "Urban Nest Developers",        "expo_event": "BCON2026",      "contact_number": "+919845667788", "email": "ritu@urbannest.in",              "country": "India",                "product_interest": "Smart Lighting, Home Automation",     "lead_source": "Meeting", "lead_rating": "Cold", "exhibitor": "kavitha@smarthome.in",      "follow_up_date": add_days(today(), 14), "notes": "<p>Early stage inquiry. Budget not confirmed yet.</p>"},
-        {"lead_name": "Dr. Smitha Varghese",  "company": "Believers Church Hospital",    "expo_event": "HMCE2026",      "contact_number": "+919876600001", "email": "smitha@bchospital.org",          "country": "India",                "product_interest": "MRI Equipment, Portable Diagnostics", "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "anil@mediscan.in",          "follow_up_date": add_days(today(), 2),  "notes": "<p>Planning to set up a new diagnostics wing. Budget approved for 2 MRI units.</p>"},
-        {"lead_name": "Reji Thomas",          "company": "Sunrise Poly Clinic",          "expo_event": "HMCE2026",      "contact_number": "+919876600002", "email": "reji@sunriseclinic.in",          "country": "India",                "product_interest": "Hospital Management System",          "lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "roshni@healthtech.in",      "follow_up_date": add_days(today(), 5),  "notes": "<p>Running 3 clinics. Wants unified patient record system. Demo requested.</p>"},
-        {"lead_name": "Ahmed Al Rashidi",     "company": "Gulf Medical Supplies LLC",    "expo_event": "HMCE2026",      "contact_number": "+971501234567", "email": "ahmed@gulfmedsupply.ae",         "country": "United Arab Emirates", "product_interest": "Generic Medicines, Nutraceuticals",   "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "faisal@pharmacure.in",      "follow_up_date": add_days(today(), 1),  "notes": "<p>Wants to import 50+ SKUs to UAE. MOH registration support needed. Very high value deal.</p>"},
-        {"lead_name": "Nagaraju Patel",       "company": "Patel Agri Co-op Society",    "expo_event": "AGRIINDIA2026", "contact_number": "+919876600003", "email": "nagaraju@patelagricoop.in",      "country": "India",                "product_interest": "Mini Harvesters, Soil Tillers",       "lead_source": "Manual",  "lead_rating": "Hot",  "exhibitor": "venkatesh@agroforce.in",    "follow_up_date": add_days(today(), 3),  "notes": "<p>Society of 200 farmers. Wants group purchase of 15 mini harvesters.</p>"},
-        {"lead_name": "Rajini Murugavel",     "company": "Murugavel Organic Farms",      "expo_event": "AGRIINDIA2026", "contact_number": "+919876600004", "email": "rajini@morganicfarms.in",        "country": "India",                "product_interest": "Organic Seeds, Bio Fertilizers",      "lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "lakshmi@greenroot.in",      "follow_up_date": add_days(today(), 6),  "notes": "<p>200 acres organic farm transitioning. Interested in full bio-input package.</p>"},
-        {"lead_name": "Sridhar Venkatesan",   "company": "Tamil Nadu Agri Dept.",        "expo_event": "AGRIINDIA2026", "contact_number": "+919876600005", "email": "sridhar@tnagri.gov.in",          "country": "India",                "product_interest": "Agricultural Drones, Crop Monitoring","lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "mohan@skyfarmdrones.in",    "follow_up_date": add_days(today(), 2),  "notes": "<p>State govt pilot for drone spraying in 5 districts. Potential 50 units. Send proposal ASAP.</p>"},
-        {"lead_name": "Fr. Mathew Kuriakose", "company": "St. Joseph's Group of Schools","expo_event": "EDUTECH2026",   "contact_number": "+919876600006", "email": "mathew@stjosephschools.in",       "country": "India",                "product_interest": "Smart Boards, Language Labs",         "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "deepa@classroomconnect.in", "follow_up_date": add_days(today(), 3),  "notes": "<p>12 schools need smart classroom upgrade. Budget Rs 2Cr allocated. Site visit requested.</p>"},
-        {"lead_name": "Nisha Balakrishnan",   "company": "Future Scholars Academy",      "expo_event": "EDUTECH2026",   "contact_number": "+919876600007", "email": "nisha@futurescholars.in",         "country": "India",                "product_interest": "Adaptive Learning Platform, STEM Kits","lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "ananya@learnsphere.in",     "follow_up_date": add_days(today(), 7),  "notes": "<p>Coaching centre with 1500 students. Interested in annual platform license.</p>"},
-        {"lead_name": "Imran Hussain",        "company": "Gulf Knowledge Institute",     "expo_event": "EDUTECH2026",   "contact_number": "+97450112233",  "email": "imran@gulfknowledge.qa",          "country": "Qatar",                "product_interest": "Coding Bootcamps, Skill Certification","lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "karthik@skillbridge.in",    "follow_up_date": add_days(today(), 4),  "notes": "<p>Wants to white-label SkillBridge curriculum for Qatar. 500 students. International partnership.</p>"},
+        {"lead_name": "Arun Pillai",         "company": "NexGen Robotics",           "expo_event": "KTE2026",       "contact_number": "+919876001234", "email": "arun@nexgenrobotics.com",         "country": "India",                "product_interest": "IoT Devices, Robotics",                "lead_source": "Manual",  "lead_rating": "Hot",  "exhibitor": "anoop@byteforge.in",        "follow_up_date": add_days(today(), 3),  "notes": "<p>Very interested in bulk IoT order. Schedule demo call this week.</p>"},
+        {"lead_name": "Sandra Thomas",       "company": "Kerala Startups Hub",        "expo_event": "KTE2026",       "contact_number": "+919988001122", "email": "sandra@keralastartuphub.in",      "country": "India",                "product_interest": "SaaS Platform, Cloud Solutions",       "lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "rahul@techspark.in",        "follow_up_date": add_days(today(), 7),  "notes": "<p>Interested in annual subscription. Send pricing deck.</p>"},
+        {"lead_name": "Mohammed Fazil",      "company": "Gulf Trade Connect",         "expo_event": "KTE2026",       "contact_number": "+919765009988", "email": "fazil@gulftrade.ae",              "country": "United Arab Emirates", "product_interest": "AI Analytics Tools",                   "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "priya@dataviz.io",          "follow_up_date": add_days(today(), 2),  "notes": "<p>UAE government project. Very high potential. Priority follow-up.</p>"},
+        {"lead_name": "Sanjay Mehta",        "company": "Prestige Constructions",     "expo_event": "BCON2026",      "contact_number": "+919811223344", "email": "sanjay@prestigeconstructions.in", "country": "India",                "product_interest": "Granite, Premium Tiles",               "lead_source": "Scan",    "lead_rating": "Hot",  "exhibitor": "ramesh@stonecraft.co.in",   "follow_up_date": add_days(today(), 1),  "notes": "<p>3 upcoming luxury villa projects. Needs granite quote for 15,000 sqft.</p>"},
+        {"lead_name": "Ritu Sharma",         "company": "Urban Nest Developers",      "expo_event": "BCON2026",      "contact_number": "+919845667788", "email": "ritu@urbannest.in",               "country": "India",                "product_interest": "Smart Lighting, Home Automation",      "lead_source": "Meeting", "lead_rating": "Cold", "exhibitor": "kavitha@smarthome.in",      "follow_up_date": add_days(today(), 14), "notes": "<p>Early stage inquiry. Budget not confirmed yet.</p>"},
+        {"lead_name": "Dr. Smitha Varghese", "company": "Believers Church Hospital",  "expo_event": "HMCE2026",      "contact_number": "+919876600001", "email": "smitha@bchospital.org",           "country": "India",                "product_interest": "MRI Equipment, Portable Diagnostics",  "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "anil@mediscan.in",          "follow_up_date": add_days(today(), 2),  "notes": "<p>Planning to set up a new diagnostics wing. Budget approved for 2 MRI units.</p>"},
+        {"lead_name": "Reji Thomas",         "company": "Sunrise Poly Clinic",        "expo_event": "HMCE2026",      "contact_number": "+919876600002", "email": "reji@sunriseclinic.in",           "country": "India",                "product_interest": "Hospital Management System",           "lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "roshni@healthtech.in",      "follow_up_date": add_days(today(), 5),  "notes": "<p>Running 3 clinics. Wants unified patient record system. Demo requested.</p>"},
+        {"lead_name": "Nagaraju Patel",      "company": "Patel Agri Co-op Society",  "expo_event": "AGRIINDIA2026", "contact_number": "+919876600003", "email": "nagaraju@patelagricoop.in",       "country": "India",                "product_interest": "Mini Harvesters, Soil Tillers",        "lead_source": "Manual",  "lead_rating": "Hot",  "exhibitor": "venkatesh@agroforce.in",    "follow_up_date": add_days(today(), 3),  "notes": "<p>Society of 200 farmers. Wants group purchase of 15 mini harvesters.</p>"},
+        {"lead_name": "Sridhar Venkatesan",  "company": "Tamil Nadu Agri Dept.",     "expo_event": "AGRIINDIA2026", "contact_number": "+919876600005", "email": "sridhar@tnagri.gov.in",           "country": "India",                "product_interest": "Agricultural Drones, Crop Monitoring", "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "mohan@skyfarmdrones.in",    "follow_up_date": add_days(today(), 2),  "notes": "<p>State govt pilot for drone spraying in 5 districts. Potential 50 units. Send proposal ASAP.</p>"},
+        {"lead_name": "Fr. Mathew Kuriakose","company": "St. Joseph's Group of Schools","expo_event": "EDUTECH2026", "contact_number": "+919876600006", "email": "mathew@stjosephschools.in",       "country": "India",                "product_interest": "Smart Boards, Language Labs",          "lead_source": "Meeting", "lead_rating": "Hot",  "exhibitor": "deepa@classroomconnect.in", "follow_up_date": add_days(today(), 3),  "notes": "<p>12 schools need smart classroom upgrade. Budget Rs 2Cr allocated. Site visit requested.</p>"},
+        {"lead_name": "Nisha Balakrishnan",  "company": "Future Scholars Academy",   "expo_event": "EDUTECH2026",   "contact_number": "+919876600007", "email": "nisha@futurescholars.in",         "country": "India",                "product_interest": "Adaptive Learning Platform, STEM Kits","lead_source": "Scan",    "lead_rating": "Warm", "exhibitor": "ananya@learnsphere.in",     "follow_up_date": add_days(today(), 7),  "notes": "<p>Coaching centre with 1500 students. Interested in annual platform license.</p>"},
     ]
     for lead in leads:
-        doc = frappe.get_doc({"doctype": "CRM Lead", "lead_name": lead["lead_name"], "company": lead["company"], "expo_event": lead["expo_event"], "contact_number": lead["contact_number"], "email": lead["email"], "country": lead.get("country"), "product_interest": lead["product_interest"], "lead_source": lead["lead_source"], "lead_rating": lead["lead_rating"], "exhibitor": lead["exhibitor"], "follow_up_date": lead["follow_up_date"], "notes": lead["notes"]})
+        doc = frappe.get_doc({
+            "doctype": "CRM Lead", "lead_name": lead["lead_name"], "company": lead["company"],
+            "expo_event": lead["expo_event"], "contact_number": lead["contact_number"],
+            "email": lead["email"], "country": lead.get("country"),
+            "product_interest": lead["product_interest"], "lead_source": lead["lead_source"],
+            "lead_rating": lead["lead_rating"], "exhibitor": lead["exhibitor"],
+            "follow_up_date": lead["follow_up_date"], "notes": lead["notes"],
+        })
         doc.insert(ignore_permissions=True)
     print(f"    Created {len(leads)} CRM Leads")
 
@@ -522,4 +632,4 @@ def clean_extra_seed():
         if frappe.db.exists("Expo Event", ev):
             frappe.delete_doc("Expo Event", ev, ignore_permissions=True, force=True)
     frappe.db.commit()
-    print(" Cleaned extra seed data (HMCE2026, AGRIINDIA2026, EDUTECH2026)!")
+    print(" Cleaned extra seed data!")
