@@ -46,12 +46,48 @@ def send_otp(mobile):
     frappe.logger().info(f"[EXPO OTP] Mobile: {mobile} | OTP: {otp}")
     print(f"\n{'='*40}\n📱 OTP for {mobile}: {otp}\n{'='*40}\n")
 
-    return {
+    # ── Send SMS via Fast2SMS ─────────────────────────────
+    sms_sent = False
+    sms_error = None
+    try:
+        api_key = frappe.conf.get("fast2sms_api_key")
+        if api_key:
+            import requests as _req
+            number = mobile.replace("+91", "").replace("+", "").strip()
+            resp = _req.post(
+                "https://www.fast2sms.com/dev/bulkV2",
+                headers={"authorization": api_key, "Content-Type": "application/json"},
+                json={
+                    "route":            "otp",
+                    "variables_values": otp,
+                    "numbers":          number,
+                },
+                timeout=10,
+            )
+            result = resp.json()
+            if result.get("return") is True:
+                sms_sent = True
+            else:
+                sms_error = result.get("message", "SMS failed")
+                frappe.logger().warning(f"[EXPO OTP] Fast2SMS error: {sms_error}")
+        else:
+            frappe.logger().warning("[EXPO OTP] fast2sms_api_key not configured")
+    except Exception as e:
+        sms_error = str(e)
+        frappe.logger().error(f"[EXPO OTP] SMS send exception: {e}")
+
+    response = {
         "success": True,
         "exists":  bool(exists),
         "message": f"OTP sent to {mobile[-4:].rjust(len(mobile), '*')}",
-        "dev_otp": otp,
     }
+
+    # dev_otp only when SMS not sent (dev/testing fallback)
+    if not sms_sent:
+        response["dev_otp"] = otp
+        response["sms_error"] = sms_error
+
+    return response
 
 
 # ─────────────────────────────────────────────────────────────
