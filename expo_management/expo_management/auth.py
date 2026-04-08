@@ -56,11 +56,11 @@ def send_otp(mobile):
             number = mobile.replace("+91", "").replace("+", "").strip()
             resp = _req.post(
                 "https://www.fast2sms.com/dev/bulkV2",
-                headers={"authorization": api_key, "Content-Type": "application/json"},
-                json={
-                    "route":            "otp",
-                    "variables_values": otp,
-                    "numbers":          number,
+                headers={"authorization": api_key},
+                data={
+                    "route":   "q",
+                    "message": f"Your Expo Management OTP is {otp}. Valid for {OTP_EXPIRY_MINUTES} minutes. Do not share.",
+                    "numbers": number,
                 },
                 timeout=10,
             )
