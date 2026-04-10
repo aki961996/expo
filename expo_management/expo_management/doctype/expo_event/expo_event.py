@@ -384,25 +384,39 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
-	user_email = frappe.session.user
-	exhibitor_name = frappe.db.get_value(
-		"Exhibitor Profile", {"email": user_email}, "name"
-	)
-	if not exhibitor_name:
-		return []
+    user_email = frappe.session.user
 
-	filters = {"exhibitor": exhibitor_name}
-	if expo_event:
-		filters["expo_event"] = expo_event
+    # frappe_user → email fallback
+    exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user_email}, "name")
+    if not exhibitor_name:
+        exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"email": user_email}, "name")
+    if not exhibitor_name:
+        return []
 
-	return frappe.get_all(
-		"Stall Booking",
-		filters=filters,
-		fields=[
-			"name", "expo_event", "exhibitor_name",
-			"stall", "stall_number", "booking_date",
-			"payment_status", "base_amount", "tax_amount",
-			"total_amount", "deposit_paid", "balance_due",
-		],
-		order_by="creation desc",
-	)
+    filters = {"exhibitor": exhibitor_name}
+    if expo_event:
+        filters["expo_event"] = expo_event
+
+    bookings = frappe.get_all(
+        "Stall Booking",
+        filters=filters,
+        fields=[
+            "name", "expo_event", "exhibitor_name",
+            "stall", "stall_number", "booking_date",
+            "payment_status", "base_amount", "tax_amount",
+            "total_amount", "deposit_paid", "balance_due",
+            "service_amount",
+        ],
+        order_by="creation desc",
+    )
+
+    # ── Services child table attach ───────────────────────
+    for booking in bookings:
+        services = frappe.get_all(
+            "Stall Booking Service",
+            filters={"parent": booking["name"]},
+            fields=["service", "price"],
+        )
+        booking["services"] = services if services else []
+
+    return bookings
