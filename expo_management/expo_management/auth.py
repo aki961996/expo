@@ -6,7 +6,7 @@ from frappe import _
 
 # ── OTP Config ────────────────────────────────────────────────
 OTP_EXPIRY_MINUTES = 10
-OTP_LENGTH = 6
+OTP_LENGTH         = 6
 
 
 def _generate_otp():
@@ -47,7 +47,7 @@ def send_otp(mobile):
     print(f"\n{'='*40}\n📱 OTP for {mobile}: {otp}\n{'='*40}\n")
 
     # ── Send SMS via Fast2SMS ─────────────────────────────
-    sms_sent = False
+    sms_sent  = False
     sms_error = None
     try:
         api_key = frappe.conf.get("fast2sms_api_key")
@@ -81,10 +81,9 @@ def send_otp(mobile):
         "exists":  bool(exists),
         "message": f"OTP sent to {mobile[-4:].rjust(len(mobile), '*')}",
     }
-
-    # dev_otp only when SMS not sent (dev/testing fallback)
+    # dev_otp only when SMS not sent — testing fallback
     if not sms_sent:
-        response["dev_otp"] = otp
+        response["dev_otp"]   = otp
         response["sms_error"] = sms_error
 
     return response
@@ -111,9 +110,19 @@ def verify_otp(mobile, otp):
 
     frappe.cache().delete_value(cache_key)
 
+    # ── Find Exhibitor — try multiple number format variants ──
     exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"contact_number": mobile}, "name")
     if not exhibitor_name:
-        return {"success": False, "error": "not_found", "message": "Exhibitor not found."}
+        number_only = mobile.lstrip("+").lstrip("91").lstrip("0")
+        for variant in ["+91" + number_only, "91" + number_only, "0" + number_only, number_only]:
+            exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"contact_number": variant}, "name")
+            if exhibitor_name:
+                frappe.logger().info(f"[EXPO OTP] Matched exhibitor via variant: {variant}")
+                break
+
+    if not exhibitor_name:
+        frappe.logger().warning(f"[EXPO OTP] No exhibitor found for mobile: {mobile}")
+        return {"success": False, "error": "not_found", "message": "Exhibitor not found. Please register first."}
 
     exhibitor  = frappe.get_doc("Exhibitor Profile", exhibitor_name)
     user_email = exhibitor.email or f"exhibitor_{mobile.replace('+','').replace(' ','')}@expo.local"
@@ -145,9 +154,13 @@ def verify_otp(mobile, otp):
 
     frappe.local.login_manager.login_as(user_email)
 
+    # ── Return sid for Postman / mobile app ──────────────
+    sid = frappe.session.sid
+
     return {
         "success": True,
         "message": "Login successful",
+        "sid":     sid,
         "exhibitor": {
             "name":               exhibitor.name,
             "exhibitor_name":     exhibitor.exhibitor_name,
@@ -238,7 +251,10 @@ def get_current_exhibitor():
     if user == "Guest":
         return {"logged_in": False, "exhibitor": None}
 
+    # 1) frappe_user field → 2) email fallback
     exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
+    if not exhibitor_name:
+        exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"email": user}, "name")
     if not exhibitor_name:
         return {"logged_in": False, "exhibitor": None}
 
@@ -255,7 +271,6 @@ def get_current_exhibitor():
             "status":             exhibitor.status,
             "industry":           exhibitor.industry,
             "logo":               exhibitor.company_logo,
-            # ── Profile fields ────────────────────────────────
             "gst_number":         exhibitor.gst_number,
             "annual_turnover":    exhibitor.annual_turnover,
             "website":            exhibitor.website,
@@ -287,9 +302,10 @@ def update_profile(
     if user == "Guest":
         frappe.throw(_("Not logged in"), frappe.AuthenticationError)
 
-    exhibitor_doc_name = frappe.db.get_value(
-        "Exhibitor Profile", {"frappe_user": user}, "name"
-    )
+    # 1) frappe_user field → 2) email fallback
+    exhibitor_doc_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
+    if not exhibitor_doc_name:
+        exhibitor_doc_name = frappe.db.get_value("Exhibitor Profile", {"email": user}, "name")
     if not exhibitor_doc_name:
         frappe.throw(_("Exhibitor profile not found"), frappe.DoesNotExistError)
 
