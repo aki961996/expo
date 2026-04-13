@@ -270,7 +270,11 @@ def create_booking(
 	deposit_paid,
 	balance_due,
 ):
-	# Parse JSON strings if needed
+	import json
+	import frappe
+	from frappe.utils import now
+
+	# Parse JSON
 	if isinstance(selected_dims, str):
 		selected_dims = json.loads(selected_dims)
 	if isinstance(selected_services, str):
@@ -281,21 +285,17 @@ def create_booking(
 	if not exhibitor:
 		frappe.throw("Exhibitor profile not found. Please complete your registration.")
 
-	# Safe bracket access — works for both dict and _dict
 	ex_id   = exhibitor["name"]
 	ex_name = exhibitor["exhibitor_name"]
 
-	# Collect stall names and numbers from selected dims
-	stall_names   = [d.get("stall_name")   for d in selected_dims if d.get("stall_name")]
+	stall_names   = [d.get("stall_name") for d in selected_dims if d.get("stall_name")]
 	stall_numbers = [d.get("stall_number") for d in selected_dims if d.get("stall_number")]
 
-	# Build readable stall reference — "H1-001 (3×3 m) | H1-101 (6×6 m)"
 	stall_number_ref = " | ".join([
 		f"{d.get('stall_number', '')} ({d.get('dimension_label', '')} m)"
 		for d in selected_dims
 	])
 
-	# First stall for the Link field
 	primary_stall = stall_names[0] if stall_names else None
 
 	booking = frappe.get_doc({
@@ -314,51 +314,61 @@ def create_booking(
 		"balance_due":    float(balance_due   or 0),
 	})
 
-	# ── Add services to child table ───────────────────────────
+	# ✅ Response services list
+	response_services = []
+
+	# ── Add services ─────────────────────────
 	for svc in selected_services:
 		svc_name = svc.get("service") or svc.get("name", "")
 		svc_qty  = int(svc.get("qty", 1) or 1)
 
-		# Support price / rate / amount key variants
 		svc_price = (
 			float(svc.get("price")  or 0) or
 			float(svc.get("rate")   or 0) or
 			float(svc.get("amount") or 0)
 		)
 
-		# Fetch service_name from Expo Service master if not passed
 		svc_display_name = svc.get("service_name") or ""
 		if not svc_display_name and svc_name:
 			svc_display_name = (
 				frappe.db.get_value("Expo Service", svc_name, "service_name") or svc_name
 			)
 
-		# Fetch price from master if still 0
 		if not svc_price and svc_name:
 			svc_price = float(
 				frappe.db.get_value("Expo Service", svc_name, "price") or 0
 			)
+
+		amount = svc_price * svc_qty
 
 		booking.append("services", {
 			"service":      svc_name,
 			"service_name": svc_display_name,
 			"qty":          svc_qty,
 			"rate":         svc_price,
-			"amount":       svc_price * svc_qty,
+			"amount":       amount,
 		})
 
-	booking.flags.ignore_mandatory        = True
-	booking.flags.ignore_links            = True
-	booking.flags.ignore_validate_fieldtype = True
+		# ✅ Add to response
+		response_services.append({
+			"service": svc_name,
+			"service_name": svc_display_name,
+			"qty": svc_qty,
+			"rate": svc_price,
+			"amount": amount
+		})
+
+	booking.flags.ignore_mandatory = True
 	booking.insert(ignore_permissions=True)
 
-	# Mark all picked stalls as "Hold"
+	# Update stall status
 	for stall_name in stall_names:
 		if frappe.db.exists("Expo Stall", stall_name):
 			frappe.db.set_value("Expo Stall", stall_name, "status", "Hold")
 
 	frappe.db.commit()
 
+	# ✅ Final response
 	return {
 		"booking_id":    booking.name,
 		"status":        "success",
@@ -366,9 +376,8 @@ def create_booking(
 		"total_amount":  float(total_amount or 0),
 		"deposit_paid":  float(deposit_paid or 0),
 		"balance_due":   float(balance_due  or 0),
+		"services":      response_services   # Include services in response
 	}
-
-
 # ─────────────────────────────────────────────────────────────
 #  API 4 — Get My Bookings
 # ─────────────────────────────────────────────────────────────
