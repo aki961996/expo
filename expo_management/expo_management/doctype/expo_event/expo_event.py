@@ -276,11 +276,14 @@ def create_booking(
 	if isinstance(selected_services, str):
 		selected_services = json.loads(selected_services)
 
-	# Get logged-in exhibitor — frappe_user or email fallback
 	user_email = frappe.session.user
 	exhibitor  = _get_exhibitor(user_email)
 	if not exhibitor:
 		frappe.throw("Exhibitor profile not found. Please complete your registration.")
+
+	# Safe bracket access — works for both dict and _dict
+	ex_id   = exhibitor["name"]
+	ex_name = exhibitor["exhibitor_name"]
 
 	# Collect stall names and numbers from selected dims
 	stall_names   = [d.get("stall_name")   for d in selected_dims if d.get("stall_name")]
@@ -298,8 +301,8 @@ def create_booking(
 	booking = frappe.get_doc({
 		"doctype":        "Stall Booking",
 		"expo_event":     expo_event,
-		"exhibitor":      exhibitor.name,
-		"exhibitor_name": exhibitor.exhibitor_name,
+		"exhibitor":      ex_id,
+		"exhibitor_name": ex_name,
 		"stall":          primary_stall,
 		"stall_number":   stall_number_ref,
 		"booking_date":   now(),
@@ -344,8 +347,9 @@ def create_booking(
 			"amount":       svc_price * svc_qty,
 		})
 
-	booking.flags.ignore_mandatory = True
-	booking.flags.ignore_links      = True
+	booking.flags.ignore_mandatory        = True
+	booking.flags.ignore_links            = True
+	booking.flags.ignore_validate_fieldtype = True
 	booking.insert(ignore_permissions=True)
 
 	# Mark all picked stalls as "Hold"
@@ -376,7 +380,7 @@ def get_my_bookings(expo_event=None):
 	if not exhibitor:
 		return []
 
-	filters = {"exhibitor": exhibitor.name}
+	filters = {"exhibitor": exhibitor["name"]}
 	if expo_event:
 		filters["expo_event"] = expo_event
 
