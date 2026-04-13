@@ -413,7 +413,7 @@ def get_my_bookings(expo_event=None):
     # ── Services child table attach ───────────────────────
     for booking in bookings:
         services = frappe.get_all(
-            "Stall Booking Service",
+            "Booking Service Item",
             filters={"parent": booking["name"]},
             fields=["service", "price"],
         )
