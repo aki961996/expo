@@ -301,9 +301,14 @@ def create_booking(
 
 	# Add services to child table
 	for svc in selected_services:
+		svc_name  = svc.get("service") or svc.get("name", "")
+		svc_price = float(svc.get("price", 0) or svc.get("rate", 0) or svc.get("amount", 0))
 		booking.append("services", {
-			"service": svc.get("service") or svc.get("name", ""),
-			"price":   float(svc.get("price", 0)),
+			"service":      svc_name,
+			"service_name": svc.get("service_name", svc_name),
+			"qty":          int(svc.get("qty", 1)),
+			"rate":         svc_price,
+			"amount":       svc_price * int(svc.get("qty", 1)),
 		})
 
 	booking.flags.ignore_mandatory = True
@@ -384,39 +389,38 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
-    user_email = frappe.session.user
+	user_email = frappe.session.user
 
-    # frappe_user → email fallback
-    exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user_email}, "name")
-    if not exhibitor_name:
-        exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"email": user_email}, "name")
-    if not exhibitor_name:
-        return []
+	# frappe_user → email fallback
+	exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user_email}, "name")
+	if not exhibitor_name:
+		exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"email": user_email}, "name")
+	if not exhibitor_name:
+		return []
 
-    filters = {"exhibitor": exhibitor_name}
-    if expo_event:
-        filters["expo_event"] = expo_event
+	filters = {"exhibitor": exhibitor_name}
+	if expo_event:
+		filters["expo_event"] = expo_event
 
-    bookings = frappe.get_all(
-        "Stall Booking",
-        filters=filters,
-        fields=[
-            "name", "expo_event", "exhibitor_name",
-            "stall", "stall_number", "booking_date",
-            "payment_status", "base_amount", "tax_amount",
-            "total_amount", "deposit_paid", "balance_due",
-            "service_amount",
-        ],
-        order_by="creation desc",
-    )
+	bookings = frappe.get_all(
+		"Stall Booking",
+		filters=filters,
+		fields=[
+			"name", "expo_event", "exhibitor_name",
+			"stall", "stall_number", "booking_date",
+			"payment_status", "base_amount", "tax_amount",
+			"total_amount", "deposit_paid", "balance_due",
+		],
+		order_by="creation desc",
+	)
 
-    # ── Services child table attach ───────────────────────
-    for booking in bookings:
-        services = frappe.get_all(
-            "Booking Service Item",
-            filters={"parent": booking["name"]},
-            fields=["service", "price"],
-        )
-        booking["services"] = services if services else []
+	# Attach services from child table
+	for booking in bookings:
+		services = frappe.get_all(
+			"Booking Service Item",
+			filters={"parent": booking["name"]},
+			fields=["service", "service_name", "qty", "rate", "amount"],
+		)
+		booking["services"] = services if services else []
 
-    return bookings
+	return bookings
