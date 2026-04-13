@@ -33,7 +33,7 @@ class ExpoEvent(Document):
 
 
 # ─────────────────────────────────────────────────────────────
-#  Helper
+#  Helpers
 # ─────────────────────────────────────────────────────────────
 
 def _get_existing_tables():
@@ -49,8 +49,26 @@ def _get_existing_tables():
 	}
 
 
+def _get_exhibitor(user_email):
+	"""Get exhibitor by frappe_user first, then email fallback."""
+	exhibitor = frappe.db.get_value(
+		"Exhibitor Profile",
+		{"frappe_user": user_email},
+		["name", "exhibitor_name"],
+		as_dict=True,
+	)
+	if not exhibitor:
+		exhibitor = frappe.db.get_value(
+			"Exhibitor Profile",
+			{"email": user_email},
+			["name", "exhibitor_name"],
+			as_dict=True,
+		)
+	return exhibitor
+
+
 # ─────────────────────────────────────────────────────────────
-#  API 1 — Event Listing Page
+#  API 1 — Event Listing
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
@@ -124,7 +142,7 @@ def get_published_events(status=None, category=None, search=None, limit=20, offs
 
 
 # ─────────────────────────────────────────────────────────────
-#  API 2 — Event Detail Page
+#  API 2 — Event Detail
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist(allow_guest=True)
@@ -252,20 +270,15 @@ def create_booking(
 	deposit_paid,
 	balance_due,
 ):
-	# Parse JSON strings
+	# Parse JSON strings if needed
 	if isinstance(selected_dims, str):
 		selected_dims = json.loads(selected_dims)
 	if isinstance(selected_services, str):
 		selected_services = json.loads(selected_services)
 
-	# Get logged-in exhibitor
+	# Get logged-in exhibitor — frappe_user or email fallback
 	user_email = frappe.session.user
-	exhibitor = frappe.db.get_value(
-		"Exhibitor Profile",
-		{"email": user_email},
-		["name", "exhibitor_name"],
-		as_dict=True,
-	)
+	exhibitor  = _get_exhibitor(user_email)
 	if not exhibitor:
 		frappe.throw("Exhibitor profile not found. Please complete your registration.")
 
@@ -273,14 +286,13 @@ def create_booking(
 	stall_names   = [d.get("stall_name")   for d in selected_dims if d.get("stall_name")]
 	stall_numbers = [d.get("stall_number") for d in selected_dims if d.get("stall_number")]
 
-	# Build readable stall reference string
-	# Format: "H1-004 (3×3 m) | H1-010 (3×3 m) | H1-102 (6×6 m)"
+	# Build readable stall reference — "H1-001 (3×3 m) | H1-101 (6×6 m)"
 	stall_number_ref = " | ".join([
 		f"{d.get('stall_number', '')} ({d.get('dimension_label', '')} m)"
 		for d in selected_dims
 	])
 
-	# First stall name for the Link field (admin can update later)
+	# First stall for the Link field
 	primary_stall = stall_names[0] if stall_names else None
 
 	booking = frappe.get_doc({
@@ -288,29 +300,55 @@ def create_booking(
 		"expo_event":     expo_event,
 		"exhibitor":      exhibitor.name,
 		"exhibitor_name": exhibitor.exhibitor_name,
-		"stall":          primary_stall,    # Link field — first stall
-		"stall_number":   stall_number_ref, # Full readable reference
+		"stall":          primary_stall,
+		"stall_number":   stall_number_ref,
 		"booking_date":   now(),
 		"payment_status": "Pending",
-		"base_amount":    float(stall_amount or 0),
-		"tax_amount":     float(tax_amount or 0),
-		"total_amount":   float(total_amount or 0),
-		"deposit_paid":   float(deposit_paid or 0),
-		"balance_due":    float(balance_due or 0),
+		"base_amount":    float(stall_amount  or 0),
+		"tax_amount":     float(tax_amount    or 0),
+		"total_amount":   float(total_amount  or 0),
+		"deposit_paid":   float(deposit_paid  or 0),
+		"balance_due":    float(balance_due   or 0),
 	})
 
-	# Add services to child table
+	# ── Add services to child table ───────────────────────────
 	for svc in selected_services:
+		svc_name = svc.get("service") or svc.get("name", "")
+		svc_qty  = int(svc.get("qty", 1) or 1)
+
+		# Support price / rate / amount key variants
+		svc_price = (
+			float(svc.get("price")  or 0) or
+			float(svc.get("rate")   or 0) or
+			float(svc.get("amount") or 0)
+		)
+
+		# Fetch service_name from Expo Service master if not passed
+		svc_display_name = svc.get("service_name") or ""
+		if not svc_display_name and svc_name:
+			svc_display_name = (
+				frappe.db.get_value("Expo Service", svc_name, "service_name") or svc_name
+			)
+
+		# Fetch price from master if still 0
+		if not svc_price and svc_name:
+			svc_price = float(
+				frappe.db.get_value("Expo Service", svc_name, "price") or 0
+			)
+
 		booking.append("services", {
-			"service": svc.get("service") or svc.get("name", ""),
-			"price":   float(svc.get("price", 0)),
+			"service":      svc_name,
+			"service_name": svc_display_name,
+			"qty":          svc_qty,
+			"rate":         svc_price,
+			"amount":       svc_price * svc_qty,
 		})
 
 	booking.flags.ignore_mandatory = True
 	booking.flags.ignore_links      = True
 	booking.insert(ignore_permissions=True)
 
-	# Mark all picked stalls as "Hold" (Booked after payment)
+	# Mark all picked stalls as "Hold"
 	for stall_name in stall_names:
 		if frappe.db.exists("Expo Stall", stall_name):
 			frappe.db.set_value("Expo Stall", stall_name, "status", "Hold")
@@ -323,7 +361,7 @@ def create_booking(
 		"stall_numbers": stall_numbers,
 		"total_amount":  float(total_amount or 0),
 		"deposit_paid":  float(deposit_paid or 0),
-		"balance_due":   float(balance_due or 0),
+		"balance_due":   float(balance_due  or 0),
 	}
 
 
@@ -331,8 +369,43 @@ def create_booking(
 #  API 4 — Get My Bookings
 # ─────────────────────────────────────────────────────────────
 
+@frappe.whitelist()
+def get_my_bookings(expo_event=None):
+	user_email = frappe.session.user
+	exhibitor  = _get_exhibitor(user_email)
+	if not exhibitor:
+		return []
+
+	filters = {"exhibitor": exhibitor.name}
+	if expo_event:
+		filters["expo_event"] = expo_event
+
+	bookings = frappe.get_all(
+		"Stall Booking",
+		filters=filters,
+		fields=[
+			"name", "expo_event", "exhibitor_name",
+			"stall", "stall_number", "booking_date",
+			"payment_status", "base_amount", "tax_amount",
+			"total_amount", "deposit_paid", "balance_due",
+		],
+		order_by="creation desc",
+	)
+
+	# Attach services child table to each booking
+	for booking in bookings:
+		services = frappe.get_all(
+			"Booking Service Item",
+			filters={"parent": booking["name"]},
+			fields=["service", "service_name", "qty", "rate", "amount"],
+		)
+		booking["services"] = services if services else []
+
+	return bookings
+
+
 # ─────────────────────────────────────────────────────────────
-#  API 5 — Get Available Stalls for a Hall + Dimension
+#  API 5 — Get Available Stalls
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -341,7 +414,7 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 	if not frappe.db.table_exists("Expo Stall"):
 		return []
 
-	# Normalize dimension_label: replace 'x' with '×' for consistency
+	# Normalize: 'x' → '×'
 	dimension_label = dimension_label.replace('x', '×').strip()
 
 	stalls = frappe.get_all(
@@ -360,15 +433,14 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		order_by="stall_number asc",
 	)
 
-	# If no results with ×, try with x as fallback
+	# Fallback: try with 'x'
 	if not stalls:
-		fallback_label = dimension_label.replace('×', 'x')
 		stalls = frappe.get_all(
 			"Expo Stall",
 			filters={
 				"expo_event":      expo_event,
 				"expo_hall":       expo_hall,
-				"dimension_label": fallback_label,
+				"dimension_label": dimension_label.replace('×', 'x'),
 				"status":          "Available",
 			},
 			fields=[
@@ -380,29 +452,3 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		)
 
 	return stalls
-
-
-@frappe.whitelist()
-def get_my_bookings(expo_event=None):
-	user_email = frappe.session.user
-	exhibitor_name = frappe.db.get_value(
-		"Exhibitor Profile", {"email": user_email}, "name"
-	)
-	if not exhibitor_name:
-		return []
-
-	filters = {"exhibitor": exhibitor_name}
-	if expo_event:
-		filters["expo_event"] = expo_event
-
-	return frappe.get_all(
-		"Stall Booking",
-		filters=filters,
-		fields=[
-			"name", "expo_event", "exhibitor_name",
-			"stall", "stall_number", "booking_date",
-			"payment_status", "base_amount", "tax_amount",
-			"total_amount", "deposit_paid", "balance_due",
-		],
-		order_by="creation desc",
-	)
