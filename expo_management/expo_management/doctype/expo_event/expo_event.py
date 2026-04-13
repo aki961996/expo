@@ -51,19 +51,19 @@ def _get_existing_tables():
 
 def _get_exhibitor(user_email):
 	"""Get exhibitor by frappe_user first, then email fallback."""
-	exhibitor = frappe.db.get_value(
-		"Exhibitor Profile",
-		{"frappe_user": user_email},
-		["name", "exhibitor_name"],
-		as_dict=True,
-	)
-	if not exhibitor:
-		exhibitor = frappe.db.get_value(
+	# Use get_all for reliable dict output
+	def _fetch(filter_dict):
+		results = frappe.get_all(
 			"Exhibitor Profile",
-			{"email": user_email},
-			["name", "exhibitor_name"],
-			as_dict=True,
+			filters=filter_dict,
+			fields=["name", "exhibitor_name"],
+			limit=1,
 		)
+		return results[0] if results else None
+
+	exhibitor = _fetch({"frappe_user": user_email})
+	if not exhibitor:
+		exhibitor = _fetch({"email": user_email})
 	return exhibitor
 
 
