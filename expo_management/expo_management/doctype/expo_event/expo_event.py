@@ -378,12 +378,48 @@ def create_booking(
 		"balance_due":   float(balance_due  or 0),
 		"services":      response_services   # Include services in response
 	}
-# ─────────────────────────────────────────────────────────────
-#  API 4 — Get My Bookings
-# ─────────────────────────────────────────────────────────────
+# # ─────────────────────────────────────────────────────────────
+# #  API 4 — Get My Bookings
+# # ─────────────────────────────────────────────────────────────
+
+# @frappe.whitelist()
+# def get_my_bookings(expo_event=None):
+# 	user_email = frappe.session.user
+# 	exhibitor  = _get_exhibitor(user_email)
+# 	if not exhibitor:
+# 		return []
+
+# 	filters = {"exhibitor": exhibitor["name"]}
+# 	if expo_event:
+# 		filters["expo_event"] = expo_event
+
+# 	bookings = frappe.get_all(
+# 		"Stall Booking",
+# 		filters=filters,
+# 		fields=[
+# 			"name", "expo_event", "exhibitor_name",
+# 			"stall", "stall_number", "booking_date",
+# 			"payment_status", "base_amount", "tax_amount",
+# 			"total_amount", "deposit_paid", "balance_due",
+# 		],
+# 		order_by="creation desc",
+# 	)
+
+# 	# Attach services child table to each booking
+# 	for booking in bookings:
+# 		services = frappe.get_all(
+# 			"Booking Service Item",
+# 			filters={"parent": booking["name"]},
+# 			fields=["service", "service_name", "qty", "rate", "amount"],
+# 		)
+# 		booking["services"] = services if services else []
+
+# 	return bookings
 
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
+	import frappe
+
 	user_email = frappe.session.user
 	exhibitor  = _get_exhibitor(user_email)
 	if not exhibitor:
@@ -405,8 +441,17 @@ def get_my_bookings(expo_event=None):
 		order_by="creation desc",
 	)
 
-	# Attach services child table to each booking
 	for booking in bookings:
+
+		#  Convert stall_number string → list
+		if booking.get("stall_number"):
+			booking["stall_numbers"] = [
+				s.strip() for s in booking["stall_number"].split("|")
+			]
+		else:
+			booking["stall_numbers"] = []
+
+		#  Services
 		services = frappe.get_all(
 			"Booking Service Item",
 			filters={"parent": booking["name"]},
