@@ -9,34 +9,34 @@ class StallBooking(Document):
 		self._calculate_amounts()
 
 	def on_submit(self):
-		# Mark stall as Booked
 		if self.stall:
 			self._update_stall_status("Booked")
 		self._generate_invoice_number()
 
 	def on_cancel(self):
-		# Release stall back to Available
 		if self.stall:
 			self._update_stall_status("Available")
 
 	def _calculate_amounts(self):
-		"""Auto-calculate tax and total from base amount."""
-		# stall ഇല്ലെങ്കിൽ (dimension-based booking) base_amount as-is use ചെയ്യുക
-		if self.stall:
-			stall    = frappe.get_doc("Expo Stall", self.stall)
-			tax_rate = flt(stall.tax_percent) / 100
-		else:
-			tax_rate = 0.18  # default 18% GST
-
-		# ── Service total — use 'rate' field (not 'price') ───
+		"""
+		Calculate tax and total.
+		NOTE: base_amount, tax_amount, total_amount are passed
+		from create_booking API — do NOT recalculate from stall.
+		Only recalculate balance_due from deposit_paid.
+		"""
+		# ── Service total using 'rate' field ─────────────────
 		service_total = sum(flt(s.rate) for s in (self.services or []))
 
-		# GST on base + services
-		self.tax_amount   = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
-		self.total_amount = flt(flt(self.base_amount) + service_total + self.tax_amount, 2)
+		# ── Only auto-fill if base_amount is 0 (fallback) ────
+		if not flt(self.base_amount) and self.stall:
+			stall = frappe.get_doc("Expo Stall", self.stall)
+			self.base_amount = flt(stall.final_price)
+			tax_rate         = flt(stall.tax_percent) / 100 if stall.tax_percent else 0.18
+			self.tax_amount  = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
+			self.total_amount = flt(flt(self.base_amount) + service_total + self.tax_amount, 2)
 
-		# Balance due
-		self.balance_due = flt(self.total_amount - flt(self.deposit_paid), 2)
+		# ── Always recalculate balance_due ────────────────────
+		self.balance_due = flt(flt(self.total_amount) - flt(self.deposit_paid), 2)
 
 	def _update_stall_status(self, status):
 		frappe.db.set_value("Expo Stall", self.stall, {
@@ -50,8 +50,6 @@ class StallBooking(Document):
 			self.invoice_number = f"INV-{self.name}"
 			self.db_update()
 
-
-# ─── Child DocType for services in booking ───────────────────
 
 class BookingServiceItem(Document):
 	pass
