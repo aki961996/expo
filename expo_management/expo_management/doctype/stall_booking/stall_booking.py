@@ -19,24 +19,28 @@ class StallBooking(Document):
 
 	def _calculate_amounts(self):
 		"""
-		Calculate tax and total.
-		NOTE: base_amount, tax_amount, total_amount are passed
-		from create_booking API — do NOT recalculate from stall.
-		Only recalculate balance_due from deposit_paid.
+		DO NOT recalculate base_amount / tax_amount / total_amount
+		DO NOT override stall_number
+		These are passed from create_booking API — preserve them.
+		Only recalculate balance_due.
 		"""
-		# ── Service total using 'rate' field ─────────────────
+		# Service total using correct 'rate' field
 		service_total = sum(flt(s.rate) for s in (self.services or []))
 
-		# ── Only auto-fill if base_amount is 0 (fallback) ────
+		# Only auto-fill amounts if base_amount not passed (fallback)
 		if not flt(self.base_amount) and self.stall:
-			stall = frappe.get_doc("Expo Stall", self.stall)
-			self.base_amount = flt(stall.final_price)
-			tax_rate         = flt(stall.tax_percent) / 100 if stall.tax_percent else 0.18
-			self.tax_amount  = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
-			self.total_amount = flt(flt(self.base_amount) + service_total + self.tax_amount, 2)
+			if frappe.db.exists("Expo Stall", self.stall):
+				stall            = frappe.get_doc("Expo Stall", self.stall)
+				self.base_amount = flt(stall.final_price)
+				tax_rate         = flt(stall.tax_percent) / 100 if stall.tax_percent else 0.18
+				self.tax_amount  = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
+				self.total_amount = flt(
+					flt(self.base_amount) + service_total + self.tax_amount, 2
+				)
 
-		# ── Always recalculate balance_due ────────────────────
-		self.balance_due = flt(flt(self.total_amount) - flt(self.deposit_paid), 2)
+		# Always recalculate balance_due only
+		if flt(self.total_amount):
+			self.balance_due = flt(flt(self.total_amount) - flt(self.deposit_paid), 2)
 
 	def _update_stall_status(self, status):
 		frappe.db.set_value("Expo Stall", self.stall, {
