@@ -17,8 +17,9 @@ export default function RegisterPage() {
   const { register }  = useAuth()
 
   const [form, setForm] = useState({
-    exhibitor_name: '', company_name: '', mobile: '', email: '',
-    industry: '', gst_number: '', annual_turnover: '',
+    exhibitor_name: '', company_name: '', contact_person: '',
+    mobile: '', email: '', industry: '',
+    gst_number: '', annual_turnover: '',
     website: '', address: '', product_categories: '', description: '',
   })
   const [loading, setLoading]         = useState(false)
@@ -34,8 +35,9 @@ export default function RegisterPage() {
 
   const validate = () => {
     const errs = {}
-    if (!form.exhibitor_name.trim()) errs.exhibitor_name = 'Required'
-    if (!form.company_name.trim())   errs.company_name   = 'Required'
+    if (!form.exhibitor_name.trim())  errs.exhibitor_name  = 'Required'
+    if (!form.company_name.trim())    errs.company_name    = 'Required'
+    if (!form.contact_person.trim())  errs.contact_person  = 'Required'
     if (!form.mobile || form.mobile.replace(/\D/g,'').length < 10) errs.mobile = 'Enter valid 10-digit number'
     if (!form.email || !/\S+@\S+\.\S+/.test(form.email)) errs.email = 'Enter valid email'
     if (!form.industry) errs.industry = 'Select industry'
@@ -92,12 +94,8 @@ export default function RegisterPage() {
         input::placeholder, textarea::placeholder { color: #374151; }
         input:focus, textarea:focus, select:focus { outline: none; }
         select option { background: #1A1A1A; color: #F5F5F5; }
-
-        /* Responsive grid */
         .reg-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
-        @media (max-width: 480px) {
-          .reg-grid-2 { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 480px) { .reg-grid-2 { grid-template-columns: 1fr; } }
       `}</style>
 
       <div style={{
@@ -139,6 +137,16 @@ export default function RegisterPage() {
               </Field>
             </div>
 
+            {/* Contact Person - full width, required */}
+            <Field label="Contact Person *" error={fieldErrors.contact_person} style={{ marginBottom: 12 }}>
+              <Input
+                placeholder="Primary contact person name"
+                value={form.contact_person}
+                onChange={v => set('contact_person', v)}
+                error={fieldErrors.contact_person}
+              />
+            </Field>
+
             <div className="reg-grid-2">
               <Field label="Mobile Number *" error={fieldErrors.mobile}>
                 <div style={{ display: 'flex', gap: 6 }}>
@@ -167,13 +175,13 @@ export default function RegisterPage() {
                 style={{
                   width: '100%', padding: '10px 14px',
                   background: t.bgElevated,
-                  border: `1px solid ${fieldErrors.industry ? '#F87171' : '#1F1F1F'}`,
+                  border: `1px solid ${fieldErrors.industry ? '#F87171' : t.borderDefault}`,
                   borderRadius: 8, fontSize: '0.88rem',
-                  color: form.industry ? '#F5F5F5' : '#374151',
+                  color: form.industry ? t.textPrimary : t.textFaint,
                   appearance: 'none', cursor: 'pointer',
                 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                onBlur={e => e.target.style.borderColor = fieldErrors.industry ? '#F87171' : '#1F1F1F'}
+                onBlur={e => e.target.style.borderColor = fieldErrors.industry ? '#F87171' : t.borderDefault}
               >
                 <option value="">Select industry</option>
                 {INDUSTRIES.map(i => <option key={i} value={i}>{i}</option>)}
@@ -191,9 +199,9 @@ export default function RegisterPage() {
                 <select
                   value={form.annual_turnover}
                   onChange={e => set('annual_turnover', e.target.value)}
-                  style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: form.annual_turnover ? '#F5F5F5' : '#374151', appearance: 'none', cursor: 'pointer' }}
+                  style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: form.annual_turnover ? t.textPrimary : t.textFaint, appearance: 'none', cursor: 'pointer' }}
                   onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                  onBlur={e => e.target.style.borderColor = '#1F1F1F'}
+                  onBlur={e => e.target.style.borderColor = t.borderDefault}
                 >
                   <option value="">Select range</option>
                   <option value="Below 1 Cr">Below 1 Cr</option>
@@ -217,7 +225,7 @@ export default function RegisterPage() {
                 rows={2}
                 style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                onBlur={e => e.target.style.borderColor = '#1F1F1F'}
+                onBlur={e => e.target.style.borderColor = t.borderDefault}
               />
             </Field>
 
@@ -233,7 +241,7 @@ export default function RegisterPage() {
                 rows={3}
                 style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.6 }}
                 onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                onBlur={e => e.target.style.borderColor = '#1F1F1F'}
+                onBlur={e => e.target.style.borderColor = t.borderDefault}
               />
             </Field>
 
@@ -257,7 +265,7 @@ export default function RegisterPage() {
                 : 'Submit Registration →'}
             </button>
 
-            <p style={{ textAlign: 'center', fontSize: '0.73rem', color: '#374151', marginTop: 12 }}>
+            <p style={{ textAlign: 'center', fontSize: '0.73rem', color: t.textFaint, marginTop: 12 }}>
               By registering you agree to our Terms & Privacy Policy
             </p>
           </form>
@@ -266,8 +274,6 @@ export default function RegisterPage() {
     </div>
   )
 }
-
-// ── Helpers ───────────────────────────────────────────────────
 
 function SectionLabel({ label, style }) {
   const t = useThemeStyles()
@@ -305,14 +311,14 @@ function Input({ value, onChange, error, style, ...props }) {
       style={{
         width: '100%', padding: '10px 14px',
         background: t.bgElevated,
-        border: `1px solid ${error ? '#F87171' : '#1F1F1F'}`,
+        border: `1px solid ${error ? '#F87171' : t.borderDefault}`,
         borderRadius: 8, fontSize: '0.88rem',
         color: t.textPrimary, fontFamily: 'DM Sans, sans-serif',
         transition: 'border-color 0.2s',
         ...style,
       }}
       onFocus={e => e.target.style.borderColor = error ? '#F87171' : '#F59E0B50'}
-      onBlur={e => e.target.style.borderColor = error ? '#F87171' : '#1F1F1F'}
+      onBlur={e => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}
       {...props}
     />
   )

@@ -6,17 +6,28 @@
  "engine": "InnoDB",
  "field_order": [
   "section_basic",
-  "exhibitor_name", "company_name", "industry",
+  "exhibitor_name",
+  "company_name",
+  "contact_person",
+  "industry",
   "col_break_1",
-  "gst_number", "annual_turnover", "status",
+  "gst_number",
+  "annual_turnover",
+  "status",
   "section_contact",
-  "contact_number", "email", "website",
+  "contact_number",
+  "email",
+  "website",
   "col_break_2",
-  "communication_address", "company_logo",
+  "communication_address",
+  "company_logo",
   "section_profile",
-  "product_categories", "description",
+  "product_categories",
+  "description",
   "col_break_3",
-  "expo_event", "account_manager", "frappe_user",
+  "expo_event",
+  "account_manager",
+  "frappe_user",
   "section_digital_booth",
   "has_digital_booth",
   "col_break_booth_1",
@@ -49,6 +60,14 @@
    "label": "Company Name",
    "reqd": 1,
    "in_list_view": 1
+  },
+  {
+   "fieldname": "contact_person",
+   "fieldtype": "Data",
+   "label": "Contact Person",
+   "reqd": 1,
+   "in_list_view": 0,
+   "description": "Primary contact person name"
   },
   {
    "fieldname": "industry",
@@ -172,9 +191,7 @@
    "fieldname": "has_digital_booth",
    "fieldtype": "Check",
    "label": "Has Digital Booth",
-   "default": 0,
-   "in_list_view": 0,
-   "description": "Enable to show a digital booth on the event page"
+   "default": 0
   },
   {
    "fieldname": "col_break_booth_1",
@@ -184,15 +201,13 @@
    "fieldname": "booth_tagline",
    "fieldtype": "Small Text",
    "label": "Booth Tagline",
-   "depends_on": "has_digital_booth",
-   "description": "Short catchy line shown under company name"
+   "depends_on": "has_digital_booth"
   },
   {
    "fieldname": "booth_products",
    "fieldtype": "Small Text",
    "label": "Products / Services",
-   "depends_on": "has_digital_booth",
-   "description": "Comma-separated list: e.g. SaaS, Mobile Apps, AI Tools"
+   "depends_on": "has_digital_booth"
   },
   {
    "fieldname": "booth_website",
@@ -205,8 +220,7 @@
    "fieldname": "booth_video_url",
    "fieldtype": "Data",
    "label": "Demo Video URL",
-   "depends_on": "has_digital_booth",
-   "description": "YouTube video link for product demo"
+   "depends_on": "has_digital_booth"
   },
   {
    "fieldname": "col_break_booth_2",
@@ -221,7 +235,7 @@
   },
   {
    "fieldname": "booth_contact_phone",
-   "fieldtype": "Data",   
+   "fieldtype": "Data",
    "label": "Booth Contact Phone",
    "depends_on": "has_digital_booth"
   },
@@ -229,28 +243,42 @@
    "fieldname": "booth_banner",
    "fieldtype": "Attach Image",
    "label": "Booth Banner Image",
-   "depends_on": "has_digital_booth",
-   "description": "Banner shown at the top of the digital booth (recommended: 1200x400)"
+   "depends_on": "has_digital_booth"
   },
   {
    "fieldname": "booth_description",
    "fieldtype": "Text Editor",
    "label": "Booth Description",
-   "depends_on": "has_digital_booth",
-   "description": "Detailed company/product description shown in the booth"
+   "depends_on": "has_digital_booth"
   }
  ],
  "links": [],
- "modified": "2026-03-17 00:00:00.000000",
+ "modified": "2026-04-16 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Expo Management",
  "name": "Exhibitor Profile",
  "naming_rule": "By fieldname",
  "owner": "Administrator",
  "permissions": [
-  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
-  {"role": "Event Manager", "read": 1, "write": 1, "create": 1},
-  {"role": "Exhibitor",     "read": 1, "write": 1, "if_owner": 1}
+  {
+   "role": "Expo Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Event Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Exhibitor",
+   "read": 1,
+   "write": 1,
+   "if_owner": 1
+  }
  ],
  "search_fields": "exhibitor_name,company_name,email",
  "title_field": "company_name",
