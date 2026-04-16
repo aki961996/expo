@@ -46,7 +46,6 @@ def send_otp(mobile):
     frappe.logger().info(f"[EXPO OTP] Mobile: {mobile} | OTP: {otp}")
     print(f"\n{'='*40}\n📱 OTP for {mobile}: {otp}\n{'='*40}\n")
 
-    # ── Send SMS via Fast2SMS ─────────────────────────────
     sms_sent  = False
     sms_error = None
     try:
@@ -81,7 +80,6 @@ def send_otp(mobile):
         "exists":  bool(exists),
         "message": f"OTP sent to {mobile[-4:].rjust(len(mobile), '*')}",
     }
-    # dev_otp only when SMS not sent — testing fallback
     if not sms_sent:
         response["dev_otp"]   = otp
         response["sms_error"] = sms_error
@@ -110,18 +108,15 @@ def verify_otp(mobile, otp):
 
     frappe.cache().delete_value(cache_key)
 
-    # ── Find Exhibitor — try multiple number format variants ──
     exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"contact_number": mobile}, "name")
     if not exhibitor_name:
         number_only = mobile.lstrip("+").lstrip("91").lstrip("0")
         for variant in ["+91" + number_only, "91" + number_only, "0" + number_only, number_only]:
             exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"contact_number": variant}, "name")
             if exhibitor_name:
-                frappe.logger().info(f"[EXPO OTP] Matched exhibitor via variant: {variant}")
                 break
 
     if not exhibitor_name:
-        frappe.logger().warning(f"[EXPO OTP] No exhibitor found for mobile: {mobile}")
         return {"success": False, "error": "not_found", "message": "Exhibitor not found. Please register first."}
 
     exhibitor  = frappe.get_doc("Exhibitor Profile", exhibitor_name)
@@ -153,8 +148,6 @@ def verify_otp(mobile, otp):
         frappe.db.commit()
 
     frappe.local.login_manager.login_as(user_email)
-
-    # ── Return sid for Postman / mobile app ──────────────
     sid = frappe.session.sid
 
     return {
@@ -165,6 +158,7 @@ def verify_otp(mobile, otp):
             "name":               exhibitor.name,
             "exhibitor_name":     exhibitor.exhibitor_name,
             "company_name":       exhibitor.company_name,
+            "contact_person":     exhibitor.contact_person,
             "email":              exhibitor.email,
             "mobile":             mobile,
             "status":             exhibitor.status,
@@ -185,6 +179,7 @@ def verify_otp(mobile, otp):
 @frappe.whitelist(allow_guest=True)
 def register_exhibitor(
     exhibitor_name, company_name, mobile, email,
+    contact_person=None,
     industry=None, gst_number=None, annual_turnover=None,
     website=None, address=None, product_categories=None, description=None,
     has_digital_booth=0,
@@ -205,6 +200,7 @@ def register_exhibitor(
         "doctype":               "Exhibitor Profile",
         "exhibitor_name":        exhibitor_name,
         "company_name":          company_name,
+        "contact_person":        contact_person or exhibitor_name,
         "contact_number":        mobile,
         "email":                 email,
         "industry":              industry,
@@ -251,7 +247,6 @@ def get_current_exhibitor():
     if user == "Guest":
         return {"logged_in": False, "exhibitor": None}
 
-    # 1) frappe_user field → 2) email fallback
     exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
     if not exhibitor_name:
         exhibitor_name = frappe.db.get_value("Exhibitor Profile", {"email": user}, "name")
@@ -266,6 +261,7 @@ def get_current_exhibitor():
             "name":               exhibitor.name,
             "exhibitor_name":     exhibitor.exhibitor_name,
             "company_name":       exhibitor.company_name,
+            "contact_person":     exhibitor.contact_person,
             "email":              exhibitor.email,
             "mobile":             exhibitor.contact_number,
             "status":             exhibitor.status,
@@ -294,7 +290,7 @@ def logout():
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist()
 def update_profile(
-    exhibitor_name=None, company_name=None,
+    exhibitor_name=None, company_name=None, contact_person=None,
     industry=None, gst_number=None, annual_turnover=None,
     website=None, product_categories=None, description=None,
 ):
@@ -302,7 +298,6 @@ def update_profile(
     if user == "Guest":
         frappe.throw(_("Not logged in"), frappe.AuthenticationError)
 
-    # 1) frappe_user field → 2) email fallback
     exhibitor_doc_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
     if not exhibitor_doc_name:
         exhibitor_doc_name = frappe.db.get_value("Exhibitor Profile", {"email": user}, "name")
@@ -312,6 +307,7 @@ def update_profile(
     updates = {}
     if exhibitor_name:          updates["exhibitor_name"]     = exhibitor_name
     if company_name:            updates["company_name"]       = company_name
+    if contact_person:          updates["contact_person"]     = contact_person
     if industry:                updates["industry"]           = industry
     if gst_number:              updates["gst_number"]         = gst_number
     if annual_turnover:         updates["annual_turnover"]    = annual_turnover
