@@ -30,7 +30,6 @@ export default function DigitalBoothPage() {
   const [event, setEvent]         = useState(null)
   const [loading, setLoading]     = useState(true)
   const [notFound, setNotFound]   = useState(false)
-  const [activeImg, setActiveImg] = useState(0)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -52,7 +51,7 @@ export default function DigitalBoothPage() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: t.bgBase, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      <div style={{ width: 44, height: 44, borderRadius: '50%', border: '2px solid #1F1F1F', borderTopColor: '#F59E0B', animation: 'spin 0.7s linear infinite' }} />
+      <div style={{ width: 44, height: 44, borderRadius: '50%', border: '3px solid ' + t.borderDefault, borderTopColor: '#F59E0B', animation: 'spin 0.7s linear infinite' }} />
     </div>
   )
 
@@ -83,14 +82,16 @@ export default function DigitalBoothPage() {
         @keyframes spin   { to{transform:rotate(360deg)} }
         * { box-sizing: border-box; }
         ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #0F0F0F; }
-        ::-webkit-scrollbar-thumb { background: #2F2F2F; border-radius: 3px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 3px; }
       `}</style>
 
+      {/* NAV */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '1px solid ' + t.borderSubtle }}>
-        <button onClick={() => navigate(`/event/${eventCode}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid ' + t.borderDefault, background: 'transparent', color: t.textSecondary, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = '#2F2F2F'; e.currentTarget.style.color = '#F5F5F5' }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = '#1F1F1F'; e.currentTarget.style.color = '#9CA3AF' }}>
+        <button onClick={() => navigate(`/event/${eventCode}`)}
+          style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid ' + t.borderDefault, background: 'transparent', color: t.textSecondary, fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', transition: 'all 0.2s' }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = t.borderHover; e.currentTarget.style.color = t.textPrimary }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = t.borderDefault; e.currentTarget.style.color = t.textSecondary }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
           Back to Event
         </button>
@@ -99,6 +100,7 @@ export default function DigitalBoothPage() {
         </div>
       </nav>
 
+      {/* HERO */}
       <div style={{ position: 'relative', height: 320, marginTop: 60, overflow: 'hidden' }}>
         {banner ? (
           <img src={banner} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.4 }} onError={e => e.target.style.display = 'none'} />
@@ -110,12 +112,13 @@ export default function DigitalBoothPage() {
             </div>
           </div>
         )}
-        <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(8,8,8,0.2) 0%, rgba(8,8,8,0.5) 60%, rgba(8,8,8,1) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, background: `linear-gradient(to bottom, ${t.bgBase}20 0%, ${t.bgBase}60 60%, ${t.bgBase} 100%)` }} />
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, transparent, ${accent}, transparent)` }} />
       </div>
 
+      {/* COMPANY CARD */}
       <div style={{ maxWidth: 860, margin: '-80px auto 0', padding: '0 2rem', position: 'relative', zIndex: 10 }}>
-        <div style={{ background: t.bgSurface, border: `1px solid ${accent}20`, borderRadius: 20, padding: '28px', display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', boxShadow: `0 24px 60px rgba(0,0,0,0.6), 0 0 0 1px ${accent}10`, animation: 'fadeUp 0.5s ease both' }}>
+        <div style={{ background: t.bgSurface, border: `1px solid ${accent}20`, borderRadius: 20, padding: '28px', display: 'flex', alignItems: 'flex-start', gap: 20, flexWrap: 'wrap', boxShadow: `0 24px 60px rgba(0,0,0,0.15), 0 0 0 1px ${accent}10`, animation: 'fadeUp 0.5s ease both' }}>
           <div style={{ width: 80, height: 80, borderRadius: 20, flexShrink: 0, background: accent + '15', border: `2px solid ${accent}40`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2rem', color: accent }}>
             {exhibitor.company_name?.charAt(0)}
           </div>
@@ -135,6 +138,7 @@ export default function DigitalBoothPage() {
         </div>
       </div>
 
+      {/* CONTENT */}
       <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px 2rem 6rem' }}>
         {exhibitor.booth_description && (
           <Section title="About the Company" accent={accent}>
@@ -159,16 +163,21 @@ export default function DigitalBoothPage() {
             </div>
           </Section>
         )}
+
+        {/* GET IN TOUCH */}
         <Section title="Get in Touch" accent={accent}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
-            {exhibitor.booth_contact_email && <ContactCard icon="✉️" label="Email" value={exhibitor.booth_contact_email} href={`mailto:${exhibitor.booth_contact_email}`} accent={accent} />}
-            {exhibitor.booth_contact_phone && <ContactCard icon="📞" label="Phone" value={exhibitor.booth_contact_phone} href={`tel:${exhibitor.booth_contact_phone}`} accent={accent} />}
-            {exhibitor.booth_website && <ContactCard icon="🌐" label="Website" value={exhibitor.booth_website.replace(/^https?:\/\//, '')} href={exhibitor.booth_website} accent={accent} external />}
+            {exhibitor.booth_contact_email && <ContactCard icon="✉️" label="Email"   value={exhibitor.booth_contact_email} href={`mailto:${exhibitor.booth_contact_email}`} accent={accent} />}
+            {exhibitor.booth_contact_phone && <ContactCard icon="📞" label="Phone"   value={exhibitor.booth_contact_phone} href={`tel:${exhibitor.booth_contact_phone}`}     accent={accent} />}
+            {exhibitor.booth_website       && <ContactCard icon="🌐" label="Website" value={exhibitor.booth_website.replace(/^https?:\/\//, '')} href={exhibitor.booth_website} accent={accent} external />}
           </div>
         </Section>
+
+        {/* CTA */}
         <div style={{ textAlign: 'center', marginTop: 48, padding: '32px', background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 16 }}>
           <p style={{ fontSize: '0.9rem', color: t.textFaint, marginBottom: 16 }}>Interested in meeting {exhibitor.company_name} at the event?</p>
-          <button onClick={() => navigate(`/event/${eventCode}`)} style={{ padding: '12px 28px', borderRadius: 10, background: accent, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer', transition: 'opacity 0.2s' }}
+          <button onClick={() => navigate(`/event/${eventCode}`)}
+            style={{ padding: '12px 28px', borderRadius: 10, background: accent, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer', transition: 'opacity 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
             View Event & Book a Stall →
@@ -186,7 +195,7 @@ function Section({ title, accent, children }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <div style={{ width: 3, height: 18, borderRadius: 2, background: accent, flexShrink: 0 }} />
         <h2 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700, fontSize: '1rem', color: t.textSecondary, letterSpacing: '-0.01em', margin: 0 }}>{title}</h2>
-        <div style={{ flex: 1, height: 1, background: t.bgHover }} />
+        <div style={{ flex: 1, height: 1, background: t.borderSubtle }} />
       </div>
       {children}
     </div>
@@ -197,13 +206,33 @@ function ContactCard({ icon, label, value, href, accent, external }) {
   const t = useThemeStyles()
   const [hov, setHov] = useState(false)
   return (
-    <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noopener noreferrer' : undefined}
-      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
-      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, textDecoration: 'none', background: hov ? accent + '10' : '#141414', border: `1px solid ${hov ? accent + '30' : '#1F1F1F'}`, transition: 'all 0.2s' }}>
-      <div style={{ width: 40, height: 40, borderRadius: 10, background: accent + '15', border: `1px solid ${accent}20`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem', flexShrink: 0 }}>{icon}</div>
+    <a href={href}
+      target={external ? '_blank' : undefined}
+      rel={external ? 'noopener noreferrer' : undefined}
+      onMouseEnter={() => setHov(true)}
+      onMouseLeave={() => setHov(false)}
+      style={{
+        display: 'flex', alignItems: 'center', gap: 14,
+        padding: '14px 16px', borderRadius: 12, textDecoration: 'none',
+        background: hov ? accent + '12' : t.bgElevated,
+        border: `1px solid ${hov ? accent + '40' : t.borderDefault}`,
+        transition: 'all 0.2s',
+      }}>
+      <div style={{
+        width: 40, height: 40, borderRadius: 10,
+        background: accent + '15', border: `1px solid ${accent}25`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: '1.2rem', flexShrink: 0,
+      }}>{icon}</div>
       <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '0.68rem', color: t.textGhost, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 2 }}>{label.toUpperCase()}</div>
-        <div style={{ fontSize: '0.8rem', color: hov ? accent : '#9CA3AF', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', transition: 'color 0.2s' }}>{value}</div>
+        <div style={{ fontSize: '0.68rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.06em', marginBottom: 2 }}>
+          {label.toUpperCase()}
+        </div>
+        <div style={{
+          fontSize: '0.8rem', color: hov ? accent : t.textSecondary,
+          fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap', transition: 'color 0.2s',
+        }}>{value}</div>
       </div>
     </a>
   )

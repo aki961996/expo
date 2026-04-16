@@ -45,6 +45,10 @@ function getFrappeImageUrl(path) {
   if (!path) return null
   if (path.startsWith('http')) return path
   if (path.startsWith('/private/')) return null
+  // Relative path — prepend server origin
+  if (path.startsWith('/files/') || path.startsWith('/public/')) {
+    return window.location.origin + path
+  }
   return path
 }
 function getInitials(name = '') {
@@ -476,25 +480,105 @@ function SectionTitle({ title, accent }) {
 }
 
 function FloorPlanLightbox({ url, hallName, accent, onClose }) {
+  const [zoom, setZoom]   = useState(1)
+  const [pan, setPan]     = useState({ x: 0, y: 0 })
+  const [dragging, setDragging] = useState(false)
+  const containerRef      = { current: null }
+  const dragOrigin        = { current: null }
+  const panRef            = { current: { x: 0, y: 0 } }
+
   useEffect(() => {
-    const fn = e => { if (e.key === 'Escape') onClose() }
-    document.addEventListener('keydown', fn)
+    const onKey = e => {
+      if (e.key === 'Escape') onClose()
+      if (e.key === '+' || e.key === '=') setZoom(z => Math.min(z + 0.25, 4))
+      if (e.key === '-') setZoom(z => Math.max(z - 0.25, 0.5))
+      if (e.key === '0') { setZoom(1); setPan({ x: 0, y: 0 }); panRef.current = { x: 0, y: 0 } }
+    }
+    document.addEventListener('keydown', onKey)
     document.body.style.overflow = 'hidden'
-    return () => { document.removeEventListener('keydown', fn); document.body.style.overflow = '' }
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
   }, [onClose])
+
+  // Attach non-passive wheel listener to container
+  useEffect(() => {
+    const el = containerRef.current
+    if (!el) return
+    const onWheel = e => {
+      e.preventDefault()
+      const delta = e.deltaY > 0 ? -0.15 : 0.15
+      setZoom(z => Math.min(Math.max(z + delta, 0.5), 4))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  })
+
+  const handleMouseDown = e => {
+    dragOrigin.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y }
+    setDragging(true)
+  }
+  const handleMouseMove = e => {
+    if (!dragOrigin.current) return
+    const nx = e.clientX - dragOrigin.current.x
+    const ny = e.clientY - dragOrigin.current.y
+    panRef.current = { x: nx, y: ny }
+    setPan({ x: nx, y: ny })
+  }
+  const handleMouseUp = () => { dragOrigin.current = null; setDragging(false) }
+
+  const btnStyle = (active) => ({
+    width: 36, height: 36, borderRadius: 8,
+    border: active ? `1px solid ${accent}60` : '1px solid rgba(255,255,255,0.15)',
+    background: active ? accent + '25' : 'rgba(255,255,255,0.08)',
+    color: active ? accent : 'rgba(255,255,255,0.7)',
+    cursor: 'pointer', display: 'flex', alignItems: 'center',
+    justifyContent: 'center', fontSize: '1rem', fontWeight: 700,
+    transition: 'all 0.15s', userSelect: 'none',
+  })
+
   return (
-    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20, animation: 'fadeIn 0.2s ease both' }}>
+    <div onClick={onClose}
+      style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(12px)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 20px', animation: 'fadeIn 0.2s ease both' }}>
+
+      {/* Header */}
       <div style={{ width: '100%', maxWidth: 1000, display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }} onClick={e => e.stopPropagation()}>
-        <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#9CA3AF' }}>🗺 {hallName} — Floor Plan</span>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 14px', borderRadius: 8, border: `1px solid ${accent}50`, background: accent + '15', color: accent, fontSize: '0.76rem', fontWeight: 700, textDecoration: 'none' }}>↗ Open full size</a>
-          <button onClick={onClose} style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #2A2A2A', background: '#1A1A1A', color: '#9CA3AF', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>✕</button>
+        <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'rgba(255,255,255,0.7)' }}>🗺 {hallName} — Floor Plan</span>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Zoom controls */}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '4px 8px' }}>
+            <button onClick={() => setZoom(z => Math.max(z - 0.25, 0.5))} style={btnStyle(false)}>−</button>
+            <span style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', minWidth: 40, textAlign: 'center', fontWeight: 600 }}>{Math.round(zoom * 100)}%</span>
+            <button onClick={() => setZoom(z => Math.min(z + 0.25, 4))} style={btnStyle(false)}>+</button>
+            <button onClick={() => { setZoom(1); setPan({ x: 0, y: 0 }) }} style={{ ...btnStyle(false), fontSize: '0.65rem', width: 'auto', padding: '0 8px' }}>Reset</button>
+          </div>
+          <a href={url} target="_blank" rel="noopener noreferrer"
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 8, border: `1px solid ${accent}60`, background: accent + '20', color: accent, fontSize: '0.76rem', fontWeight: 700, textDecoration: 'none' }}>
+            ↗ Full
+          </a>
+          <button onClick={onClose} style={{ width: 36, height: 36, borderRadius: 8, border: '1px solid rgba(255,255,255,0.15)', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>✕</button>
         </div>
       </div>
-      <div onClick={e => e.stopPropagation()} style={{ width: '100%', maxWidth: 1000, borderRadius: 14, overflow: 'hidden', border: '1px solid #2A2A2A', background: '#0D0D0D', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img src={url} alt={hallName + ' Floor Plan'} style={{ width: '100%', maxHeight: 'calc(88vh - 80px)', objectFit: 'contain', display: 'block' }} onError={e => { e.target.parentElement.innerHTML = '<div style="padding:40px;color:#6B7280;text-align:center">Floor plan unavailable</div>' }} />
+
+      {/* Image container with zoom/pan */}
+      <div
+        ref={el => { containerRef.current = el }}
+        onClick={e => e.stopPropagation()}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        style={{ width: '100%', maxWidth: 1000, borderRadius: 16, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#0D1117', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 32px 80px rgba(0,0,0,0.6)', maxHeight: 'calc(82vh - 80px)', cursor: zoom > 1 ? (dragging ? 'grabbing' : 'grab') : 'zoom-in', userSelect: 'none' }}>
+        <img
+          src={url}
+          alt={hallName + ' Floor Plan'}
+          draggable={false}
+          style={{ width: '100%', height: 'auto', maxHeight: 'calc(82vh - 80px)', objectFit: 'contain', display: 'block', transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`, transformOrigin: 'center center', transition: dragging ? 'none' : 'transform 0.2s ease', pointerEvents: 'none' }}
+          onError={e => { e.target.parentElement.innerHTML = '<div style="padding:60px;color:#6B7280;text-align:center;min-height:200px;display:flex;align-items:center;justify-content:center">⚠️ Floor plan unavailable</div>' }}
+        />
       </div>
-      <div style={{ marginTop: 10, fontSize: '0.67rem', color: '#d8e2f1' }}>Press ESC or click outside to close</div>
+
+      <div style={{ marginTop: 10, fontSize: '0.65rem', color: 'rgba(255,255,255,0.25)', letterSpacing: '0.04em' }}>
+        Scroll to zoom · Drag to pan · ESC to close · Press 0 to reset
+      </div>
     </div>
   )
 }
@@ -518,9 +602,9 @@ function HallCard({ hall, accent, selected, onToggleDim }) {
         <div>
           <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 700, fontSize: '0.92rem', color: t.textSecondary, marginBottom: 4 }}>{hall.hall_name}</h3>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            {hall.area         && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>{hall.area.toLocaleString()} sqft</span>}
-            {hall.ceiling_height && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>↕ {hall.ceiling_height}ft</span>}
-            {hall.power_capacity && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>⚡ {hall.power_capacity}</span>}
+            {!!hall.area         && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>{hall.area.toLocaleString()} sqft</span>}
+            {!!hall.ceiling_height && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>↕ {hall.ceiling_height}ft</span>}
+            {!!hall.power_capacity && <span style={{ fontSize: '0.7rem', color: t.textFaint }}>⚡ {hall.power_capacity}</span>}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -541,9 +625,9 @@ function HallCard({ hall, accent, selected, onToggleDim }) {
           <div style={{ fontSize: '0.67rem', color: t.textFaint, marginBottom: 8, fontWeight: 600, letterSpacing: '0.06em' }}>
             FLOOR PLAN · <span style={{ color: accent, cursor: 'pointer', fontWeight: 700 }} onClick={() => setLightbox(true)}>click to expand ↗</span>
           </div>
-          <div onClick={() => setLightbox(true)} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid ' + t.borderDefault, background: t.bgSurface, cursor: 'zoom-in', position: 'relative' }}>
+          <div onClick={() => setLightbox(true)} style={{ borderRadius: 10, overflow: 'hidden', border: '1px solid ' + t.borderDefault, background: '#0D1117', cursor: 'zoom-in', position: 'relative' }}>
             <img src={floorPlanUrl} alt={hall.hall_name + ' Floor Plan'}
-              style={{ width: '100%', height: 'auto', maxHeight: 280, objectFit: 'contain', display: 'block', transition: 'opacity 0.15s' }}
+              style={{ width: '100%', height: 'auto', maxHeight: 280, minHeight: 100, objectFit: 'contain', display: 'block', transition: 'opacity 0.15s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.82'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}
               onError={e => { e.target.parentElement.innerHTML = '<div style="padding:20px;text-align:center;color:#6B7280;font-size:0.8rem">Floor plan unavailable</div>' }}

@@ -108,7 +108,8 @@ export default function BookingPage() {
   const subTotal     = stallTotal + svcTotal
   const taxAmount    = Math.round(subTotal * 0.18)
   const grandTotal   = subTotal + taxAmount
-  const depositAmt   = passedSelected.reduce((s, x) => s + (x.dim.deposit || 0), 0)
+  // Deposit = sum of 25% of each individual stall price
+  const depositAmt   = passedSelected.reduce((s, x) => s + Math.round(getDimPrice(x.dim) * 0.25), 0)
 
   const toggleService = (name) => {
     setServices(prev => {
@@ -305,7 +306,7 @@ export default function BookingPage() {
                         </div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                        {[['Area', `${area} sqm`], ['Available', `${x.dim.available_stalls ?? '—'} / ${x.dim.total_stalls ?? '—'}`], ['Deposit', `₹${(x.dim.deposit || 0).toLocaleString()}`]].map(([k, v]) => (
+                        {[['Area', `${area} sqm`], ['Available', `${x.dim.available_stalls ?? '—'} / ${x.dim.total_stalls ?? '—'}`], ['Deposit (25%)', `₹${Math.round(price * 0.25).toLocaleString()}`]].map(([k, v]) => (
                           <div key={k} style={{ background: t.bgElevated, borderRadius: 8, padding: '10px 12px' }}>
                             <div style={{ fontSize: '0.65rem', color: t.textFaint, marginBottom: 3 }}>{k.toUpperCase()}</div>
                             <div style={{ fontSize: '0.88rem', color: t.textSecondary, fontWeight: 600 }}>{v}</div>
@@ -342,9 +343,9 @@ export default function BookingPage() {
                       const color   = SVC_COLOR[svc.category] || '#9CA3AF'
                       return (
                         <div key={svc.name} onClick={() => !svc.is_mandatory && toggleService(svc.name)}
-                          style={{ display: 'flex', gap: 14, alignItems: 'center', background: checked ? color + '08' : t.bgSurface, border: `1px solid ${checked ? color + '50' : t.borderSubtle}`, borderRadius: 12, padding: '14px 16px', cursor: svc.is_mandatory ? 'default' : 'pointer', transition: 'all 0.15s' }}>
-                          <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked || svc.is_mandatory ? color : t.borderHover}`, background: checked || svc.is_mandatory ? color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {(checked || svc.is_mandatory) && <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800 }}>✓</span>}
+                          style={{ display: 'flex', gap: 14, alignItems: 'center', background: (checked || !!svc.is_mandatory) ? color + '08' : t.bgSurface, border: `1px solid ${(checked || !!svc.is_mandatory) ? color + '50' : t.borderSubtle}`, borderRadius: 12, padding: '14px 16px', cursor: svc.is_mandatory ? 'default' : 'pointer', transition: 'all 0.15s' }}>
+                          <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked || !!svc.is_mandatory ? color : t.borderHover}`, background: checked || !!svc.is_mandatory ? color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            {(checked || !!svc.is_mandatory) ? <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800 }}>✓</span> : null}
                           </div>
                           <div style={{ width: 38, height: 38, borderRadius: 9, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
                             {SVC_ICON[svc.category] || '🔧'}
@@ -480,9 +481,9 @@ export default function BookingPage() {
                 </div>
               </div>
               <div style={{ borderTop: '1px solid ' + t.borderSubtle, marginTop: 12, paddingTop: 12 }}>
-                <div style={{ fontSize: '0.68rem', color: t.textFaint, marginBottom: 4 }}>Deposit to block</div>
-                <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: t.textPrimary, fontSize: '1.3rem' }}>₹{depositAmt.toLocaleString()}</div>
-                <div style={{ fontSize: '0.65rem', color: t.textGhost, marginTop: 2 }}>Balance: ₹{(grandTotal - depositAmt).toLocaleString()}</div>
+                <div style={{ fontSize: '0.68rem', color: t.textFaint, marginBottom: 4 }}>Deposit to block <span style={{ color: accent, fontWeight: 700 }}>(25% of stall total)</span></div>
+                <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.3rem' }}>₹{depositAmt.toLocaleString()}</div>
+                <div style={{ fontSize: '0.65rem', color: t.textGhost, marginTop: 2 }}>Balance due: ₹{(grandTotal - depositAmt).toLocaleString()}</div>
               </div>
               <div style={{ marginTop: 14, padding: '10px 12px', background: t.bgElevated, borderRadius: 8, fontSize: '0.7rem', color: t.textFaint, lineHeight: 1.6 }}>
                 📅 {event.event_name}<br />
