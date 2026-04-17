@@ -219,7 +219,7 @@ export default function EventDetail() {
             style={{ padding: '8px 20px', borderRadius: 8, background: exhibitor ? accent : 'transparent', border: exhibitor ? 'none' : `1px solid ${accent}50`, fontSize: '0.82rem', fontWeight: 700, color: exhibitor ? '#000' : accent, cursor: 'pointer', transition: 'opacity 0.2s' }}
             onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
             onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-            {exhibitor ? 'Express Interest →' : '🔒 Login to Book'}
+            {exhibitor ? 'Book a Stall →' : '🔒 Login to Book'}
           </button>
         </div>
       </nav>
@@ -354,7 +354,7 @@ export default function EventDetail() {
             <div style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 18, overflow: 'hidden' }}>
               <div style={{ padding: '28px 22px 24px', background: `linear-gradient(160deg, ${accent}12, transparent)`, textAlign: 'center', borderBottom: '1px solid ' + t.borderSubtle }}>
                 <div style={{ width: 50, height: 50, borderRadius: 14, background: accent + '15', border: `1px solid ${accent}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: '1.3rem' }}>🏢</div>
-                <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: t.textPrimary, marginBottom: 8, letterSpacing: '-0.02em' }}>Express Interest</h3>
+                <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: t.textPrimary, marginBottom: 8, letterSpacing: '-0.02em' }}>Book a Stall</h3>
                 <p style={{ fontSize: '0.81rem', color: t.textMuted, lineHeight: 1.65, marginBottom: 22 }}>
                   Login to view stall availability and book your spot at {event.event_name}.
                 </p>
@@ -437,7 +437,7 @@ export default function EventDetail() {
                   style={{ width: '100%', padding: '13px', borderRadius: 11, background: accent, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer', border: 'none', transition: 'transform 0.15s, opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.opacity = '0.92' }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.opacity = '1' }}>
-                  Express Interest →
+                  Book a Stall →
                 </button>
                 <p style={{ fontSize: '0.68rem', color: t.textGhost, textAlign: 'center', marginTop: 10 }}>Free to register · Secure payment</p>
               </div>
