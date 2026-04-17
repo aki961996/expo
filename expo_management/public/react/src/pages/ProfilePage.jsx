@@ -36,6 +36,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({
     exhibitor_name:     '',
     company_name:       '',
+    contact_person:     '',
     email:              '',
     mobile:             '',
     industry:           '',
@@ -51,6 +52,7 @@ export default function ProfilePage() {
       setForm({
         exhibitor_name:     exhibitor.exhibitor_name     || '',
         company_name:       exhibitor.company_name       || '',
+        contact_person:     exhibitor.contact_person     || '',
         email:              exhibitor.email              || '',
         mobile:             exhibitor.mobile             || '',
         industry:           exhibitor.industry           || '',
@@ -84,6 +86,7 @@ export default function ProfilePage() {
       await apiCall('update_profile', {
         exhibitor_name:     form.exhibitor_name,
         company_name:       form.company_name,
+        contact_person:     form.contact_person,
         industry:           form.industry,
         gst_number:         form.gst_number,
         annual_turnover:    form.annual_turnover,
@@ -216,10 +219,28 @@ export default function ProfilePage() {
         {/* Basic Details */}
         <ProfileSection t={t} title="Basic Details" icon="👤">
           <Grid>
-            <Field t={t} label="Exhibitor Name"  value={form.exhibitor_name}     editing={editing} onChange={v => set('exhibitor_name', v)} />
+            <Field t={t} label="Exhibitor Name"   value={form.exhibitor_name}     editing={editing} onChange={v => set('exhibitor_name', v)} />
             <Field t={t} label="Company Name"    value={form.company_name}        editing={editing} onChange={v => set('company_name', v)} />
+            <Field t={t} label="Contact Person"  value={form.contact_person}      editing={editing} onChange={v => set('contact_person', v)} />
             <Field t={t} label="Industry"        value={form.industry}            editing={editing} onChange={v => set('industry', v)} />
-            <Field t={t} label="Annual Turnover" value={form.annual_turnover}     editing={editing} onChange={v => set('annual_turnover', v)} />
+            {editing ? (
+              <div>
+                <label style={{ fontSize: '0.72rem', color: t.textFaint, fontFamily: 'DM Sans', fontWeight: 600, letterSpacing: '0.06em', display: 'block', marginBottom: 6 }}>ANNUAL TURNOVER</label>
+                <select value={form.annual_turnover} onChange={e => set('annual_turnover', e.target.value)}
+                  style={{ width: '100%', padding: '9px 13px', background: t.bgElevated, border: '1px solid ' + t.borderHover, borderRadius: 9, color: form.annual_turnover ? t.textSecondary : t.textFaint, fontSize: '0.85rem', appearance: 'none', cursor: 'pointer' }}
+                  onFocus={e => e.target.style.borderColor = '#F59E0B50'}
+                  onBlur={e => e.target.style.borderColor = t.borderHover}>
+                  <option value="">Select range</option>
+                  <option value="Below 1 Cr">Below 1 Cr</option>
+                  <option value="1-5 Cr">1–5 Cr</option>
+                  <option value="5-25 Cr">5–25 Cr</option>
+                  <option value="25-100 Cr">25–100 Cr</option>
+                  <option value="Above 100 Cr">Above 100 Cr</option>
+                </select>
+              </div>
+            ) : (
+              <Field t={t} label="Annual Turnover" value={form.annual_turnover} editing={false} />
+            )}
             <Field t={t} label="GST Number"      value={form.gst_number}          editing={editing} onChange={v => set('gst_number', v)} />
             <Field t={t} label="Website"         value={form.website}             editing={editing} onChange={v => set('website', v)} />
           </Grid>

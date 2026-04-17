@@ -421,15 +421,60 @@ def get_my_bookings(expo_event=None):
 #  API 5 — Get Available Stalls
 # ─────────────────────────────────────────────────────────────
 
+# @frappe.whitelist()
+# def get_available_stalls(expo_event, expo_hall, dimension_label):
+# 	"""Return available stalls for a specific hall + dimension combo."""
+# 	if not frappe.db.table_exists("Expo Stall"):
+# 		return []
+
+# 	# Normalize: 'x' → '×'
+# 	dimension_label = dimension_label.replace('x', '×').strip()
+
+# 	stalls = frappe.get_all(
+# 		"Expo Stall",
+# 		filters={
+# 			"expo_event":      expo_event,
+# 			"expo_hall":       expo_hall,
+# 			"dimension_label": dimension_label,
+# 			"status":          "Available",
+# 		},
+# 		fields=[
+# 			"name", "stall_number", "stall_type",
+# 			"dimension_label", "base_price", "final_price",
+# 			"status", "expo_hall",
+# 		],
+# 		order_by="stall_number asc",
+# 	)
+
+# 	# Fallback: try with 'x'
+# 	if not stalls:
+# 		stalls = frappe.get_all(
+# 			"Expo Stall",
+# 			filters={
+# 				"expo_event":      expo_event,
+# 				"expo_hall":       expo_hall,
+# 				"dimension_label": dimension_label.replace('×', 'x'),
+# 				"status":          "Available",
+# 			},
+# 			fields=[
+# 				"name", "stall_number", "stall_type",
+# 				"dimension_label", "base_price", "final_price",
+# 				"status", "expo_hall",
+# 			],
+# 			order_by="stall_number asc",
+# 		)
+
+# 	return stalls
+
 @frappe.whitelist()
 def get_available_stalls(expo_event, expo_hall, dimension_label):
 	"""Return available stalls for a specific hall + dimension combo."""
 	if not frappe.db.table_exists("Expo Stall"):
 		return []
-
+ 
 	# Normalize: 'x' → '×'
 	dimension_label = dimension_label.replace('x', '×').strip()
-
+ 
 	stalls = frappe.get_all(
 		"Expo Stall",
 		filters={
@@ -445,7 +490,7 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		],
 		order_by="stall_number asc",
 	)
-
+ 
 	# Fallback: try with 'x'
 	if not stalls:
 		stalls = frappe.get_all(
@@ -463,5 +508,9 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 			],
 			order_by="stall_number asc",
 		)
-
+ 
+	# Add deposit = 25% of base_price to each stall
+	for stall in stalls:
+		stall["deposit"] = round(float(stall.get("base_price") or 0) * 0.25, 2)
+ 
 	return stalls
