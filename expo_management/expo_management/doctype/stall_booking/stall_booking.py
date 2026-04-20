@@ -9,28 +9,29 @@ class StallBooking(Document):
 
 	def _recalculate_totals(self):
 		"""
-		Auto-recalculate whenever admin edits service rates or qty.
+		Auto-recalculate whenever admin edits service rates.
 
-		Formula:
-		  base_amount    = stall total (set at booking creation, not changed here)
-		  service_amount = sum of (rate × qty) from Services child table
-		  sub_total      = base_amount + service_amount
-		  tax_amount     = round(sub_total × 0.18)
-		  total_amount   = sub_total + tax_amount
-		  deposit_paid   = round(base_amount × 0.25)   ← 25% of stall only
-		  balance_due    = total_amount - deposit_paid
+		Design:
+		  - base_amount   = stall total (set at booking, not touched here)
+		  - service_amount = sum of service rows (rate × qty)
+		    → At booking time: all rates are 0 (admin fills later)
+		    → After admin edits rate: recalculates automatically on Save
+		  - tax_amount    = (base_amount + service_amount) × 18%
+		  - total_amount  = base_amount + service_amount + tax_amount
+		  - deposit_paid  = base_amount × 25%  (stall only — services in invoice)
+		  - balance_due   = total_amount - deposit_paid
 		"""
 
-		# ── 1. Recalculate each service row amount ────────────
+		# Step 1: recalculate each service row amount
 		service_total = 0.0
 		for row in self.get("services") or []:
-			qty    = float(row.qty    or 1)
-			rate   = float(row.rate   or 0)
+			qty    = float(row.qty  or 1)
+			rate   = float(row.rate or 0)
 			amount = round(qty * rate, 2)
 			row.amount     = amount
 			service_total += amount
 
-		# ── 2. Recompute header totals ────────────────────────
+		# Step 2: recompute header fields
 		base      = float(self.base_amount or 0)
 		sub_total = base + service_total
 		tax       = round(sub_total * 0.18)
