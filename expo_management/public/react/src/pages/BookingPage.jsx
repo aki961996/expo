@@ -29,14 +29,9 @@ function fmtDate(d) {
 }
 
 // ── Normalize passedSelected ──────────────────────────────────
-// StallPickerModal returns flat objects: { dimension_label, hall, stall_number, ... }
-// EventDetail (old flow) returns nested: { dim: {...}, hall: {...} }
-// This function normalizes both into { dim, hall } format
 function normalizeSelected(raw) {
   return (raw || []).map(item => {
-    // Already nested format
     if (item.dim) return item
-    // Flat format from StallPickerModal — extract hall, rest is dim
     const { hall, stall_name, stall_number, stall_type, final_price, ...dimFields } = item
     return {
       dim: { ...dimFields, stall_name, stall_number, stall_type, final_price },
@@ -60,7 +55,6 @@ export default function BookingPage() {
   const { exhibitor } = useAuth()
   const t             = useThemeStyles()
 
-  // Normalize selected stalls — state so user can remove items
   const [passedSelected, setPassedSelected] = useState(() => normalizeSelected(location.state?.selected))
 
   const removeStall = (index) => {
@@ -81,7 +75,17 @@ export default function BookingPage() {
       return
     }
     getEventDetail(code)
-      .then(d => { setDetail(d); setLoading(false) })
+      .then(d => {
+        setDetail(d)
+        setLoading(false)
+        // Auto-select mandatory services
+        if (d?.services) {
+          const mandatoryNames = new Set(
+            d.services.filter(s => s.is_mandatory).map(s => s.name)
+          )
+          setServices(mandatoryNames)
+        }
+      })
       .catch(() => setLoading(false))
   }, [code])
 
@@ -104,14 +108,18 @@ export default function BookingPage() {
   // ── Price calculations ────────────────────────────────────
   const stallTotal   = passedSelected.reduce((s, x) => s + getDimPrice(x.dim), 0)
   const selectedSvcs = services.filter(s => selectedServices.has(s.name))
+  // Service prices are hidden from exhibitor — included in total but not shown separately
   const svcTotal     = selectedSvcs.reduce((s, x) => s + (x.price || 0), 0)
   const subTotal     = stallTotal + svcTotal
   const taxAmount    = Math.round(subTotal * 0.18)
   const grandTotal   = subTotal + taxAmount
-  // Deposit = sum of 25% of each individual stall price
+  // Deposit = 25% of stall total only (services not shown to exhibitor)
   const depositAmt   = passedSelected.reduce((s, x) => s + Math.round(getDimPrice(x.dim) * 0.25), 0)
 
   const toggleService = (name) => {
+    // Mandatory services cannot be toggled
+    const svc = services.find(s => s.name === name)
+    if (svc?.is_mandatory) return
     setServices(prev => {
       const next = new Set(prev)
       next.has(name) ? next.delete(name) : next.add(name)
@@ -135,12 +143,12 @@ export default function BookingPage() {
           stall_name:      x.dim.stall_name   || '',
         })),
         selected_services: selectedSvcs.map(s => ({ service: s.name, price: s.price })),
-        stall_amount:  stallTotal,
+        stall_amount:   stallTotal,
         service_amount: svcTotal,
-        tax_amount:    taxAmount,
-        total_amount:  grandTotal,
-        deposit_paid:  depositAmt,
-        balance_due:   grandTotal - depositAmt,
+        tax_amount:     taxAmount,
+        total_amount:   grandTotal,
+        deposit_paid:   depositAmt,
+        balance_due:    grandTotal - depositAmt,
       }
       const result = await createBooking(payload)
       setBookingDone(result)
@@ -170,6 +178,7 @@ export default function BookingPage() {
             <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>BOOKING SUMMARY</div>
             <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: accent, marginBottom: 16 }}>{bookingDone.booking_id}</div>
 
+            {/* Stall lines only — service prices not shown */}
             {passedSelected.map((x, i) => (
               <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
                 <span style={{ color: t.textSecondary }}>
@@ -178,12 +187,20 @@ export default function BookingPage() {
                 <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{getDimPrice(x.dim).toLocaleString()}</span>
               </div>
             ))}
-            {selectedSvcs.map((s, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
-                <span style={{ color: t.textSecondary }}>{s.service_name}</span>
-                <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+
+            {/* Selected services listed by name only — no price */}
+            {selectedSvcs.length > 0 && (
+              <div style={{ padding: '8px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
+                <span style={{ color: t.textFaint, fontSize: '0.7rem', fontWeight: 600 }}>ADDITIONAL SERVICES</span>
+                {selectedSvcs.map((s, i) => (
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 6, fontSize: '0.82rem' }}>
+                    <span style={{ color: t.textSecondary }}>{s.service_name}</span>
+                    <span style={{ color: t.textFaint, fontSize: '0.72rem' }}>Included</span>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
+
             <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid ' + t.borderDefault, fontSize: '0.8rem' }}>
               <span style={{ color: t.textFaint }}>GST (18%)</span>
               <span style={{ color: t.textMuted }}>₹{taxAmount.toLocaleString()}</span>
@@ -329,11 +346,13 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* STEP 1 — Services */}
+            {/* STEP 1 — Services (prices hidden) */}
             {step === 1 && (
               <div>
-                <SectionTitle title="Add Services" accent={accent} t={t} />
-                <p style={{ fontSize: '0.82rem', color: t.textMuted, marginBottom: 20 }}>Optional services for your stall.</p>
+                <SectionTitle title="Additional Services" accent={accent} t={t} />
+                <p style={{ fontSize: '0.82rem', color: t.textMuted, marginBottom: 20 }}>
+                  Select the services you need for your stall. Charges will be included in your final invoice.
+                </p>
                 {services.length === 0 ? (
                   <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 30, textAlign: 'center', color: t.textFaint }}>No services available for this event.</div>
                 ) : (
@@ -343,26 +362,47 @@ export default function BookingPage() {
                       const color   = SVC_COLOR[svc.category] || '#9CA3AF'
                       return (
                         <div key={svc.name} onClick={() => !svc.is_mandatory && toggleService(svc.name)}
-                          style={{ display: 'flex', gap: 14, alignItems: 'center', background: (checked || !!svc.is_mandatory) ? color + '08' : t.bgSurface, border: `1px solid ${(checked || !!svc.is_mandatory) ? color + '50' : t.borderSubtle}`, borderRadius: 12, padding: '14px 16px', cursor: svc.is_mandatory ? 'default' : 'pointer', transition: 'all 0.15s' }}>
+                          style={{
+                            display: 'flex', gap: 14, alignItems: 'center',
+                            background: (checked || !!svc.is_mandatory) ? color + '08' : t.bgSurface,
+                            border: `1px solid ${(checked || !!svc.is_mandatory) ? color + '50' : t.borderSubtle}`,
+                            borderRadius: 12, padding: '14px 16px',
+                            cursor: svc.is_mandatory ? 'default' : 'pointer',
+                            transition: 'all 0.15s',
+                          }}>
+                          {/* Checkbox */}
                           <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked || !!svc.is_mandatory ? color : t.borderHover}`, background: checked || !!svc.is_mandatory ? color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                             {(checked || !!svc.is_mandatory) ? <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800 }}>✓</span> : null}
                           </div>
+                          {/* Icon */}
                           <div style={{ width: 38, height: 38, borderRadius: 9, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
                             {SVC_ICON[svc.category] || '🔧'}
                           </div>
+                          {/* Info — NO price shown */}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: '0.88rem', color: t.textSecondary, marginBottom: 2 }}>
                               {svc.service_name}
-                              {svc.is_mandatory && <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 700, color: '#F87171', background: '#F8717115', padding: '2px 6px', borderRadius: 4 }}>MANDATORY</span>}
+                              {svc.is_mandatory && (
+                                <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 700, color: '#F87171', background: '#F8717115', padding: '2px 6px', borderRadius: 4 }}>
+                                  MANDATORY
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: t.textFaint }}>
-                              <span style={{ color, fontWeight: 600 }}>{svc.category}</span> · {svc.charge_type}
+                              <span style={{ color, fontWeight: 600 }}>{svc.category}</span>
+                              {' · '}{svc.charge_type}
                               {svc.description && <span> · {svc.description}</span>}
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '1rem' }}>₹{svc.price?.toLocaleString()}</div>
-                            <div style={{ fontSize: '0.65rem', color: t.textGhost }}>+{svc.tax_percent}% GST</div>
+                          {/* Right side: no price — just a subtle "Included" tag if selected */}
+                          <div style={{ flexShrink: 0, textAlign: 'right' }}>
+                            {(checked || !!svc.is_mandatory) ? (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 600, color, background: color + '15', padding: '3px 10px', borderRadius: 20 }}>
+                                {svc.is_mandatory ? 'Required' : 'Added'}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: t.textGhost }}>Optional</span>
+                            )}
                           </div>
                         </div>
                       )
@@ -372,10 +412,12 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* STEP 2 — Checkout */}
+            {/* STEP 2 — Checkout (service charges hidden, only stall breakdown shown) */}
             {step === 2 && (
               <div>
                 <SectionTitle title="Review & Checkout" accent={accent} t={t} />
+
+                {/* Stall breakdown */}
                 <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 20, marginBottom: 16 }}>
                   <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>STALLS</div>
                   {passedSelected.map((x, i) => (
@@ -388,20 +430,25 @@ export default function BookingPage() {
                   ))}
                 </div>
 
+                {/* Selected services — names only, no individual prices */}
                 {selectedSvcs.length > 0 && (
                   <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 20, marginBottom: 16 }}>
-                    <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>SERVICES</div>
+                    <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>ADDITIONAL SERVICES</div>
                     {selectedSvcs.map((s, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.83rem' }}>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: i < selectedSvcs.length - 1 ? '1px solid ' + t.borderSubtle : 'none', fontSize: '0.83rem' }}>
                         <span style={{ color: t.textSecondary }}>{s.service_name}</span>
-                        <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+                        <span style={{ fontSize: '0.7rem', color: t.textFaint, fontStyle: 'italic' }}>Included</span>
                       </div>
                     ))}
                   </div>
                 )}
 
+                {/* Totals — grand total includes service charges internally */}
                 <div style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
-                  {[['Stalls', `₹${stallTotal.toLocaleString()}`], ['Services', `₹${svcTotal.toLocaleString()}`], ['GST (18%)', `₹${taxAmount.toLocaleString()}`]].map(([k, v]) => (
+                  {[
+                    ['Stall Total', `₹${stallTotal.toLocaleString()}`],
+                    ['GST (18%)', `₹${taxAmount.toLocaleString()}`],
+                  ].map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
                       <span style={{ color: t.textFaint }}>{k}</span>
                       <span style={{ color: t.textSecondary }}>{v}</span>
@@ -454,22 +501,27 @@ export default function BookingPage() {
             )}
           </div>
 
-          {/* ── ORDER SUMMARY ── */}
+          {/* ── ORDER SUMMARY (right sidebar) — service prices hidden ── */}
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ background: t.bgSurface, border: `1px solid ${accent}20`, borderRadius: 16, padding: 20, animation: 'fadeUp 0.4s ease 0.1s both' }}>
               <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 14 }}>ORDER SUMMARY</div>
+
+              {/* Stalls with price */}
               {passedSelected.map((x, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.78rem' }}>
                   <span style={{ color: t.textMuted }}>{x.dim.stall_number || x.dim.dimension_label} m</span>
                   <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{getDimPrice(x.dim).toLocaleString()}</span>
                 </div>
               ))}
+
+              {/* Services — name only, no price */}
               {selectedSvcs.map((s, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.78rem' }}>
                   <span style={{ color: t.textMuted }}>{s.service_name}</span>
-                  <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+                  <span style={{ fontSize: '0.68rem', color: t.textGhost, fontStyle: 'italic' }}>Included</span>
                 </div>
               ))}
+
               <div style={{ borderTop: '1px solid ' + t.borderSubtle, marginTop: 10, paddingTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: 4 }}>
                   <span style={{ color: t.textFaint }}>GST (18%)</span>
@@ -480,11 +532,13 @@ export default function BookingPage() {
                   <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.1rem' }}>₹{grandTotal.toLocaleString()}</span>
                 </div>
               </div>
+
               <div style={{ borderTop: '1px solid ' + t.borderSubtle, marginTop: 12, paddingTop: 12 }}>
                 <div style={{ fontSize: '0.68rem', color: t.textFaint, marginBottom: 4 }}>Deposit to block <span style={{ color: accent, fontWeight: 700 }}>(25% of stall total)</span></div>
                 <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.3rem' }}>₹{depositAmt.toLocaleString()}</div>
                 <div style={{ fontSize: '0.65rem', color: t.textGhost, marginTop: 2 }}>Balance due: ₹{(grandTotal - depositAmt).toLocaleString()}</div>
               </div>
+
               <div style={{ marginTop: 14, padding: '10px 12px', background: t.bgElevated, borderRadius: 8, fontSize: '0.7rem', color: t.textFaint, lineHeight: 1.6 }}>
                 📅 {event.event_name}<br />
                 📍 {event.venue_name}, {event.city}<br />
@@ -492,6 +546,7 @@ export default function BookingPage() {
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>

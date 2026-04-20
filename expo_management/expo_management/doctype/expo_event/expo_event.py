@@ -51,7 +51,6 @@ def _get_existing_tables():
 
 def _get_exhibitor(user_email):
 	"""Get exhibitor by frappe_user first, then email fallback."""
-	# Use get_all for reliable dict output
 	def _fetch(filter_dict):
 		results = frappe.get_all(
 			"Exhibitor Profile",
@@ -195,6 +194,8 @@ def get_event_detail(event_code):
 			)
 
 	# ── Services ──────────────────────────────────────────────
+	# NOTE: price field is intentionally included here so backend can use it
+	# for recalculation, but frontend must NOT display individual service prices.
 	services = []
 	if t["Expo Service"]:
 		services = frappe.get_all(
@@ -256,6 +257,15 @@ def get_event_detail(event_code):
 
 # ─────────────────────────────────────────────────────────────
 #  API 3 — Create Booking
+#
+#  KEY DESIGN:
+#  - Service prices are hidden from the exhibitor UI.
+#  - Backend fetches the authoritative price from Expo Service doctype
+#    and ignores any price sent from the frontend.
+#  - Stall totals come from frontend (base_price × area) but can be
+#    cross-checked here if needed.
+#  - Admin can later edit Rate in the Services child table inside
+#    Stall Booking to override the price before invoicing.
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -270,11 +280,6 @@ def create_booking(
 	deposit_paid,
 	balance_due,
 ):
-	import json
-	import frappe
-	from frappe.utils import now
-
-	# Parse JSON
 	if isinstance(selected_dims, str):
 		selected_dims = json.loads(selected_dims)
 	if isinstance(selected_services, str):
@@ -298,6 +303,60 @@ def create_booking(
 
 	primary_stall = stall_names[0] if stall_names else None
 
+	# ── Recalculate amounts on the backend ───────────────────
+	# Stall total: trust frontend (base_price × area per dim)
+	stall_total_backend = float(stall_amount or 0)
+
+	# Service total: fetch authoritative price from Expo Service
+	# frontend only sends service name (not price) — price is server-side
+	service_rows        = []
+	service_total_backend = 0.0
+	response_services   = []
+
+	for svc in selected_services:
+		svc_name = svc.get("service") or svc.get("name", "")
+		if not svc_name:
+			continue
+
+		svc_qty = int(svc.get("qty", 1) or 1)
+
+		# Always fetch price from DB — ignore any price sent by frontend
+		svc_doc = frappe.db.get_value(
+			"Expo Service", svc_name,
+			["service_name", "price", "tax_percent"],
+			as_dict=True,
+		)
+		if not svc_doc:
+			continue
+
+		svc_price        = float(svc_doc.get("price") or 0)
+		svc_display_name = svc_doc.get("service_name") or svc_name
+		amount           = svc_price * svc_qty
+		service_total_backend += amount
+
+		service_rows.append({
+			"svc_name":    svc_name,
+			"display":     svc_display_name,
+			"qty":         svc_qty,
+			"rate":        svc_price,
+			"amount":      amount,
+		})
+		response_services.append({
+			"service":      svc_name,
+			"service_name": svc_display_name,
+			"qty":          svc_qty,
+			# rate / amount NOT returned to frontend — admin-only
+		})
+
+	# Recalculate totals with correct service prices
+	sub_total          = stall_total_backend + service_total_backend
+	tax_amount_backend = round(sub_total * 0.18)
+	grand_total        = sub_total + tax_amount_backend
+	# Deposit = 25% of stall total only (services not shown to exhibitor)
+	deposit_backend    = round(stall_total_backend * 0.25)
+	balance_backend    = grand_total - deposit_backend
+
+	# ── Create Stall Booking doc ──────────────────────────────
 	booking = frappe.get_doc({
 		"doctype":        "Stall Booking",
 		"expo_event":     expo_event,
@@ -307,79 +366,70 @@ def create_booking(
 		"stall_number":   stall_number_ref,
 		"booking_date":   now(),
 		"payment_status": "Pending",
-		"base_amount":    float(stall_amount  or 0),
-		"tax_amount":     float(tax_amount    or 0),
-		"total_amount":   float(total_amount  or 0),
-		"deposit_paid":   float(deposit_paid  or 0),
-		"balance_due":    float(balance_due   or 0),
+		"base_amount":    stall_total_backend,
+		"service_amount": service_total_backend,   # admin can see this
+		"tax_amount":     tax_amount_backend,
+		"total_amount":   grand_total,
+		"deposit_paid":   deposit_backend,
+		"balance_due":    balance_backend,
 	})
 
-	#  Response services list
-	response_services = []
-
-	# ── Add services ─────────────────────────
-	for svc in selected_services:
-		svc_name = svc.get("service") or svc.get("name", "")
-		svc_qty  = int(svc.get("qty", 1) or 1)
-
-		svc_price = (
-			float(svc.get("price")  or 0) or
-			float(svc.get("rate")   or 0) or
-			float(svc.get("amount") or 0)
-		)
-
-		svc_display_name = svc.get("service_name") or ""
-		if not svc_display_name and svc_name:
-			svc_display_name = (
-				frappe.db.get_value("Expo Service", svc_name, "service_name") or svc_name
-			)
-
-		if not svc_price and svc_name:
-			svc_price = float(
-				frappe.db.get_value("Expo Service", svc_name, "price") or 0
-			)
-
-		amount = svc_price * svc_qty
-
+	# Append service rows with full price details (admin-facing)
+	for row in service_rows:
 		booking.append("services", {
-			"service":      svc_name,
-			"service_name": svc_display_name,
-			"qty":          svc_qty,
-			"rate":         svc_price,
-			"amount":       amount,
-		})
-
-		#  Add to response
-		response_services.append({
-			"service": svc_name,
-			"service_name": svc_display_name,
-			"qty": svc_qty,
-			"rate": svc_price,
-			"amount": amount
+			"service":      row["svc_name"],
+			"service_name": row["display"],
+			"qty":          row["qty"],
+			"rate":         row["rate"],    # admin sees this in Stall Booking
+			"amount":       row["amount"],  # admin sees this
 		})
 
 	booking.flags.ignore_mandatory = True
 	booking.insert(ignore_permissions=True)
 
-	# Update stall status
+	# ── Hold selected stalls ──────────────────────────────────
+	# Try by stall_name (Expo Stall docname) first
+	held = set()
 	for stall_name in stall_names:
-		if frappe.db.exists("Expo Stall", stall_name):
+		if stall_name and frappe.db.exists("Expo Stall", stall_name):
 			frappe.db.set_value("Expo Stall", stall_name, "status", "Hold")
+			held.add(stall_name)
+
+	# Fallback: match by stall_number + expo_event if stall_name not resolved
+	for dim in selected_dims:
+		snum = dim.get("stall_number", "").strip()
+		if not snum:
+			continue
+		stalls_found = frappe.get_all(
+			"Expo Stall",
+			filters={"expo_event": expo_event, "stall_number": snum, "status": "Available"},
+			fields=["name"],
+			limit=1,
+		)
+		for s in stalls_found:
+			if s["name"] not in held:
+				frappe.db.set_value("Expo Stall", s["name"], "status", "Hold")
+				held.add(s["name"])
 
 	frappe.db.commit()
 
-	#  Final response
+	# ── Return to frontend (no service prices exposed) ────────
 	return {
 		"booking_id":    booking.name,
 		"status":        "success",
 		"stall_numbers": stall_numbers,
-		"total_amount":  float(total_amount or 0),
-		"deposit_paid":  float(deposit_paid or 0),
-		"balance_due":   float(balance_due  or 0),
-		"services":      response_services   # Include services in response
+		"total_amount":  grand_total,
+		"deposit_paid":  deposit_backend,
+		"balance_due":   balance_backend,
+		"tax_amount":    tax_amount_backend,
+		# services list: name only, no rate/amount
+		"services":      response_services,
 	}
+
+
 # ─────────────────────────────────────────────────────────────
 #  API 4 — Get My Bookings
+#  Service rate/amount stripped — exhibitor sees name only
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
@@ -401,18 +451,23 @@ def get_my_bookings(expo_event=None):
 			"stall", "stall_number", "booking_date",
 			"payment_status", "base_amount", "tax_amount",
 			"total_amount", "deposit_paid", "balance_due",
+			# NOTE: service_amount intentionally excluded from exhibitor view
 		],
 		order_by="creation desc",
 	)
 
-	# Attach services child table to each booking
 	for booking in bookings:
-		services = frappe.get_all(
+		raw_services = frappe.get_all(
 			"Booking Service Item",
 			filters={"parent": booking["name"]},
-			fields=["service", "service_name", "qty", "rate", "amount"],
+			fields=["service", "service_name", "qty"],
+			# rate and amount NOT fetched — hidden from exhibitor
 		)
-		booking["services"] = services if services else []
+		# Return service name only — no pricing details
+		booking["services"] = [
+			{"service": s["service"], "service_name": s["service_name"], "qty": s["qty"]}
+			for s in raw_services
+		] if raw_services else []
 
 	return bookings
 
@@ -421,60 +476,15 @@ def get_my_bookings(expo_event=None):
 #  API 5 — Get Available Stalls
 # ─────────────────────────────────────────────────────────────
 
-# @frappe.whitelist()
-# def get_available_stalls(expo_event, expo_hall, dimension_label):
-# 	"""Return available stalls for a specific hall + dimension combo."""
-# 	if not frappe.db.table_exists("Expo Stall"):
-# 		return []
-
-# 	# Normalize: 'x' → '×'
-# 	dimension_label = dimension_label.replace('x', '×').strip()
-
-# 	stalls = frappe.get_all(
-# 		"Expo Stall",
-# 		filters={
-# 			"expo_event":      expo_event,
-# 			"expo_hall":       expo_hall,
-# 			"dimension_label": dimension_label,
-# 			"status":          "Available",
-# 		},
-# 		fields=[
-# 			"name", "stall_number", "stall_type",
-# 			"dimension_label", "base_price", "final_price",
-# 			"status", "expo_hall",
-# 		],
-# 		order_by="stall_number asc",
-# 	)
-
-# 	# Fallback: try with 'x'
-# 	if not stalls:
-# 		stalls = frappe.get_all(
-# 			"Expo Stall",
-# 			filters={
-# 				"expo_event":      expo_event,
-# 				"expo_hall":       expo_hall,
-# 				"dimension_label": dimension_label.replace('×', 'x'),
-# 				"status":          "Available",
-# 			},
-# 			fields=[
-# 				"name", "stall_number", "stall_type",
-# 				"dimension_label", "base_price", "final_price",
-# 				"status", "expo_hall",
-# 			],
-# 			order_by="stall_number asc",
-# 		)
-
-# 	return stalls
-
 @frappe.whitelist()
 def get_available_stalls(expo_event, expo_hall, dimension_label):
 	"""Return available stalls for a specific hall + dimension combo."""
 	if not frappe.db.table_exists("Expo Stall"):
 		return []
- 
+
 	# Normalize: 'x' → '×'
 	dimension_label = dimension_label.replace('x', '×').strip()
- 
+
 	stalls = frappe.get_all(
 		"Expo Stall",
 		filters={
@@ -490,7 +500,7 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		],
 		order_by="stall_number asc",
 	)
- 
+
 	# Fallback: try with 'x'
 	if not stalls:
 		stalls = frappe.get_all(
@@ -508,9 +518,9 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 			],
 			order_by="stall_number asc",
 		)
- 
+
 	# Add deposit = 25% of base_price to each stall
 	for stall in stalls:
 		stall["deposit"] = round(float(stall.get("base_price") or 0) * 0.25, 2)
- 
+
 	return stalls
