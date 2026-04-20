@@ -157,16 +157,19 @@ export default function BookingPage() {
           * { box-sizing: border-box; }
         `}</style>
         <div style={{ maxWidth: 500, width: '100%', textAlign: 'center', animation: 'fadeUp 0.4s ease both' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: accent + '20', border: `2px solid ${accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '2rem', animation: 'popIn 0.4s ease both' }}>✓</div>
-          <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2rem', color: t.textPrimary, marginBottom: 8 }}>Stall Blocked!</h1>
-          <p style={{ color: t.textMuted, marginBottom: 28 }}>Booking confirmed. Pay the deposit to secure your stall.</p>
+          {/* Success icon */}
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: accent + '20', border: `2px solid ${accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '1.8rem', animation: 'popIn 0.4s ease both' }}>✓</div>
+          <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: t.textPrimary, marginBottom: 6 }}>Stall Blocked!</h1>
+          <p style={{ color: t.textMuted, marginBottom: 24, fontSize: '0.88rem' }}>Your booking is confirmed. Our team will contact you shortly.</p>
 
-          <div style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 16, padding: 24, marginBottom: 20, textAlign: 'left' }}>
-            <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>BOOKING SUMMARY</div>
-            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: accent, marginBottom: 16 }}>{bookingDone.booking_id}</div>
+          {/* Booking summary card */}
+          <div style={{ background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, borderRadius: 16, padding: 20, marginBottom: 14, textAlign: 'left' }}>
+            <div style={{ fontSize: '0.6rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 10 }}>BOOKING SUMMARY</div>
+            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: accent, marginBottom: 14 }}>{bookingDone.booking_id}</div>
 
+            {/* Stall rows */}
             {passedSelected.map((x, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.8rem' }}>
                 <span style={{ color: t.textSecondary }}>
                   {x.dim.stall_number ? `${x.dim.stall_number} · ` : ''}{x.dim.dimension_label} m — {x.hall?.hall_name?.split('–')[0]?.trim()}
                 </span>
@@ -174,43 +177,53 @@ export default function BookingPage() {
               </div>
             ))}
 
+            {/* Services — name only */}
             {selectedSvcs.length > 0 && (
-              <div style={{ padding: '10px 0', borderBottom: '1px solid ' + t.borderSubtle }}>
-                <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 8 }}>ADDITIONAL SERVICES</div>
+              <div style={{ padding: '8px 0', borderBottom: '1px solid ' + t.borderSubtle }}>
+                <div style={{ fontSize: '0.6rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>SERVICES (INVOICE PENDING)</div>
                 {selectedSvcs.map((s, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', paddingTop: 5, fontSize: '0.82rem' }}>
-                    <span style={{ color: t.textSecondary }}>{s.service_name}</span>
-                    <span style={{ fontSize: '0.7rem', color: t.textFaint, fontStyle: 'italic' }}>Invoice pending</span>
-                  </div>
+                  <div key={i} style={{ fontSize: '0.78rem', color: t.textSecondary, paddingTop: 4 }}>· {s.service_name}</div>
                 ))}
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid ' + t.borderDefault, fontSize: '0.8rem' }}>
+            {/* Totals */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.78rem' }}>
               <span style={{ color: t.textFaint }}>GST (18%)</span>
               <span style={{ color: t.textMuted }}>₹{taxAmount.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0 6px', fontSize: '0.95rem', fontWeight: 700 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0 0', fontSize: '0.9rem', fontWeight: 700 }}>
               <span style={{ color: t.textSecondary }}>Stall Total</span>
-              <span style={{ color: accent, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.2rem' }}>₹{grandTotal.toLocaleString()}</span>
-            </div>
-            <div style={{ background: accent + '10', border: `1px solid ${accent}30`, borderRadius: 10, padding: '10px 14px', marginTop: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontSize: '0.78rem', color: t.textSecondary, fontWeight: 600 }}>Deposit to block stall</div>
-                <div style={{ fontSize: '0.68rem', color: t.textFaint, marginTop: 2 }}>Service charges in final invoice</div>
-              </div>
-              <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1rem' }}>₹{depositAmt.toLocaleString()}</span>
+              <span style={{ color: accent, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem' }}>₹{grandTotal.toLocaleString()}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, flexDirection: 'column' }}>
-            <button style={{ padding: '14px', borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: '#000', cursor: 'pointer' }}>
-              Pay Deposit ₹{depositAmt.toLocaleString()} →
-            </button>
-            <button onClick={() => navigate(`/booth/${code}/${exhibitor?.name}`)} style={{ padding: '12px', borderRadius: 12, background: 'transparent', border: `1px solid ${accent}40`, fontWeight: 600, fontSize: '0.88rem', color: accent, cursor: 'pointer' }}>
+          {/* Payment action card */}
+          <div style={{ background: accent + '08', border: `1.5px solid ${accent}40`, borderRadius: 14, padding: 20, marginBottom: 14, textAlign: 'left' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: t.textPrimary, marginBottom: 2 }}>📞 Our team will contact you</div>
+                <div style={{ fontSize: '0.7rem', color: t.textMuted }}>Deposit payment collected manually</div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgSurface, borderRadius: 10, padding: '12px 16px', marginBottom: 8 }}>
+              <span style={{ fontSize: '0.8rem', color: t.textSecondary, fontWeight: 600 }}>Deposit to pay now</span>
+              <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.2rem' }}>₹{depositAmt.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 4px', fontSize: '0.75rem' }}>
+              <span style={{ color: t.textFaint }}>Balance due before event</span>
+              <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{balanceDue.toLocaleString()}</span>
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+            <button onClick={() => navigate(`/booth/${code}/${exhibitor?.name}`)}
+              style={{ padding: '13px', borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer' }}>
               🏪 Create Your Digital Booth
             </button>
-            <button onClick={() => navigate(`/event/${code}`)} style={{ padding: '10px', borderRadius: 10, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.82rem', color: t.textMuted, cursor: 'pointer' }}>
+            <button onClick={() => navigate(`/event/${code}`)}
+              style={{ padding: '11px', borderRadius: 10, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.82rem', color: t.textMuted, cursor: 'pointer' }}>
               ← Back to Event
             </button>
           </div>
@@ -425,7 +438,7 @@ export default function BookingPage() {
 
                 <button onClick={handleBooking} disabled={submitting}
                   style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? t.bgHover : `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.05rem', color: submitting ? t.textFaint : '#000', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
-                  {submitting ? <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</> : `Confirm & Pay Deposit ₹${depositAmt.toLocaleString()}`}
+                  {submitting ? <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</> : `Confirm & Express Interest ₹${depositAmt.toLocaleString()}`}
                 </button>
               </div>
             )}
