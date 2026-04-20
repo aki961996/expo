@@ -94,12 +94,13 @@ export default function BookingPage() {
   const { event, services = [] } = detail
   const accent = CAT_ACCENT[event.category] || '#F59E0B'
 
-  // ── STALL-ONLY pricing — service charges NOT in total, billed at invoice ──
+  // ── STALL-ONLY pricing ──────────────────────────────────────
+  // Frontend total = stall + GST only. Service price NOT shown, NOT in total.
+  // Backend fetches actual service price from Expo Service and saves to DB.
   const stallTotal   = passedSelected.reduce((s, x) => s + getDimPrice(x.dim), 0)
   const selectedSvcs = services.filter(s => selectedServices.has(s.name))
   const taxAmount    = Math.round(stallTotal * 0.18)
   const grandTotal   = stallTotal + taxAmount
-  // Deposit = 25% of stall only
   const depositAmt   = Math.round(stallTotal * 0.25)
   const balanceDue   = grandTotal - depositAmt
 
@@ -127,9 +128,10 @@ export default function BookingPage() {
           stall_number:    x.dim.stall_number || '',
           stall_name:      x.dim.stall_name   || '',
         })),
+        // Only service name sent — backend fetches actual price from Expo Service
         selected_services: selectedSvcs.map(s => ({ service: s.name })),
         stall_amount:      stallTotal,
-        service_amount:    0,   // backend fetches real price from Expo Service
+        service_amount:    0,       // backend recalculates from Expo Service price
         tax_amount:        taxAmount,
         total_amount:      grandTotal,
         deposit_paid:      depositAmt,
@@ -363,7 +365,7 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* STEP 2 — Checkout (stall only) */}
+            {/* STEP 2 — Checkout */}
             {step === 2 && (
               <div>
                 <SectionTitle title="Review & Checkout" accent={accent} t={t} />
@@ -443,7 +445,7 @@ export default function BookingPage() {
             )}
           </div>
 
-          {/* ORDER SUMMARY sidebar */}
+          {/* ORDER SUMMARY sidebar — stall total only, services listed as "Invoice" */}
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ background: t.bgSurface, border: `1px solid ${accent}20`, borderRadius: 16, padding: 20, animation: 'fadeUp 0.4s ease 0.1s both' }}>
               <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 14 }}>ORDER SUMMARY</div>
@@ -455,6 +457,7 @@ export default function BookingPage() {
                 </div>
               ))}
 
+              {/* Services — name only, price NOT shown, total NOT affected */}
               {selectedSvcs.length > 0 && (
                 <div style={{ borderTop: '1px dashed ' + t.borderSubtle, marginTop: 8, paddingTop: 8 }}>
                   {selectedSvcs.map((s, i) => (
