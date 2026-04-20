@@ -1,59 +1,45 @@
 import frappe
 from frappe.model.document import Document
-from frappe.utils import flt
 
 
 class StallBooking(Document):
 
 	def validate(self):
-		self._calculate_amounts()
+		self._recalculate_totals()
 
-	def on_submit(self):
-		if self.stall:
-			self._update_stall_status("Booked")
-		self._generate_invoice_number()
-
-	def on_cancel(self):
-		if self.stall:
-			self._update_stall_status("Available")
-
-	def _calculate_amounts(self):
+	def _recalculate_totals(self):
 		"""
-		DO NOT recalculate base_amount / tax_amount / total_amount
-		DO NOT override stall_number
-		These are passed from create_booking API — preserve them.
-		Only recalculate balance_due.
+		Auto-recalculate whenever admin edits service rates or qty.
+
+		Formula:
+		  base_amount    = stall total (set at booking creation, not changed here)
+		  service_amount = sum of (rate × qty) from Services child table
+		  sub_total      = base_amount + service_amount
+		  tax_amount     = round(sub_total × 0.18)
+		  total_amount   = sub_total + tax_amount
+		  deposit_paid   = round(base_amount × 0.25)   ← 25% of stall only
+		  balance_due    = total_amount - deposit_paid
 		"""
-		# Service total using correct 'rate' field
-		service_total = sum(flt(s.rate) for s in (self.services or []))
 
-		# Only auto-fill amounts if base_amount not passed (fallback)
-		if not flt(self.base_amount) and self.stall:
-			if frappe.db.exists("Expo Stall", self.stall):
-				stall            = frappe.get_doc("Expo Stall", self.stall)
-				self.base_amount = flt(stall.final_price)
-				tax_rate         = flt(stall.tax_percent) / 100 if stall.tax_percent else 0.18
-				self.tax_amount  = flt((flt(self.base_amount) + service_total) * tax_rate, 2)
-				self.total_amount = flt(
-					flt(self.base_amount) + service_total + self.tax_amount, 2
-				)
+		# ── 1. Recalculate each service row amount ────────────
+		service_total = 0.0
+		for row in self.get("services") or []:
+			qty    = float(row.qty    or 1)
+			rate   = float(row.rate   or 0)
+			amount = round(qty * rate, 2)
+			row.amount     = amount
+			service_total += amount
 
-		# Always recalculate balance_due only
-		if flt(self.total_amount):
-			self.balance_due = flt(flt(self.total_amount) - flt(self.deposit_paid), 2)
+		# ── 2. Recompute header totals ────────────────────────
+		base      = float(self.base_amount or 0)
+		sub_total = base + service_total
+		tax       = round(sub_total * 0.18)
+		total     = sub_total + tax
+		deposit   = round(base * 0.25)
+		balance   = total - deposit
 
-	def _update_stall_status(self, status):
-		frappe.db.set_value("Expo Stall", self.stall, {
-			"status":    status,
-			"booked_by": self.exhibitor if status == "Booked" else None,
-		})
-		frappe.db.commit()
-
-	def _generate_invoice_number(self):
-		if not self.invoice_number:
-			self.invoice_number = f"INV-{self.name}"
-			self.db_update()
-
-
-class BookingServiceItem(Document):
-	pass
+		self.service_amount = round(service_total, 2)
+		self.tax_amount     = tax
+		self.total_amount   = total
+		self.deposit_paid   = deposit
+		self.balance_due    = balance
