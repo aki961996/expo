@@ -245,10 +245,11 @@ def create_booking(
 	stall_names   = [d.get("stall_name") for d in selected_dims if d.get("stall_name")]
 	stall_numbers = [d.get("stall_number") for d in selected_dims if d.get("stall_number")]
 
-	stall_number_ref = " | ".join([
-		f"{d.get('stall_number', '')} ({d.get('dimension_label', '')} m)"
-		for d in selected_dims
-	])
+	# Short format: stall numbers only to stay within 140 char field limit
+	stall_nums_only  = [d.get("stall_number", "").strip() for d in selected_dims if d.get("stall_number")]
+	stall_number_ref = " | ".join(stall_nums_only)
+	if len(stall_number_ref) > 140:
+		stall_number_ref = stall_number_ref[:137] + "..." 
 	primary_stall = stall_names[0] if stall_names else None
 
 	# ── Stall-only totals (what exhibitor sees) ───────────
