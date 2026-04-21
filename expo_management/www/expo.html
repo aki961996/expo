@@ -1,3 +1,7 @@
+
+---
+no_cache: 1
+---
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +11,9 @@
 </head>
 <body>
   <div id="root"></div>
+<script>
+    window.csrf_token = "{{ frappe.session.csrf_token }}";
+ </script>
   <script type="module" src="/assets/expo_management/react/dist/assets/index-BtY8PU9f.js"></script>
 </body>
 </html>
