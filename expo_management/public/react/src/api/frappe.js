@@ -101,10 +101,10 @@ export async function getMyBookings(expo_event = null) {
 // ── Add this function to your existing api/frappe.js file ──
 
 export async function getContactInfo() {
-  const res = await frappeGet(
-    'expo_management.expo_management.doctype.expo_event.expo_event.get_contact_info'
+  return frappeCall(
+    'expo_management.expo_management.doctype.expo_event.expo_event.get_contact_info',
+    {}
   )
-  return res
 }
 
 // ─────────────────────────────────────────────────────────────
