@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useThemeStyles } from '../hooks/useThemeStyles'
 
-const STEPS = { MOBILE: 'mobile', OTP: 'otp' }
+const STEPS = { SELECT: 'select', MOBILE: 'mobile', OTP: 'otp' }
 
 export default function LoginPage() {
   const t = useThemeStyles()
@@ -13,7 +13,8 @@ export default function LoginPage() {
 
   const redirectTo = location.state?.redirect || '/'
 
-  const [step, setStep]               = useState(STEPS.MOBILE)
+  const [step, setStep]               = useState(STEPS.SELECT)
+  const [userType, setUserType]       = useState(null)   // 'exhibitor' | 'visitor'
   const [mobile, setMobile]           = useState('')
   const [otp, setOtp]                 = useState(['', '', '', '', '', ''])
   const [loading, setLoading]         = useState(false)
@@ -27,9 +28,15 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (timer <= 0) return
-    const t = setTimeout(() => setTimer(t => t - 1), 1000)
-    return () => clearTimeout(t)
+    const id = setTimeout(() => setTimer(t => t - 1), 1000)
+    return () => clearTimeout(id)
   }, [timer])
+
+  const selectType = (type) => {
+    setUserType(type)
+    setStep(STEPS.MOBILE)
+    setTimeout(() => mobileRef.current?.focus(), 100)
+  }
 
   const handleSendOtp = async (e) => {
     e?.preventDefault()
@@ -39,12 +46,16 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
-      const res = await sendOtp(clean)
+      const res = await sendOtp(clean, userType)
       if (!res.success) {
         if (res.error === 'pending_approval') {
           setError('⏳ Your registration is pending admin approval.')
         } else if (res.error === 'blacklisted') {
           setError('🚫 Account suspended. Contact support.')
+        } else if (res.error === 'not_found') {
+          setError(userType === 'visitor'
+            ? '📋 No visitor account found. Please register first.'
+            : '📋 No exhibitor account found. Please register first.')
         } else {
           setError(res.message || 'Failed to send OTP')
         }
@@ -93,7 +104,7 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const res = await verifyOtp(mobile.replace(/\s/g, ''), otpValue)
+      const res = await verifyOtp(mobile.replace(/\s/g, ''), otpValue, userType)
       if (res.success) {
         setRedirecting(true)
         setTimeout(() => navigate(redirectTo, { replace: true }), 1200)
@@ -108,6 +119,9 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
+
+  const isExhibitor = userType === 'exhibitor'
+  const accent = isExhibitor ? '#F59E0B' : '#60A5FA'
 
   return (
     <div style={{
@@ -124,53 +138,50 @@ export default function LoginPage() {
         @keyframes spin    { to{transform:rotate(360deg)} }
         @keyframes scaleIn { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
         * { box-sizing: border-box; }
-        input::placeholder { color: #374151; }
+        input::placeholder { color: ${t.textFaint}; }
         input:focus { outline: none; }
       `}</style>
 
-      {/* ── Redirect loader ── */}
+      {/* Redirect loader */}
       {redirecting && (
-        <div style={{
-          position: 'fixed', inset: 0, background: t.bgBase,
-          display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          zIndex: 9999, animation: 'fadeIn 0.2s ease both',
-        }}>
+        <div style={{ position: 'fixed', inset: 0, background: t.bgBase, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 9999, animation: 'fadeIn 0.2s ease both' }}>
           <div style={{ position: 'relative', width: 56, height: 56, marginBottom: 24 }}>
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid #F59E0B15' }} />
-            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderTopColor: '#F59E0B', animation: 'spin 0.75s linear infinite' }} />
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: '#F59E0B', animation: 'pulse 1.2s ease-in-out infinite' }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `2px solid ${accent}15` }} />
+            <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '2px solid transparent', borderTopColor: accent, animation: 'spin 0.75s linear infinite' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: accent, animation: 'pulse 1.2s ease-in-out infinite' }} />
           </div>
           <p style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: t.textPrimary, letterSpacing: '-0.03em', margin: 0 }}>
-            Taking you in…
+            {isExhibitor ? 'Taking you to your dashboard…' : 'Welcome, Visitor!'}
           </p>
-          <p style={{ fontSize: '0.78rem', color: '#374151', marginTop: 8 }}>Welcome back</p>
+          <p style={{ fontSize: '0.78rem', color: t.textFaint, marginTop: 8 }}>
+            {isExhibitor ? 'Exhibitor portal' : 'Explore the expo'}
+          </p>
         </div>
       )}
 
       {/* Ambient glow */}
-      <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, background: 'radial-gradient(ellipse, #F59E0B0A 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'absolute', top: '30%', left: '50%', transform: 'translateX(-50%)', width: 500, height: 300, background: `radial-gradient(ellipse, ${accent}08 0%, transparent 70%)`, pointerEvents: 'none', transition: 'background 0.4s' }} />
 
-      {/* ── CARD ── */}
+      {/* Card */}
       <div style={{
         width: '100%', maxWidth: 420,
-        background: t.bgSurface, border: '1px solid ' + t.borderSubtle,
+        background: t.bgSurface, border: `1px solid ${t.borderSubtle}`,
         borderRadius: 20, overflow: 'hidden',
         animation: 'fadeUp 0.4s ease both',
-        boxShadow: '0 24px 60px rgba(0,0,0,0.5)',
+        boxShadow: '0 24px 60px rgba(0,0,0,0.4)',
       }}>
-        <div style={{ height: 2, background: 'linear-gradient(90deg, transparent, #F59E0B, transparent)' }} />
+        <div style={{ height: 2, background: `linear-gradient(90deg, transparent, ${accent}, transparent)`, transition: 'background 0.4s' }} />
 
         <div style={{ padding: '2rem' }}>
 
           {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.75rem' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white" />
-                <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6" />
-                <rect x="3"  y="14" width="7" height="7" rx="1" fill="white" opacity="0.6" />
-                <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3" />
+                <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white"/>
+                <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6"/>
+                <rect x="3"  y="14" width="7" height="7" rx="1" fill="white" opacity="0.6"/>
+                <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3"/>
               </svg>
             </div>
             <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: t.textPrimary }}>
@@ -178,25 +189,83 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Redirect hint */}
           {location.state?.redirect && (
-            <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 16, background: '#F59E0B10', border: '1px solid #F59E0B25', fontSize: '0.75rem', color: '#F59E0B', display: 'flex', alignItems: 'center', gap: 6 }}>
-              🔒 Login to continue booking
+            <div style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 16, background: `${accent}10`, border: `1px solid ${accent}25`, fontSize: '0.75rem', color: accent }}>
+              🔒 Login to continue
             </div>
           )}
 
-          {/* Step indicator */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: '1.5rem' }}>
-            {[STEPS.MOBILE, STEPS.OTP].map((s, i) => (
-              <div key={s} style={{ height: 3, flex: 1, borderRadius: 2, background: step === s || (i === 0 && step === STEPS.OTP) ? '#F59E0B' : '#1F1F1F', transition: 'background 0.3s' }} />
-            ))}
-          </div>
-
-          {/* ── STEP 1: Mobile ── */}
-          {step === STEPS.MOBILE && (
+          {/* ── STEP: SELECT ── */}
+          {step === STEPS.SELECT && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
               <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 6 }}>
-                Exhibitor Login
+                Welcome Back
+              </h1>
+              <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
+                Select how you'd like to sign in
+              </p>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {/* Exhibitor */}
+                <button onClick={() => selectType('exhibitor')}
+                  style={{ padding: '16px 20px', borderRadius: 12, border: '1.5px solid #F59E0B30', background: '#F59E0B08', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#F59E0B60'; e.currentTarget.style.background = '#F59E0B12' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#F59E0B30'; e.currentTarget.style.background = '#F59E0B08' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 11, background: '#F59E0B20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>🏢</div>
+                    <div>
+                      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: t.textPrimary, marginBottom: 2 }}>Exhibitor Login</div>
+                      <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Book stalls, manage your booth & bookings</div>
+                    </div>
+                    <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </button>
+
+                {/* Visitor */}
+                <button onClick={() => selectType('visitor')}
+                  style={{ padding: '16px 20px', borderRadius: 12, border: '1.5px solid #60A5FA30', background: '#60A5FA08', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = '#60A5FA60'; e.currentTarget.style.background = '#60A5FA12' }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = '#60A5FA30'; e.currentTarget.style.background = '#60A5FA08' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 11, background: '#60A5FA20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.3rem', flexShrink: 0 }}>🎟️</div>
+                    <div>
+                      <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: t.textPrimary, marginBottom: 2 }}>Visitor Login</div>
+                      <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Explore events, exhibitors & digital booths</div>
+                    </div>
+                    <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </button>
+              </div>
+
+              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                <span style={{ fontSize: '0.82rem', color: t.textFaint }}>New exhibitor? </span>
+                <button onClick={() => navigate('/register', { state: location.state })}
+                  style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#F59E0B', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                  Register here →
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP: MOBILE ── */}
+          {step === STEPS.MOBILE && (
+            <div style={{ animation: 'fadeUp 0.3s ease both' }}>
+              {/* Back to select */}
+              <button onClick={() => { setStep(STEPS.SELECT); setError(''); setMobile('') }}
+                style={{ background: 'none', border: 'none', color: t.textFaint, fontSize: '0.8rem', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5, marginBottom: 16 }}>
+                ← Back
+              </button>
+
+              {/* Type badge */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: `${accent}15`, border: `1px solid ${accent}30`, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.85rem' }}>{isExhibitor ? '🏢' : '🎟️'}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: accent, letterSpacing: '0.06em' }}>
+                  {isExhibitor ? 'EXHIBITOR' : 'VISITOR'}
+                </span>
+              </div>
+
+              <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 6 }}>
+                {isExhibitor ? 'Exhibitor Login' : 'Visitor Login'}
               </h1>
               <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
                 Enter your registered mobile number to receive an OTP
@@ -206,40 +275,19 @@ export default function LoginPage() {
                 <label style={{ fontSize: '0.72rem', fontWeight: 700, color: t.textMuted, letterSpacing: '0.08em', display: 'block', marginBottom: 8 }}>
                   MOBILE NUMBER
                 </label>
-
-                {/* ── Responsive mobile input ── */}
-                <div style={{ display: 'flex', gap: 8, marginBottom: 16, width: '100%' }}>
-                  {/* Country code — fixed width */}
-                  <div style={{
-                    padding: '13px 14px',
-                    background: t.bgElevated, border: '1px solid ' + t.borderDefault, borderRadius: 10,
-                    fontSize: '0.88rem', color: t.textSecondary, fontWeight: 600,
-                    flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-                    whiteSpace: 'nowrap',
-                  }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+                  <div style={{ padding: '13px 14px', background: t.bgElevated, border: `1px solid ${t.borderDefault}`, borderRadius: 10, fontSize: '0.88rem', color: t.textSecondary, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                     🇮🇳 +91
                   </div>
-                  {/* Number input — takes remaining space */}
                   <input
                     ref={mobileRef}
                     type="tel" inputMode="numeric" maxLength={10}
                     placeholder="9876543210"
                     value={mobile}
                     onChange={e => { setMobile(e.target.value.replace(/\D/g, '')); setError('') }}
-                    autoFocus
-                    style={{
-                      flex: '1 1 0',
-                      minWidth: 0,
-                      padding: '13px 16px',
-                      background: t.bgElevated,
-                      border: `1px solid ${error ? '#F87171' : '#1F1F1F'}`,
-                      borderRadius: 10,
-                      fontSize: '1.1rem', color: t.textPrimary,
-                      letterSpacing: '0.06em',
-                      transition: 'border-color 0.2s',
-                    }}
-                    onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-                    onBlur={e => e.target.style.borderColor = error ? '#F87171' : '#1F1F1F'}
+                    style={{ flex: '1 1 0', minWidth: 0, padding: '13px 16px', background: t.bgElevated, border: `1px solid ${error ? '#F87171' : t.borderDefault}`, borderRadius: 10, fontSize: '1.1rem', color: t.textPrimary, letterSpacing: '0.06em', transition: 'border-color 0.2s' }}
+                    onFocus={e => e.target.style.borderColor = `${accent}50`}
+                    onBlur={e => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}
                   />
                 </div>
 
@@ -249,45 +297,53 @@ export default function LoginPage() {
                   </div>
                 )}
 
-                <button type="submit" disabled={loading || mobile.length < 10} style={{
-                  width: '100%', padding: '13px', borderRadius: 10, border: 'none',
-                  background: mobile.length >= 10 ? '#F59E0B' : '#1A1A1A',
-                  color: mobile.length >= 10 ? '#000' : '#374151',
-                  fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem',
-                  cursor: mobile.length >= 10 ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                }}>
+                <button type="submit" disabled={loading || mobile.length < 10}
+                  style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: mobile.length >= 10 ? accent : t.bgElevated, color: mobile.length >= 10 ? (isExhibitor ? '#000' : '#fff') : t.textFaint, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', cursor: mobile.length >= 10 ? 'pointer' : 'not-allowed', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                   {loading
-                    ? <div style={{ width: 18, height: 18, border: '2px solid #00000040', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                    ? <div style={{ width: 18, height: 18, border: '2px solid #00000040', borderTopColor: isExhibitor ? '#000' : '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                     : 'Send OTP →'}
                 </button>
               </form>
 
-              <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                <span style={{ fontSize: '0.82rem', color: t.textFaint }}>New exhibitor? </span>
-                <button
-                  onClick={() => navigate('/register', { state: location.state })}
-                  style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#F59E0B', fontWeight: 600, cursor: 'pointer', padding: 0 }}
-                >
-                  Register here →
-                </button>
-              </div>
+              {!isExhibitor && (
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', color: t.textFaint }}>First time? </span>
+                  <button onClick={() => navigate('/register-visitor', { state: location.state })}
+                    style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#60A5FA', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                    Register as Visitor →
+                  </button>
+                </div>
+              )}
+              {isExhibitor && (
+                <div style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                  <span style={{ fontSize: '0.82rem', color: t.textFaint }}>New exhibitor? </span>
+                  <button onClick={() => navigate('/register', { state: location.state })}
+                    style={{ background: 'none', border: 'none', fontSize: '0.82rem', color: '#F59E0B', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
+                    Register here →
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
-          {/* ── STEP 2: OTP ── */}
+          {/* ── STEP: OTP ── */}
           {step === STEPS.OTP && (
             <div style={{ animation: 'fadeUp 0.3s ease both' }}>
+              {/* Type badge */}
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: `${accent}15`, border: `1px solid ${accent}30`, marginBottom: 16 }}>
+                <span style={{ fontSize: '0.85rem' }}>{isExhibitor ? '🏢' : '🎟️'}</span>
+                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: accent, letterSpacing: '0.06em' }}>
+                  {isExhibitor ? 'EXHIBITOR' : 'VISITOR'}
+                </span>
+              </div>
+
               <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.6rem', letterSpacing: '-0.03em', color: t.textPrimary, marginBottom: 6 }}>
                 Enter OTP
               </h1>
               <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
                 Sent to <span style={{ color: t.textSecondary, fontWeight: 600 }}>+91 {mobile}</span>
-                <button
-                  onClick={() => { setStep(STEPS.MOBILE); setOtp(['','','','','','']); setError('') }}
-                  style={{ background: 'none', border: 'none', color: '#F59E0B', fontSize: '0.82rem', cursor: 'pointer', marginLeft: 8 }}
-                >
+                <button onClick={() => { setStep(STEPS.MOBILE); setOtp(['','','','','','']); setError('') }}
+                  style={{ background: 'none', border: 'none', color: accent, fontSize: '0.82rem', cursor: 'pointer', marginLeft: 8 }}>
                   Change
                 </button>
               </p>
@@ -298,27 +354,16 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* OTP boxes */}
               <div style={{ display: 'flex', gap: 8, marginBottom: 16, width: '100%' }} onPaste={handleOtpPaste}>
                 {otp.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={el => otpRefs.current[i] = el}
+                  <input key={i} ref={el => otpRefs.current[i] = el}
                     type="text" inputMode="numeric" maxLength={1}
                     value={digit}
                     onChange={e => handleOtpChange(i, e.target.value)}
                     onKeyDown={e => handleOtpKeyDown(i, e)}
-                    style={{
-                      flex: '1 1 0',
-                      minWidth: 0,
-                      height: 54, textAlign: 'center',
-                      fontSize: '1.4rem', fontWeight: 700, color: t.textPrimary,
-                      background: digit ? '#F59E0B15' : '#141414',
-                      border: `1.5px solid ${digit ? '#F59E0B50' : error ? '#F87171' : '#1F1F1F'}`,
-                      borderRadius: 10, transition: 'all 0.15s', caretColor: '#F59E0B',
-                    }}
-                    onFocus={e => e.target.style.borderColor = '#F59E0B80'}
-                    onBlur={e => e.target.style.borderColor = digit ? '#F59E0B50' : '#1F1F1F'}
+                    style={{ flex: '1 1 0', minWidth: 0, height: 54, textAlign: 'center', fontSize: '1.4rem', fontWeight: 700, color: t.textPrimary, background: digit ? `${accent}15` : t.bgElevated, border: `1.5px solid ${digit ? `${accent}50` : error ? '#F87171' : t.borderDefault}`, borderRadius: 10, transition: 'all 0.15s', caretColor: accent }}
+                    onFocus={e => e.target.style.borderColor = `${accent}80`}
+                    onBlur={e => e.target.style.borderColor = digit ? `${accent}50` : t.borderDefault}
                   />
                 ))}
               </div>
@@ -329,55 +374,27 @@ export default function LoginPage() {
                 </div>
               )}
 
-              <button
-                onClick={() => handleVerifyOtp(otp.join(''))}
-                disabled={loading || otp.some(d => !d)}
-                style={{
-                  width: '100%', padding: '13px', borderRadius: 10, border: 'none',
-                  background: otp.every(d => d) ? '#F59E0B' : '#1A1A1A',
-                  color: otp.every(d => d) ? '#000' : '#374151',
-                  fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem',
-                  cursor: otp.every(d => d) ? 'pointer' : 'not-allowed',
-                  transition: 'all 0.2s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  marginBottom: 14,
-                }}
-              >
+              <button onClick={() => handleVerifyOtp(otp.join(''))} disabled={loading || otp.some(d => !d)}
+                style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: otp.every(d => d) ? accent : t.bgElevated, color: otp.every(d => d) ? (isExhibitor ? '#000' : '#fff') : t.textFaint, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', cursor: otp.every(d => d) ? 'pointer' : 'not-allowed', transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 14 }}>
                 {loading
-                  ? <div style={{ width: 18, height: 18, border: '2px solid #00000040', borderTopColor: '#000', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+                  ? <div style={{ width: 18, height: 18, border: '2px solid #00000040', borderTopColor: isExhibitor ? '#000' : '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
                   : 'Verify & Login →'}
               </button>
 
               <div style={{ textAlign: 'center', fontSize: '0.8rem', color: t.textFaint }}>
-                {timer > 0 ? (
-                  <span>Resend OTP in <span style={{ color: '#F59E0B', fontWeight: 600 }}>{timer}s</span></span>
-                ) : (
-                  <button onClick={handleSendOtp} style={{ background: 'none', border: 'none', color: '#F59E0B', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>
-                    Resend OTP
-                  </button>
-                )}
+                {timer > 0
+                  ? <span>Resend OTP in <span style={{ color: accent, fontWeight: 600 }}>{timer}s</span></span>
+                  : <button onClick={handleSendOtp} style={{ background: 'none', border: 'none', color: accent, fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer', padding: 0 }}>Resend OTP</button>
+                }
               </div>
             </div>
           )}
-
         </div>
       </div>
 
       {/* Back button */}
-      <button
-        onClick={() => navigate('/')}
-        style={{
-          position: 'absolute', top: 24, left: 24,
-          background: 'none', border: '1px solid ' + t.borderDefault,
-          borderRadius: 8, padding: '7px 14px',
-          color: t.textFaint, fontSize: '0.8rem',
-          cursor: 'pointer', fontFamily: 'DM Sans, sans-serif',
-          display: 'flex', alignItems: 'center', gap: 6,
-          transition: 'color 0.2s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.color = '#9CA3AF'}
-        onMouseLeave={e => e.currentTarget.style.color = '#4B5563'}
-      >
+      <button onClick={() => navigate('/')}
+        style={{ position: 'absolute', top: 24, left: 24, background: 'none', border: `1px solid ${t.borderDefault}`, borderRadius: 8, padding: '7px 14px', color: t.textFaint, fontSize: '0.8rem', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif', display: 'flex', alignItems: 'center', gap: 6 }}>
         ← Back to Events
       </button>
     </div>

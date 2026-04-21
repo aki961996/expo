@@ -18,68 +18,80 @@ def _get_otp_cache_key(mobile):
     return f"expo_otp:{mobile}"
 
 
+def _normalize_mobile(mobile):
+    mobile = (mobile or "").strip()
+    if not mobile.startswith("+"):
+        mobile = "+91" + mobile.lstrip("0")
+    return mobile
+
+
 # ─────────────────────────────────────────────────────────────
 # API 1: Send OTP
 # POST /api/method/expo_management.expo_management.auth.send_otp
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist(allow_guest=True)
-def send_otp(mobile):
+def send_otp(mobile, user_type="exhibitor"):
     """
     Send OTP to mobile number.
-    Returns: { exists: bool, message: str }
+    user_type: 'exhibitor' | 'visitor'
     """
-    mobile = (mobile or "").strip()
+    mobile = _normalize_mobile(mobile)
 
-    # Validate mobile
     if not mobile or len(mobile) < 10:
         frappe.throw(_("Invalid mobile number"), frappe.ValidationError)
 
-    # Normalize — ensure +91 prefix
-    if not mobile.startswith("+"):
-        mobile = "+91" + mobile.lstrip("0")
-
-    # Check if exhibitor exists
-    exists = frappe.db.exists(
-        "Exhibitor Profile",
-        {"contact_number": mobile}
-    )
-
-    # Check if pending approval
-    if exists:
-        status = frappe.db.get_value("Exhibitor Profile", {"contact_number": mobile}, "status")
-        if status == "Pending Approval":
+    if user_type == "visitor":
+        # ── Visitor lookup ────────────────────────────────────
+        exists = frappe.db.exists("Visitor Profile", {"mobile": mobile})
+        if not exists:
             return {
                 "success": False,
-                "error": "pending_approval",
-                "message": "Your registration is pending admin approval."
+                "error":   "not_found",
+                "message": "No visitor account found. Please register first.",
             }
-        if status == "Blacklisted":
+        v_status = frappe.db.get_value("Visitor Profile", {"mobile": mobile}, "status")
+        if v_status == "Inactive":
             return {
                 "success": False,
-                "error": "blacklisted",
-                "message": "Your account has been suspended. Contact support."
+                "error":   "blacklisted",
+                "message": "Your account is inactive. Contact support.",
             }
 
-    # Generate OTP
-    otp = _generate_otp()
+    else:
+        # ── Exhibitor lookup ──────────────────────────────────
+        exists = frappe.db.exists("Exhibitor Profile", {"contact_number": mobile})
+        if exists:
+            status = frappe.db.get_value("Exhibitor Profile", {"contact_number": mobile}, "status")
+            if status == "Pending Approval":
+                return {
+                    "success": False,
+                    "error":   "pending_approval",
+                    "message": "Your registration is pending admin approval.",
+                }
+            if status == "Blacklisted":
+                return {
+                    "success": False,
+                    "error":   "blacklisted",
+                    "message": "Your account has been suspended. Contact support.",
+                }
 
-    # Store in Frappe cache (Redis) with expiry
+    # Generate & store OTP
+    otp       = _generate_otp()
     cache_key = _get_otp_cache_key(mobile)
     frappe.cache().set_value(cache_key, otp, expires_in_sec=OTP_EXPIRY_MINUTES * 60)
 
     # TODO: Integrate SMS gateway (MSG91 / Twilio)
-    # For now — log to console (development)
-    frappe.logger().info(f"[EXPO OTP] Mobile: {mobile} | OTP: {otp}")
+    frappe.logger().info(f"[EXPO OTP] Mobile: {mobile} | Type: {user_type} | OTP: {otp}")
     print(f"\n{'='*40}")
-    print(f"📱 OTP for {mobile}: {otp}")
+    print(f"📱 OTP for {mobile} ({user_type}): {otp}")
     print(f"{'='*40}\n")
 
     return {
-        "success": True,
-        "exists": bool(exists),
-        "message": f"OTP sent to {mobile[-4:].rjust(len(mobile), '*')}",
-        # Remove in production — only for development!
-        "dev_otp": otp
+        "success":   True,
+        "exists":    bool(exists),
+        "user_type": user_type,
+        "message":   f"OTP sent to {mobile[-4:].rjust(len(mobile), '*')}",
+        "dev_otp":   otp,   # Remove in production!
     }
 
 
@@ -88,85 +100,126 @@ def send_otp(mobile):
 # POST /api/method/expo_management.expo_management.auth.verify_otp
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist(allow_guest=True)
-def verify_otp(mobile, otp):
+def verify_otp(mobile, otp, user_type="exhibitor"):
     """
-    Verify OTP and login exhibitor.
-    Returns: { success: bool, user: dict }
+    Verify OTP and login exhibitor or visitor.
+    user_type: 'exhibitor' | 'visitor'
     """
-    mobile = (mobile or "").strip()
+    mobile = _normalize_mobile(mobile)
     otp    = (otp or "").strip()
 
-    if not mobile.startswith("+"):
-        mobile = "+91" + mobile.lstrip("0")
-
-    # Get stored OTP
+    # Validate OTP
     cache_key  = _get_otp_cache_key(mobile)
     stored_otp = frappe.cache().get_value(cache_key)
 
     if not stored_otp:
-        return {"success": False, "error": "otp_expired", "message": "OTP expired. Request a new one."}
-
+        return {"success": False, "error": "otp_expired",  "message": "OTP expired. Request a new one."}
     if stored_otp != otp:
-        return {"success": False, "error": "otp_invalid", "message": "Invalid OTP. Please try again."}
+        return {"success": False, "error": "otp_invalid",  "message": "Invalid OTP. Please try again."}
 
     # Clear OTP after successful verify
     frappe.cache().delete_value(cache_key)
 
-    # Get exhibitor profile
-    exhibitor_name = frappe.db.get_value(
-        "Exhibitor Profile",
-        {"contact_number": mobile},
-        "name"
-    )
+    if user_type == "visitor":
+        return _login_visitor(mobile)
+    else:
+        return _login_exhibitor(mobile)
 
+
+def _login_exhibitor(mobile):
+    exhibitor_name = frappe.db.get_value(
+        "Exhibitor Profile", {"contact_number": mobile}, "name"
+    )
     if not exhibitor_name:
         return {"success": False, "error": "not_found", "message": "Exhibitor not found."}
 
-    exhibitor = frappe.get_doc("Exhibitor Profile", exhibitor_name)
-
-    # Get or create Frappe User for this exhibitor
+    exhibitor  = frappe.get_doc("Exhibitor Profile", exhibitor_name)
     user_email = exhibitor.email or f"exhibitor_{exhibitor_name.lower().replace(' ', '_')}@expo.local"
 
-    if not frappe.db.exists("User", user_email):
-        user = frappe.get_doc({
-            "doctype": "User",
-            "email": user_email,
-            "first_name": exhibitor.exhibitor_name or exhibitor.company_name,
-            "mobile_no": mobile,
-            "user_type": "Website User",
-            "roles": [{"role": "Expo Exhibitor"}],
-            "send_welcome_email": 0,
-        })
-        user.insert(ignore_permissions=True)
-        frappe.db.commit()
+    _get_or_create_frappe_user(
+        email=user_email,
+        full_name=exhibitor.exhibitor_name or exhibitor.company_name,
+        mobile=mobile,
+        role="Expo Exhibitor",
+    )
 
-        # Link user to exhibitor
-        frappe.db.set_value("Exhibitor Profile", exhibitor_name, "frappe_user", user_email)
-    else:
-        user = frappe.get_doc("User", user_email)
-
-    # Login the user (create session)
+    frappe.db.set_value("Exhibitor Profile", exhibitor_name, "frappe_user", user_email)
     frappe.local.login_manager.login_as(user_email)
+    frappe.db.commit()
 
     return {
-        "success": True,
-        "message": "Login successful",
+        "success":    True,
+        "user_type":  "exhibitor",
+        "message":    "Login successful",
         "exhibitor": {
-            "name": exhibitor.name,
+            "name":           exhibitor.name,
             "exhibitor_name": exhibitor.exhibitor_name,
-            "company_name": exhibitor.company_name,
-            "email": exhibitor.email,
-            "mobile": mobile,
-            "status": exhibitor.status,
-            "industry": exhibitor.industry,
-            "logo": exhibitor.company_logo,
-        }
+            "company_name":   exhibitor.company_name,
+            "email":          exhibitor.email,
+            "mobile":         mobile,
+            "status":         exhibitor.status,
+            "industry":       exhibitor.industry,
+            "logo":           exhibitor.company_logo,
+        },
     }
+
+
+def _login_visitor(mobile):
+    visitor_name = frappe.db.get_value(
+        "Visitor Profile", {"mobile": mobile}, "name"
+    )
+    if not visitor_name:
+        return {"success": False, "error": "not_found", "message": "Visitor profile not found."}
+
+    visitor    = frappe.get_doc("Visitor Profile", visitor_name)
+    user_email = visitor.email or f"visitor_{mobile.replace('+', '')}@expo.local"
+
+    _get_or_create_frappe_user(
+        email=user_email,
+        full_name=visitor.visitor_name,
+        mobile=mobile,
+        role="Visitor",
+    )
+
+    frappe.db.set_value("Visitor Profile", visitor_name, "frappe_user", user_email)
+    frappe.local.login_manager.login_as(user_email)
+    frappe.db.commit()
+
+    return {
+        "success":   True,
+        "user_type": "visitor",
+        "message":   "Login successful",
+        "visitor": {
+            "name":         visitor.name,
+            "visitor_name": visitor.visitor_name,
+            "company_name": visitor.company_name or "",
+            "email":        visitor.email or "",
+            "mobile":       mobile,
+            "status":       visitor.status,
+            "industry":     visitor.industry or "",
+        },
+    }
+
+
+def _get_or_create_frappe_user(email, full_name, mobile, role="Visitor"):
+    if frappe.db.exists("User", email):
+        return email
+    user = frappe.get_doc({
+        "doctype":            "User",
+        "email":              email,
+        "first_name":         full_name,
+        "mobile_no":          mobile,
+        "user_type":          "Website User",
+        "send_welcome_email": 0,
+    })
+    user.insert(ignore_permissions=True)
+    user.add_roles(role)
+    frappe.db.commit()
+    return email
 
 
 # ─────────────────────────────────────────────────────────────
 # API 3: Register new Exhibitor
-# POST /api/method/expo_management.expo_management.auth.register_exhibitor
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist(allow_guest=True)
 def register_exhibitor(
@@ -181,42 +234,35 @@ def register_exhibitor(
     address=None,
     product_categories=None,
     description=None,
+    contact_person=None,
 ):
-    """
-    Register new exhibitor — status = Pending Approval.
-    Admin must approve before they can login.
-    """
-    mobile = (mobile or "").strip()
-    if not mobile.startswith("+"):
-        mobile = "+91" + mobile.lstrip("0")
+    mobile = _normalize_mobile(mobile)
 
-    # Check duplicates
     if frappe.db.exists("Exhibitor Profile", {"contact_number": mobile}):
         return {"success": False, "error": "mobile_exists", "message": "This mobile number is already registered."}
-
     if frappe.db.exists("Exhibitor Profile", {"email": email}):
-        return {"success": False, "error": "email_exists", "message": "This email is already registered."}
+        return {"success": False, "error": "email_exists",  "message": "This email is already registered."}
 
-    # Create exhibitor with Pending Approval
     doc = frappe.get_doc({
-        "doctype": "Exhibitor Profile",
-        "exhibitor_name": exhibitor_name,
-        "company_name": company_name,
-        "contact_number": mobile,
-        "email": email,
-        "industry": industry,
-        "gst_number": gst_number,
-        "annual_turnover": annual_turnover,
-        "website": website,
-        "address": address,
-        "product_categories": product_categories,
-        "description": description,
-        "status": "Pending Approval",
+        "doctype":               "Exhibitor Profile",
+        "exhibitor_name":        exhibitor_name,
+        "company_name":          company_name,
+        "contact_person":        contact_person or exhibitor_name,
+        "contact_number":        mobile,
+        "email":                 email,
+        "industry":              industry,
+        "gst_number":            gst_number,
+        "annual_turnover":       annual_turnover,
+        "website":               website,
+        "communication_address": address,
+        "product_categories":    product_categories,
+        "description":           description,
+        "status":                "Pending Approval",
     })
     doc.insert(ignore_permissions=True)
     frappe.db.commit()
 
-    # Notify admin (optional — send email)
+    # Notify admin
     try:
         admin_email = frappe.db.get_single_value("System Settings", "email_footer_address") or "admin@expo.local"
         frappe.sendmail(
@@ -236,54 +282,122 @@ def register_exhibitor(
             now=True,
         )
     except Exception:
-        pass  # Email optional — don't block registration
+        pass
 
     return {
-        "success": True,
-        "message": "Registration submitted! You'll be notified once approved.",
+        "success":      True,
+        "message":      "Registration submitted! You'll be notified once approved.",
         "exhibitor_id": doc.name,
     }
 
 
 # ─────────────────────────────────────────────────────────────
-# API 4: Get current logged-in Exhibitor
-# GET /api/method/expo_management.expo_management.auth.get_current_exhibitor
+# API 4: Register new Visitor (auto-approved)
 # ─────────────────────────────────────────────────────────────
-@frappe.whitelist()
-def get_current_exhibitor():
-    """
-    Returns current logged-in exhibitor profile.
-    """
-    user = frappe.session.user
-    if user == "Guest":
-        frappe.throw(_("Not logged in"), frappe.AuthenticationError)
+@frappe.whitelist(allow_guest=True)
+def register_visitor(
+    visitor_name,
+    mobile,
+    email=None,
+    company_name=None,
+    industry=None,
+    designation=None,
+    city=None,
+    interests=None,
+    purpose_of_visit=None,
+):
+    mobile = _normalize_mobile(mobile)
 
-    exhibitor_name = frappe.db.get_value(
-        "Exhibitor Profile",
-        {"frappe_user": user},
-        "name"
-    )
+    if frappe.db.exists("Visitor Profile", {"mobile": mobile}):
+        return {"success": False, "error": "mobile_exists", "message": "This mobile number is already registered."}
 
-    if not exhibitor_name:
-        frappe.throw(_("Exhibitor profile not found"), frappe.DoesNotExistError)
-
-    exhibitor = frappe.get_doc("Exhibitor Profile", exhibitor_name)
+    doc = frappe.get_doc({
+        "doctype":          "Visitor Profile",
+        "visitor_name":     visitor_name,
+        "mobile":           mobile,
+        "email":            email or "",
+        "company_name":     company_name or "",
+        "industry":         industry or "",
+        "designation":      designation or "",
+        "city":             city or "",
+        "interests":        interests or "",
+        "purpose_of_visit": purpose_of_visit or "",
+        "status":           "Active",   # visitors auto-approved
+    })
+    doc.insert(ignore_permissions=True)
+    frappe.db.commit()
 
     return {
-        "name": exhibitor.name,
-        "exhibitor_name": exhibitor.exhibitor_name,
-        "company_name": exhibitor.company_name,
-        "email": exhibitor.email,
-        "mobile": exhibitor.contact_number,
-        "status": exhibitor.status,
-        "industry": exhibitor.industry,
-        "logo": exhibitor.company_logo,
+        "success":    True,
+        "message":    "Registration successful! You can now login.",
+        "visitor_id": doc.name,
     }
 
 
 # ─────────────────────────────────────────────────────────────
-# API 5: Logout
-# POST /api/method/expo_management.expo_management.auth.logout
+# API 5: Get current logged-in user (exhibitor or visitor)
+# ─────────────────────────────────────────────────────────────
+@frappe.whitelist(allow_guest=True)
+def get_current_user():
+    user = frappe.session.user
+    if not user or user == "Guest":
+        return {"logged_in": False}
+
+    # Check exhibitor first
+    ex_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
+    if ex_name:
+        ex = frappe.get_doc("Exhibitor Profile", ex_name)
+        if ex.status == "Active":
+            return {
+                "logged_in": True,
+                "user_type": "exhibitor",
+                "exhibitor": {
+                    "name":           ex.name,
+                    "exhibitor_name": ex.exhibitor_name,
+                    "company_name":   ex.company_name,
+                    "email":          ex.email,
+                    "mobile":         ex.contact_number,
+                    "status":         ex.status,
+                    "industry":       ex.industry,
+                    "logo":           ex.company_logo,
+                },
+            }
+        return {"logged_in": False, "error": "inactive"}
+
+    # Check visitor
+    v_name = frappe.db.get_value("Visitor Profile", {"frappe_user": user}, "name")
+    if v_name:
+        v = frappe.get_doc("Visitor Profile", v_name)
+        if v.status == "Active":
+            return {
+                "logged_in": True,
+                "user_type": "visitor",
+                "visitor": {
+                    "name":         v.name,
+                    "visitor_name": v.visitor_name,
+                    "company_name": v.company_name or "",
+                    "email":        v.email or "",
+                    "mobile":       v.mobile,
+                    "status":       v.status,
+                    "industry":     v.industry or "",
+                },
+            }
+        return {"logged_in": False, "error": "inactive"}
+
+    return {"logged_in": False}
+
+
+# Backward compat — old API still works
+@frappe.whitelist(allow_guest=True)
+def get_current_exhibitor():
+    result = get_current_user()
+    if result.get("logged_in") and result.get("user_type") == "exhibitor":
+        return {"logged_in": True, "exhibitor": result["exhibitor"]}
+    return {"logged_in": False}
+
+
+# ─────────────────────────────────────────────────────────────
+# API 6: Logout
 # ─────────────────────────────────────────────────────────────
 @frappe.whitelist()
 def logout():

@@ -20,44 +20,88 @@ async function apiCall(method, body = {}) {
 
 export function AuthProvider({ children }) {
   const [exhibitor, setExhibitor] = useState(null)
-  const [loading, setLoading]     = useState(true)  // stays true until session check done
+  const [visitor, setVisitor]     = useState(null)
+  const [userType, setUserType]   = useState(null)   // 'exhibitor' | 'visitor' | null
+  const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
-    // Check session on mount — loading stays true until this resolves
-    fetch('/api/method/expo_management.expo_management.auth.get_current_exhibitor', {
+    // Check session on mount — check both exhibitor and visitor
+    fetch('/api/method/expo_management.expo_management.auth.get_current_user', {
       credentials: 'include',
     })
       .then(r => r.json())
       .then(d => {
-        if (d.message?.logged_in && d.message?.exhibitor) {
-          setExhibitor(d.message.exhibitor)
-        } else {
-          setExhibitor(null)
+        const msg = d.message
+        if (msg?.logged_in) {
+          if (msg.user_type === 'exhibitor' && msg.exhibitor) {
+            setExhibitor(msg.exhibitor)
+            setUserType('exhibitor')
+          } else if (msg.user_type === 'visitor' && msg.visitor) {
+            setVisitor(msg.visitor)
+            setUserType('visitor')
+          }
         }
       })
-      .catch(() => setExhibitor(null))
-      .finally(() => setLoading(false))  // only NOW is loading false
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
-  const sendOtp  = (mobile)       => apiCall('send_otp',           { mobile })
-  const verifyOtp = async (mobile, otp) => {
-    const res = await apiCall('verify_otp', { mobile, otp })
-    if (res?.success && res?.exhibitor) setExhibitor(res.exhibitor)
+  // sendOtp — pass user_type to backend
+  const sendOtp = (mobile, type = 'exhibitor') =>
+    apiCall('send_otp', { mobile, user_type: type })
+
+  // verifyOtp — backend returns either exhibitor or visitor profile
+  const verifyOtp = async (mobile, otp, type = 'exhibitor') => {
+    const res = await apiCall('verify_otp', { mobile, otp, user_type: type })
+    if (res?.success) {
+      if (type === 'visitor' && res.visitor) {
+        setVisitor(res.visitor)
+        setExhibitor(null)
+        setUserType('visitor')
+      } else if (type === 'exhibitor' && res.exhibitor) {
+        setExhibitor(res.exhibitor)
+        setVisitor(null)
+        setUserType('exhibitor')
+      }
+    }
     return res
   }
-  const register = (data) => apiCall('register_exhibitor', data)
+
+  const register        = (data) => apiCall('register_exhibitor', data)
+  const registerVisitor = (data) => apiCall('register_visitor',   data)
+
   const logout = async () => {
     try { await apiCall('logout') } catch (_) {}
-    finally { setExhibitor(null); window.location.href = '/expo' }
+    finally {
+      setExhibitor(null)
+      setVisitor(null)
+      setUserType(null)
+      window.location.href = '/expo'
+    }
   }
 
-  // ── Block render until auth is resolved ──────────────────
-  // This prevents ANY component from rendering with wrong auth state.
-  // EventDetail, BookingPage etc will never see exhibitor=null wrongly.
+  // Block render until auth resolved
   if (loading) return null
 
   return (
-    <AuthContext.Provider value={{ exhibitor, loading, sendOtp, verifyOtp, register, logout }}>
+    <AuthContext.Provider value={{
+      // profiles
+      exhibitor,
+      visitor,
+      // active user type flag
+      userType,
+      isExhibitor: userType === 'exhibitor',
+      isVisitor:   userType === 'visitor',
+      // convenience: current logged-in profile (whoever is active)
+      currentUser: userType === 'exhibitor' ? exhibitor : userType === 'visitor' ? visitor : null,
+      // actions
+      loading,
+      sendOtp,
+      verifyOtp,
+      register,
+      registerVisitor,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   )
