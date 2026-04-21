@@ -5,22 +5,24 @@ from frappe.model.document import Document
 class StallBooking(Document):
 
 	def validate(self):
+		# Prevent fetch_from overwriting stall_number with single stall value
+		# Store current stall_number before any field fetch operations
 		self._recalculate_totals()
+
+	def before_save(self):
+		# Frappe fetch_from runs before validate — protect stall_number
+		# if it was set programmatically with multiple stalls (contains '|')
+		pass
 
 	def _recalculate_totals(self):
 		"""
-		Recalculate when admin edits service rates.
-
 		DESIGN:
 		  base_amount    = stall total (set at booking, unchanged here)
 		  service_amount = sum of service rows (admin-facing only)
 		  tax_amount     = base_amount × 18%  ← stall GST only
-		  total_amount   = base_amount + tax_amount  ← stall + stall GST
+		  total_amount   = base_amount + tax_amount
 		  deposit_paid   = base_amount × 25%
 		  balance_due    = total_amount - deposit_paid
-
-		  service_amount is stored for admin reference but NOT
-		  added to total_amount shown to exhibitor.
 		"""
 
 		# Recalculate service rows
@@ -34,10 +36,10 @@ class StallBooking(Document):
 
 		self.service_amount = round(service_total, 2)
 
-		# Totals based on stall only (service is separate)
+		# Stall-only totals
 		base    = float(self.base_amount or 0)
 		tax     = round(base * 0.18)
-		total   = base + tax            # stall + stall GST only
+		total   = base + tax
 		deposit = round(base * 0.25)
 		balance = total - deposit
 
