@@ -60,7 +60,8 @@
    "fieldtype": "Data",
    "label": "Stall Number",
    "fetch_from": "stall.stall_number",
-   "read_only": 1
+   "read_only": 1,
+   "length": 500
   },
   {
    "fieldname": "booking_date",
