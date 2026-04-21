@@ -437,3 +437,44 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 		stall["deposit"] = round(float(stall.get("base_price") or 0) * 0.25, 2)
 
 	return stalls
+
+# ─────────────────────────────────────────────────────────────
+#  API 6 — Get Contact Info (admin phone/email for manual payment)
+# ─────────────────────────────────────────────────────────────
+
+@frappe.whitelist(allow_guest=True)
+def get_contact_info():
+	"""
+	Returns admin contact details for manual deposit payment.
+	Reads from Expo Management Settings or falls back to Administrator user.
+	"""
+	# Try Expo Management Settings first (if doctype exists)
+	try:
+		if frappe.db.exists("DocType", "Expo Settings"):
+			settings = frappe.get_single("Expo Settings")
+			return {
+				"name":    settings.get("contact_name")  or "Expo Management Team",
+				"phone":   settings.get("contact_phone") or "",
+				"email":   settings.get("contact_email") or "",
+				"whatsapp":settings.get("contact_whatsapp") or "",
+				"upi":     settings.get("upi_id") or "",
+			}
+	except Exception:
+		pass
+
+	# Fallback: Administrator user details
+	try:
+		admin = frappe.get_doc("User", "Administrator")
+		return {
+			"name":     admin.full_name or "Administrator",
+			"phone":    admin.mobile_no or "",
+			"email":    admin.email or "admin@example.com",
+			"whatsapp": admin.mobile_no or "",
+			"upi":      "",
+		}
+	except Exception:
+		return {
+			"name":  "Expo Management Team",
+			"phone": "",
+			"email": "",
+		}
