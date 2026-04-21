@@ -25,25 +25,45 @@ export function AuthProvider({ children }) {
   const [loading, setLoading]     = useState(true)
 
   useEffect(() => {
-    // Check session on mount — check both exhibitor and visitor
-    fetch('/api/method/expo_management.expo_management.auth.get_current_user', {
-      credentials: 'include',
-    })
-      .then(r => r.json())
-      .then(d => {
-        const msg = d.message
+    // Check session on mount — try get_current_user first, fallback to get_current_exhibitor
+    const checkSession = async () => {
+      try {
+        // First try new unified endpoint
+        const r1 = await fetch('/api/method/expo_management.expo_management.auth.get_current_user', {
+          credentials: 'include',
+        })
+        const d1 = await r1.json()
+        const msg = d1.message
+
         if (msg?.logged_in) {
           if (msg.user_type === 'exhibitor' && msg.exhibitor) {
             setExhibitor(msg.exhibitor)
             setUserType('exhibitor')
+            return
           } else if (msg.user_type === 'visitor' && msg.visitor) {
             setVisitor(msg.visitor)
             setUserType('visitor')
+            return
           }
         }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+
+        // Fallback: try old exhibitor endpoint (backward compat)
+        const r2 = await fetch('/api/method/expo_management.expo_management.auth.get_current_exhibitor', {
+          credentials: 'include',
+        })
+        const d2 = await r2.json()
+        if (d2.message?.logged_in && d2.message?.exhibitor) {
+          setExhibitor(d2.message.exhibitor)
+          setUserType('exhibitor')
+        }
+      } catch (_) {
+        // Session check failed — user stays logged out
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    checkSession()
   }, [])
 
   // sendOtp — pass user_type to backend

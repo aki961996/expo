@@ -17,8 +17,15 @@ const MOCK = [
 
 export default function EventList() {
   const navigate = useNavigate()
-  const { exhibitor, logout } = useAuth()
+  const { exhibitor, visitor, isVisitor, logout } = useAuth()
   const { isDark, toggle: toggleTheme } = useTheme()
+
+  // Unified current user — whoever is logged in
+  const currentUser = exhibitor || visitor
+  const displayName = exhibitor?.exhibitor_name || exhibitor?.company_name
+                   || visitor?.visitor_name || 'User'
+  const displaySub  = exhibitor?.company_name || (isVisitor ? '🎟️ Visitor' : '')
+  const avatarColor = isVisitor ? '#60A5FA' : '#F59E0B'
 
   const [events, setEvents]               = useState([])
   const [total, setTotal]                 = useState(null)
@@ -31,7 +38,6 @@ export default function EventList() {
   const [showDropdown, setShowDropdown]   = useState(false)
   const [loggingOut, setLoggingOut]       = useState(false)
 
-  // ── Theme color object ────────────────────────────────────
   const c = {
     bg:        isDark ? '#080808' : '#F8F7F4',
     card:      isDark ? '#0F0F0F' : '#FFFFFF',
@@ -114,7 +120,6 @@ export default function EventList() {
       {/* ── NAVBAR ── */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: c.navBg, backdropFilter: 'blur(20px)', borderBottom: `1px solid ${c.border}`, transition: 'background 0.3s, border-color 0.3s' }}>
 
-        {/* Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ width: 28, height: 28, borderRadius: 7, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -127,9 +132,7 @@ export default function EventList() {
           <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: c.text }}>ExpoMgmt</span>
         </div>
 
-        {/* Right section */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-
           {/* Theme toggle */}
           <button onClick={toggleTheme} title={isDark ? 'Light Mode' : 'Dark Mode'}
             style={{ width: 36, height: 36, borderRadius: 9, border: `1px solid ${c.border}`, background: c.btnBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0 }}
@@ -140,7 +143,7 @@ export default function EventList() {
                 <circle cx="12" cy="12" r="5"/>
                 <line x1="12" y1="1"  x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/>
                 <line x1="4.22" y1="4.22"  x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
-                <line x1="1"    y1="12"    x2="3"    y2="12"/>  <line x1="21"    y1="12"    x2="23"    y2="12"/>
+                <line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/>
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
               </svg>
             ) : (
@@ -150,19 +153,19 @@ export default function EventList() {
             )}
           </button>
 
-          {/* Auth */}
-          {exhibitor ? (
+          {/* Auth — exhibitor or visitor */}
+          {currentUser ? (
             <div style={{ position: 'relative' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => setShowDropdown(d => !d)}
                 style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 12px 6px 6px', borderRadius: 10, border: `1px solid ${c.border}`, background: c.btnBg, cursor: 'pointer', transition: 'border-color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.borderColor = c.borderHov}
                 onMouseLeave={e => e.currentTarget.style.borderColor = c.border}>
-                <div style={{ width: 28, height: 28, borderRadius: '50%', background: '#F59E0B20', border: '1px solid #F59E0B50', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.75rem', color: '#F59E0B', flexShrink: 0 }}>
-                  {exhibitor.exhibitor_name?.charAt(0)?.toUpperCase() || 'E'}
+                <div style={{ width: 28, height: 28, borderRadius: '50%', background: avatarColor + '20', border: `1px solid ${avatarColor}50`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.75rem', color: avatarColor, flexShrink: 0 }}>
+                  {displayName?.charAt(0)?.toUpperCase() || 'U'}
                 </div>
                 <div style={{ textAlign: 'left' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text, lineHeight: 1.2 }}>{exhibitor.exhibitor_name || exhibitor.company_name}</div>
-                  <div style={{ fontSize: '0.65rem', color: c.textDim, lineHeight: 1.2 }}>{exhibitor.company_name}</div>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: c.text, lineHeight: 1.2 }}>{displayName}</div>
+                  <div style={{ fontSize: '0.65rem', color: c.textDim, lineHeight: 1.2 }}>{displaySub}</div>
                 </div>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={c.textDim} strokeWidth="2.5" strokeLinecap="round"
                   style={{ transition: 'transform 0.2s', transform: showDropdown ? 'rotate(180deg)' : 'rotate(0)' }}>
@@ -173,11 +176,20 @@ export default function EventList() {
               {showDropdown && (
                 <div style={{ position: 'absolute', top: '110%', right: 0, minWidth: 180, background: c.card, border: `1px solid ${c.border}`, borderRadius: 10, overflow: 'hidden', boxShadow: c.shadow, animation: 'slideDown 0.15s ease both', zIndex: 200 }}>
                   <div style={{ padding: '12px 14px', borderBottom: `1px solid ${c.border}` }}>
-                    <div style={{ fontSize: '0.75rem', color: c.textMuted, fontWeight: 500 }}>{exhibitor.mobile || exhibitor.email}</div>
+                    <div style={{ fontSize: '0.75rem', color: c.textMuted, fontWeight: 500 }}>
+                      {exhibitor?.mobile || exhibitor?.email || visitor?.mobile || ''}
+                    </div>
                   </div>
-                  <DropItem icon="🏠" label="My Dashboard" c={c} onClick={() => { navigate('/dashboard');    setShowDropdown(false) }} />
-                  <DropItem icon="📋" label="My Bookings"  c={c} onClick={() => { navigate('/my-bookings'); setShowDropdown(false) }} />
-                  <DropItem icon="👤" label="My Profile"   c={c} onClick={() => { navigate('/profile');     setShowDropdown(false) }} />
+                  {!isVisitor && (
+                    <>
+                      <DropItem icon="🏠" label="My Dashboard" c={c} onClick={() => { navigate('/dashboard');    setShowDropdown(false) }} />
+                      <DropItem icon="📋" label="My Bookings"  c={c} onClick={() => { navigate('/my-bookings'); setShowDropdown(false) }} />
+                      <DropItem icon="👤" label="My Profile"   c={c} onClick={() => { navigate('/profile');     setShowDropdown(false) }} />
+                    </>
+                  )}
+                  {isVisitor && (
+                    <DropItem icon="👤" label="My Profile" c={c} onClick={() => { navigate('/profile'); setShowDropdown(false) }} />
+                  )}
                   <div style={{ height: 1, background: c.border }} />
                   <DropItem icon="🚪" label="Logout" c={c} color="#F87171" onClick={handleLogout} />
                 </div>
@@ -188,7 +200,7 @@ export default function EventList() {
               style={{ padding: '7px 18px', borderRadius: 8, background: '#F59E0B', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: '0.82rem', fontWeight: 600, color: '#000', cursor: 'pointer', transition: 'opacity 0.2s' }}
               onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
               onMouseLeave={e => e.currentTarget.style.opacity = '1'}>
-              Exhibitor Login
+              Login
             </button>
           )}
         </div>
@@ -262,8 +274,6 @@ export default function EventList() {
     </div>
   )
 }
-
-// ── Sub-components ────────────────────────────────────────────
 
 function DropItem({ icon, label, onClick, color, c }) {
   const [hov, setHov] = useState(false)
