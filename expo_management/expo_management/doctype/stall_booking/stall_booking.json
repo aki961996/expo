@@ -10,7 +10,7 @@
   "col_break_1",
   "stall", "stall_number", "booking_date",
   "section_payment",
-  "payment_status", "base_amount", "tax_amount",
+  "payment_status", "base_amount", "service_amount", "tax_amount",
   "col_break_2",
   "total_amount", "deposit_paid", "balance_due",
   "section_services",
@@ -57,11 +57,8 @@
   },
   {
    "fieldname": "stall_number",
-   "fieldtype": "Data",
-   "label": "Stall Number",
-   "fetch_from": "stall.stall_number",
-   "read_only": 1,
-   "length": 500
+   "fieldtype": "Small Text",
+   "label": "Stall Number(s)"
   },
   {
    "fieldname": "booking_date",
@@ -89,6 +86,11 @@
    "fieldname": "base_amount",
    "fieldtype": "Currency",
    "label": "Base Amount"
+  },
+  {
+   "fieldname": "service_amount",
+   "fieldtype": "Currency",
+   "label": "Service Amount"
   },
   {
    "fieldname": "tax_amount",
@@ -146,7 +148,7 @@
   }
  ],
  "links": [],
- "modified": "2026-03-10 00:00:00.000000",
+ "modified": "2026-04-21 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Expo Management",
  "name": "Stall Booking",
