@@ -387,7 +387,7 @@ def get_current_user():
     return {"logged_in": False}
 
 
-# Backward compat — old API still works
+# Backward compat — old API still works newn
 @frappe.whitelist(allow_guest=True)
 def get_current_exhibitor():
     result = get_current_user()
