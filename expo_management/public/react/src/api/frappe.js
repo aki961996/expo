@@ -97,3 +97,25 @@ export async function getMyBookings(expo_event = null) {
     expo_event ? { expo_event } : {}
   )
 }
+
+// ── Add this function to your existing api/frappe.js file ──
+
+export async function getContactInfo() {
+  const res = await frappeGet(
+    'expo_management.expo_management.doctype.expo_event.expo_event.get_contact_info'
+  )
+  return res
+}
+
+// ─────────────────────────────────────────────────────────────
+// NOTE: frappeGet is whatever your existing fetch wrapper is.
+// If you use direct fetch, use this instead:
+//
+// export async function getContactInfo() {
+//   const res = await fetch(
+//     `${BASE_URL}/api/method/expo_management.expo_management.doctype.expo_event.expo_event.get_contact_info`,
+//     { credentials: 'include' }
+//   )
+//   const data = await res.json()
+//   return data.message
+// }

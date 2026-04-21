@@ -445,36 +445,37 @@ def get_available_stalls(expo_event, expo_hall, dimension_label):
 @frappe.whitelist(allow_guest=True)
 def get_contact_info():
 	"""
-	Returns admin contact details for manual deposit payment.
-	Reads from Expo Management Settings or falls back to Administrator user.
+	Returns contact & payment details from Expo Settings single doctype.
+	Fallback to Administrator user if Expo Settings not configured.
 	"""
-	# Try Expo Management Settings first (if doctype exists)
 	try:
-		if frappe.db.exists("DocType", "Expo Settings"):
-			settings = frappe.get_single("Expo Settings")
+		settings = frappe.get_single("Expo Settings")
+		return {
+			"name":                settings.contact_name        or "Expo Management Team",
+			"phone":               settings.contact_phone       or "",
+			"email":               settings.contact_email       or "",
+			"whatsapp":            settings.contact_whatsapp    or "",
+			"upi_id":              settings.upi_id              or "",
+			"upi_qr":              settings.upi_qr              or "",
+			"bank_name":           settings.bank_name           or "",
+			"bank_account_number": settings.bank_account_number or "",
+			"bank_ifsc":           settings.bank_ifsc           or "",
+			"bank_account_name":   settings.bank_account_name   or "",
+			"deposit_percent":     float(settings.deposit_percent or 25),
+			"gst_percent":         float(settings.gst_percent    or 18),
+		}
+	except Exception:
+		# Fallback to Administrator user
+		try:
+			admin = frappe.get_doc("User", "Administrator")
 			return {
-				"name":    settings.get("contact_name")  or "Expo Management Team",
-				"phone":   settings.get("contact_phone") or "",
-				"email":   settings.get("contact_email") or "",
-				"whatsapp":settings.get("contact_whatsapp") or "",
-				"upi":     settings.get("upi_id") or "",
+				"name":     admin.full_name or "Administrator",
+				"phone":    admin.mobile_no or "",
+				"email":    admin.email     or "",
+				"whatsapp": admin.mobile_no or "",
+				"upi_id":   "",
+				"deposit_percent": 25,
+				"gst_percent":     18,
 			}
-	except Exception:
-		pass
-
-	# Fallback: Administrator user details
-	try:
-		admin = frappe.get_doc("User", "Administrator")
-		return {
-			"name":     admin.full_name or "Administrator",
-			"phone":    admin.mobile_no or "",
-			"email":    admin.email or "admin@example.com",
-			"whatsapp": admin.mobile_no or "",
-			"upi":      "",
-		}
-	except Exception:
-		return {
-			"name":  "Expo Management Team",
-			"phone": "",
-			"email": "",
-		}
+		except Exception:
+			return {"name": "Expo Management Team", "phone": "", "email": "", "deposit_percent": 25, "gst_percent": 18}

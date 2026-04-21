@@ -1,0 +1,132 @@
+{
+ "actions": [],
+ "creation": "2026-04-21 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "is_single": 1,
+ "issingle": 1,
+ "field_order": [
+  "section_contact",
+  "contact_name", "contact_phone",
+  "col_break_1",
+  "contact_email", "contact_whatsapp",
+  "section_payment",
+  "upi_id", "upi_qr",
+  "col_break_2",
+  "bank_name", "bank_account_number",
+  "section_bank2",
+  "bank_ifsc", "bank_account_name",
+  "section_general",
+  "deposit_percent", "gst_percent"
+ ],
+ "fields": [
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact Information"
+  },
+  {
+   "fieldname": "contact_name",
+   "fieldtype": "Data",
+   "label": "Contact Person Name",
+   "default": "Expo Management Team"
+  },
+  {
+   "fieldname": "contact_phone",
+   "fieldtype": "Data",
+   "label": "Phone Number",
+   "description": "Shown to exhibitors for deposit payment"
+  },
+  {
+   "fieldname": "col_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contact_email",
+   "fieldtype": "Data",
+   "label": "Contact Email",
+   "options": "Email"
+  },
+  {
+   "fieldname": "contact_whatsapp",
+   "fieldtype": "Data",
+   "label": "WhatsApp Number",
+   "description": "With country code e.g. +919876543210"
+  },
+  {
+   "fieldname": "section_payment",
+   "fieldtype": "Section Break",
+   "label": "Payment Details"
+  },
+  {
+   "fieldname": "upi_id",
+   "fieldtype": "Data",
+   "label": "UPI ID",
+   "description": "e.g. expomgmt@upi"
+  },
+  {
+   "fieldname": "upi_qr",
+   "fieldtype": "Attach Image",
+   "label": "UPI QR Code"
+  },
+  {
+   "fieldname": "col_break_2",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "bank_name",
+   "fieldtype": "Data",
+   "label": "Bank Name"
+  },
+  {
+   "fieldname": "bank_account_number",
+   "fieldtype": "Data",
+   "label": "Account Number"
+  },
+  {
+   "fieldname": "section_bank2",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "bank_ifsc",
+   "fieldtype": "Data",
+   "label": "IFSC Code"
+  },
+  {
+   "fieldname": "bank_account_name",
+   "fieldtype": "Data",
+   "label": "Account Holder Name"
+  },
+  {
+   "fieldname": "section_general",
+   "fieldtype": "Section Break",
+   "label": "General Settings"
+  },
+  {
+   "fieldname": "deposit_percent",
+   "fieldtype": "Percent",
+   "label": "Deposit Percentage",
+   "default": "25",
+   "description": "% of stall total required as deposit"
+  },
+  {
+   "fieldname": "gst_percent",
+   "fieldtype": "Percent",
+   "label": "GST Percentage",
+   "default": "18"
+  }
+ ],
+ "links": [],
+ "modified": "2026-04-21 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Expo Management",
+ "name": "Expo Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {"role": "Expo Admin",    "read": 1, "write": 1},
+  {"role": "System Manager","read": 1, "write": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

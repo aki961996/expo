@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useThemeStyles } from '../hooks/useThemeStyles'
-import { getEventDetail, createBooking } from '../api/frappe'
+import { getEventDetail, createBooking, getContactInfo } from '../api/frappe'
 
 const CAT_ACCENT = {
   'Trade Fair':     '#F59E0B',
@@ -61,6 +61,7 @@ export default function BookingPage() {
   const [submitting, setSubmitting]     = useState(false)
   const [bookingDone, setBookingDone]   = useState(null)
   const [error, setError]               = useState(null)
+  const [contactInfo, setContactInfo]   = useState(null)
 
   useEffect(() => {
     if (!exhibitor) {
@@ -139,6 +140,8 @@ export default function BookingPage() {
       }
       const result = await createBooking(payload)
       setBookingDone(result)
+      // Fetch contact info for payment instructions
+      getContactInfo().then(setContactInfo).catch(() => {})
     } catch (e) {
       setError(e.message || 'Booking failed. Please try again.')
     } finally {
@@ -198,21 +201,55 @@ export default function BookingPage() {
             </div>
           </div>
 
-          {/* Payment action card */}
+          {/* Payment action card — dynamic from Expo Settings */}
           <div style={{ background: accent + '08', border: `1.5px solid ${accent}40`, borderRadius: 14, padding: 20, marginBottom: 14, textAlign: 'left' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: t.textPrimary, marginBottom: 2 }}>📞 Our team will contact you</div>
-                <div style={{ fontSize: '0.7rem', color: t.textMuted }}>Deposit payment collected manually</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgSurface, borderRadius: 10, padding: '12px 16px', marginBottom: 8 }}>
+            {/* Deposit amounts */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgSurface, borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
               <span style={{ fontSize: '0.8rem', color: t.textSecondary, fontWeight: 600 }}>Deposit to pay now</span>
               <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.2rem' }}>₹{depositAmt.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 4px', fontSize: '0.75rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 4px', fontSize: '0.75rem', marginBottom: 14 }}>
               <span style={{ color: t.textFaint }}>Balance due before event</span>
               <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{balanceDue.toLocaleString()}</span>
+            </div>
+
+            {/* Contact info */}
+            <div style={{ fontSize: '0.62rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 8 }}>CONTACT FOR PAYMENT</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {contactInfo?.phone && (
+                <a href={`tel:${contactInfo.phone}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, textDecoration: 'none', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>📞</span>
+                  <span>{contactInfo.phone}</span>
+                  {contactInfo.name && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: t.textFaint }}>{contactInfo.name}</span>}
+                </a>
+              )}
+              {contactInfo?.whatsapp && (
+                <a href={`https://wa.me/${contactInfo.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: '#25D36615', border: '1px solid #25D36640', textDecoration: 'none', color: '#25D366', fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>💬</span>
+                  <span>WhatsApp us</span>
+                </a>
+              )}
+              {contactInfo?.email && (
+                <a href={`mailto:${contactInfo.email}?subject=Deposit Payment - ${bookingDone?.booking_id}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, textDecoration: 'none', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>✉️</span>
+                  <span>{contactInfo.email}</span>
+                </a>
+              )}
+              {contactInfo?.upi_id && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: '#7C3AED15', border: '1px solid #7C3AED40', fontSize: '0.82rem' }}>
+                  <span style={{ fontSize: '1rem' }}>💳</span>
+                  <span style={{ color: '#7C3AED', fontWeight: 600 }}>UPI:</span>
+                  <span style={{ color: t.textSecondary, fontWeight: 700 }}>{contactInfo.upi_id}</span>
+                </div>
+              )}
+              {!contactInfo?.phone && !contactInfo?.email && (
+                <div style={{ padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, fontSize: '0.8rem', color: t.textMuted }}>
+                  📞 Our team will contact you shortly
+                </div>
+              )}
             </div>
           </div>
 
@@ -438,7 +475,7 @@ export default function BookingPage() {
 
                 <button onClick={handleBooking} disabled={submitting}
                   style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? t.bgHover : `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.05rem', color: submitting ? t.textFaint : '#000', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
-                  {submitting ? <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</> : `Confirm & Express Interest ₹${depositAmt.toLocaleString()}`}
+                  {submitting ? <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</> : `Confirm & Pay Deposit ₹${depositAmt.toLocaleString()}`}
                 </button>
               </div>
             )}
