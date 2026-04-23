@@ -413,11 +413,11 @@ def get_my_bookings(expo_event=None):
 	exhibitor  = _get_exhibitor(user_email)
 	if not exhibitor:
 		return []
- 
+
 	filters = {"exhibitor": exhibitor["name"]}
 	if expo_event:
 		filters["expo_event"] = expo_event
- 
+
 	bookings = frappe.get_all(
 		"Stall Booking",
 		filters=filters,
@@ -426,28 +426,51 @@ def get_my_bookings(expo_event=None):
 			"stall", "stall_number", "booking_date",
 			"payment_status", "base_amount", "tax_amount",
 			"total_amount", "deposit_paid", "balance_due",
+			"service_amount",   # ← total service amount from parent doc
 		],
 		order_by="creation desc",
 	)
- 
+
 	for booking in bookings:
+		# Only fetch columns that actually exist in Booking Service Item
 		raw = frappe.get_all(
 			"Booking Service Item",
 			filters={"parent": booking["name"]},
-			fields=["service", "service_name", "qty", "rate", "amount", "tax_percent", "charge_type"],
+			fields=["service", "service_name", "qty", "rate", "amount"],
 		)
-		booking["services"] = [
-			{
-				"service":      s["service"],
-				"service_name": s["service_name"],
-				"qty":          s["qty"] or 1,
-				"amount":       s["amount"] or s["rate"] or 0,
-				"tax_percent":  s["tax_percent"] or 18,
-				"charge_type":  s["charge_type"] or "",
-			}
-			for s in raw
-		] if raw else []
- 
+
+		services = []
+		for s in (raw or []):
+			svc_amount = s.get("amount") or s.get("rate") or 0
+
+			# Get tax_percent & charge_type from Expo Service master
+			tax_pct = 18
+			charge  = ""
+			if s.get("service"):
+				try:
+					svc_meta = frappe.db.get_value(
+						"Expo Service",
+						s["service"],
+						["tax_percent", "charge_type"],
+						as_dict=True,
+					)
+					if svc_meta:
+						tax_pct = svc_meta.get("tax_percent") or 18
+						charge  = svc_meta.get("charge_type") or ""
+				except Exception:
+					pass
+
+			services.append({
+				"service":      s.get("service", ""),
+				"service_name": s.get("service_name", ""),
+				"qty":          s.get("qty") or 1,
+				"amount":       svc_amount,
+				"tax_percent":  tax_pct,
+				"charge_type":  charge,
+			})
+
+		booking["services"] = services
+
 	return bookings
 
 # ─────────────────────────────────────────────────────────────
