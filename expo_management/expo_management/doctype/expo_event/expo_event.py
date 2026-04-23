@@ -522,5 +522,5 @@ def get_event_status_list():
 	statuses = status_field.options.split("\n")
 
 	return {
-		"statuses": ["All"] + statuses
+		"statuses":  statuses
 	}
