@@ -152,14 +152,20 @@ def _login_exhibitor(mobile):
         "user_type":  "exhibitor",
         "message":    "Login successful",
         "exhibitor": {
-            "name":           exhibitor.name,
-            "exhibitor_name": exhibitor.exhibitor_name,
-            "company_name":   exhibitor.company_name,
-            "email":          exhibitor.email,
-            "mobile":         mobile,
-            "status":         exhibitor.status,
-            "industry":       exhibitor.industry,
-            "logo":           exhibitor.company_logo,
+            "name":               exhibitor.name,
+            "exhibitor_name":     exhibitor.exhibitor_name,
+            "company_name":       exhibitor.company_name,
+            "email":              exhibitor.email,
+            "mobile":             mobile,
+            "status":             exhibitor.status,
+            "industry":           exhibitor.industry,
+            "logo":               exhibitor.company_logo,
+            "contact_person":     exhibitor.contact_person     or "",
+            "gst_number":         exhibitor.gst_number         or "",
+            "annual_turnover":    exhibitor.annual_turnover     or "",
+            "website":            exhibitor.website             or "",
+            "product_categories": exhibitor.product_categories  or "",
+            "description":        exhibitor.description         or "",
         },
     }
 
@@ -352,14 +358,20 @@ def get_current_user():
                 "logged_in": True,
                 "user_type": "exhibitor",
                 "exhibitor": {
-                    "name":           ex.name,
-                    "exhibitor_name": ex.exhibitor_name,
-                    "company_name":   ex.company_name,
-                    "email":          ex.email,
-                    "mobile":         ex.contact_number,
-                    "status":         ex.status,
-                    "industry":       ex.industry,
-                    "logo":           ex.company_logo,
+                    "name":               ex.name,
+                    "exhibitor_name":     ex.exhibitor_name,
+                    "company_name":       ex.company_name,
+                    "email":              ex.email,
+                    "mobile":             ex.contact_number,
+                    "status":             ex.status,
+                    "industry":           ex.industry,
+                    "logo":               ex.company_logo,
+                    "contact_person":     ex.contact_person     or "",
+                    "gst_number":         ex.gst_number         or "",
+                    "annual_turnover":    ex.annual_turnover     or "",
+                    "website":            ex.website             or "",
+                    "product_categories": ex.product_categories  or "",
+                    "description":        ex.description         or "",
                 },
             }
         return {"logged_in": False, "error": "inactive"}
@@ -387,7 +399,7 @@ def get_current_user():
     return {"logged_in": False}
 
 
-# Backward compat — old API still works newn
+# Backward compat — old API still works
 @frappe.whitelist(allow_guest=True)
 def get_current_exhibitor():
     result = get_current_user()
