@@ -406,6 +406,7 @@ def create_booking(
 
 # 	return bookings
 
+
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
 	user_email = frappe.session.user
@@ -448,7 +449,6 @@ def get_my_bookings(expo_event=None):
 		] if raw else []
  
 	return bookings
-
 
 # ─────────────────────────────────────────────────────────────
 #  API 5 — Get Available Stalls
