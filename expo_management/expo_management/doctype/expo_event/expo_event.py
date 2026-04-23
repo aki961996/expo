@@ -524,10 +524,12 @@ def get_event_status_list():
 	return {
 		"statuses":  statuses
 	}
-# API 8 — Get Status stall booking List
+
+
+# new api status for stall booking
 
 @frappe.whitelist(allow_guest=True)
-def get_event_status_list():
+def get_stall_booking_status_list():
 	meta = frappe.get_meta("Stall Booking")
 
 	status_field = next(
@@ -541,5 +543,7 @@ def get_event_status_list():
 	statuses = status_field.options.split("\n")
 
 	return {
-		"statuses":  statuses
+		"statuses": statuses
 	}
+
+
