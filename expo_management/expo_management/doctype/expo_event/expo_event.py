@@ -368,17 +368,55 @@ def create_booking(
 #  API 4 — Get My Bookings
 # ─────────────────────────────────────────────────────────────
 
+# @frappe.whitelist()
+# def get_my_bookings(expo_event=None):
+# 	user_email = frappe.session.user
+# 	exhibitor  = _get_exhibitor(user_email)
+# 	if not exhibitor:
+# 		return []
+
+# 	filters = {"exhibitor": exhibitor["name"]}
+# 	if expo_event:
+# 		filters["expo_event"] = expo_event
+
+# 	bookings = frappe.get_all(
+# 		"Stall Booking",
+# 		filters=filters,
+# 		fields=[
+# 			"name", "expo_event", "exhibitor_name",
+# 			"stall", "stall_number", "booking_date",
+# 			"payment_status", "base_amount", "tax_amount",
+# 			"total_amount", "deposit_paid", "balance_due",
+# 			# service_amount excluded — not shown to exhibitor
+# 		],
+# 		order_by="creation desc",
+# 	)
+
+# 	for booking in bookings:
+# 		raw = frappe.get_all(
+# 			"Booking Service Item",
+# 			filters={"parent": booking["name"]},
+# 			fields=["service", "service_name", "qty"],
+# 			# rate/amount NOT fetched
+# 		)
+# 		booking["services"] = [
+# 			{"service": s["service"], "service_name": s["service_name"], "qty": s["qty"]}
+# 			for s in raw
+# 		] if raw else []
+
+# 	return bookings
+
 @frappe.whitelist()
 def get_my_bookings(expo_event=None):
 	user_email = frappe.session.user
 	exhibitor  = _get_exhibitor(user_email)
 	if not exhibitor:
 		return []
-
+ 
 	filters = {"exhibitor": exhibitor["name"]}
 	if expo_event:
 		filters["expo_event"] = expo_event
-
+ 
 	bookings = frappe.get_all(
 		"Stall Booking",
 		filters=filters,
@@ -387,23 +425,28 @@ def get_my_bookings(expo_event=None):
 			"stall", "stall_number", "booking_date",
 			"payment_status", "base_amount", "tax_amount",
 			"total_amount", "deposit_paid", "balance_due",
-			# service_amount excluded — not shown to exhibitor
 		],
 		order_by="creation desc",
 	)
-
+ 
 	for booking in bookings:
 		raw = frappe.get_all(
 			"Booking Service Item",
 			filters={"parent": booking["name"]},
-			fields=["service", "service_name", "qty"],
-			# rate/amount NOT fetched
+			fields=["service", "service_name", "qty", "rate", "amount", "tax_percent", "charge_type"],
 		)
 		booking["services"] = [
-			{"service": s["service"], "service_name": s["service_name"], "qty": s["qty"]}
+			{
+				"service":      s["service"],
+				"service_name": s["service_name"],
+				"qty":          s["qty"] or 1,
+				"amount":       s["amount"] or s["rate"] or 0,
+				"tax_percent":  s["tax_percent"] or 18,
+				"charge_type":  s["charge_type"] or "",
+			}
 			for s in raw
 		] if raw else []
-
+ 
 	return bookings
 
 
