@@ -408,6 +408,66 @@ def get_current_exhibitor():
     return {"logged_in": False}
 
 
+
+
+# ─────────────────────────────────────────────────────────────
+# API 7: Update Exhibitor Profile
+# ─────────────────────────────────────────────────────────────
+@frappe.whitelist()
+def update_profile(
+    exhibitor_name=None,
+    company_name=None,
+    contact_person=None,
+    industry=None,
+    gst_number=None,
+    annual_turnover=None,
+    website=None,
+    product_categories=None,
+    description=None,
+):
+    user = frappe.session.user
+    if not user or user == "Guest":
+        frappe.throw(_("Not logged in"), frappe.AuthenticationError)
+
+    ex_name = frappe.db.get_value("Exhibitor Profile", {"frappe_user": user}, "name")
+    if not ex_name:
+        frappe.throw(_("Exhibitor profile not found"), frappe.DoesNotExistError)
+
+    ex = frappe.get_doc("Exhibitor Profile", ex_name)
+
+    if exhibitor_name  is not None: ex.exhibitor_name     = exhibitor_name
+    if company_name    is not None: ex.company_name        = company_name
+    if contact_person  is not None: ex.contact_person      = contact_person
+    if industry        is not None: ex.industry            = industry
+    if gst_number      is not None: ex.gst_number          = gst_number
+    if annual_turnover is not None: ex.annual_turnover      = annual_turnover
+    if website         is not None: ex.website             = website
+    if product_categories is not None: ex.product_categories = product_categories
+    if description     is not None: ex.description         = description
+
+    ex.save(ignore_permissions=True)
+    frappe.db.commit()
+
+    return {
+        "success": True,
+        "message": "Profile updated successfully",
+        "exhibitor": {
+            "name":               ex.name,
+            "exhibitor_name":     ex.exhibitor_name,
+            "company_name":       ex.company_name,
+            "email":              ex.email,
+            "mobile":             ex.contact_number,
+            "status":             ex.status,
+            "industry":           ex.industry,
+            "logo":               ex.company_logo,
+            "contact_person":     ex.contact_person     or "",
+            "gst_number":         ex.gst_number         or "",
+            "annual_turnover":    ex.annual_turnover     or "",
+            "website":            ex.website             or "",
+            "product_categories": ex.product_categories  or "",
+            "description":        ex.description         or "",
+        },
+    }
 # ─────────────────────────────────────────────────────────────
 # API 6: Logout
 # ─────────────────────────────────────────────────────────────
