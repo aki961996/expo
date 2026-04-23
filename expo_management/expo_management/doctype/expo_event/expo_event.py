@@ -509,17 +509,18 @@ def get_event_categories():
 
 @frappe.whitelist(allow_guest=True)
 def get_event_status_list():
-	"""
-	Returns unique event statuses
-	"""
-	statuses = frappe.get_all(
-		"Expo Event",
-		pluck="status"
+	meta = frappe.get_meta("Expo Event")
+
+	status_field = next(
+		(f for f in meta.fields if f.fieldname == "status"),
+		None
 	)
 
-	# remove duplicates + empty values
-	unique_statuses = sorted(list(set([s for s in statuses if s])))
+	if not status_field:
+		return {"statuses": []}
+
+	statuses = status_field.options.split("\n")
 
 	return {
-		"statuses": unique_statuses
+		"statuses": ["All"] + statuses
 	}
