@@ -533,7 +533,7 @@ def get_stall_booking_status_list():
 	meta = frappe.get_meta("Stall Booking")
 
 	status_field = next(
-		(f for f in meta.fields if f.fieldname == "status"),
+		(f for f in meta.fields if f.fieldname == "payment_status"),
 		None
 	)
 
