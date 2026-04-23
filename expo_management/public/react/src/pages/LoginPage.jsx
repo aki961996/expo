@@ -10,20 +10,21 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const { sendOtp, verifyOtp } = useAuth()
+  const isVisitorLoginEnabled = false;
 
   const redirectTo = location.state?.redirect || '/'
 
-  const [step, setStep]               = useState(STEPS.SELECT)
-  const [userType, setUserType]       = useState(null)   // 'exhibitor' | 'visitor'
-  const [mobile, setMobile]           = useState('')
-  const [otp, setOtp]                 = useState(['', '', '', '', '', ''])
-  const [loading, setLoading]         = useState(false)
-  const [error, setError]             = useState('')
-  const [timer, setTimer]             = useState(0)
-  const [devOtp, setDevOtp]           = useState('')
+  const [step, setStep] = useState(STEPS.SELECT)
+  const [userType, setUserType] = useState(null)   // 'exhibitor' | 'visitor'
+  const [mobile, setMobile] = useState('')
+  const [otp, setOtp] = useState(['', '', '', '', '', ''])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [timer, setTimer] = useState(0)
+  const [devOtp, setDevOtp] = useState('')
   const [redirecting, setRedirecting] = useState(false)
 
-  const otpRefs   = useRef([])
+  const otpRefs = useRef([])
   const mobileRef = useRef()
 
   useEffect(() => {
@@ -178,10 +179,10 @@ export default function LoginPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: '1.75rem' }}>
             <div style={{ width: 34, height: 34, borderRadius: 9, background: 'linear-gradient(135deg, #F59E0B, #EF4444)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                <rect x="3"  y="3"  width="7" height="7" rx="1" fill="white"/>
-                <rect x="14" y="3"  width="7" height="7" rx="1" fill="white" opacity="0.6"/>
-                <rect x="3"  y="14" width="7" height="7" rx="1" fill="white" opacity="0.6"/>
-                <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3"/>
+                <rect x="3" y="3" width="7" height="7" rx="1" fill="white" />
+                <rect x="14" y="3" width="7" height="7" rx="1" fill="white" opacity="0.6" />
+                <rect x="3" y="14" width="7" height="7" rx="1" fill="white" opacity="0.6" />
+                <rect x="14" y="14" width="7" height="7" rx="1" fill="white" opacity="0.3" />
               </svg>
             </div>
             <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', letterSpacing: '-0.03em', color: t.textPrimary }}>
@@ -217,12 +218,12 @@ export default function LoginPage() {
                       <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: t.textPrimary, marginBottom: 2 }}>Exhibitor Login</div>
                       <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Book stalls, manage your booth & bookings</div>
                     </div>
-                    <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                   </div>
                 </button>
-
+              {/* visitor login page diasbles need this coden */}
                 {/* Visitor */}
-                <button onClick={() => selectType('visitor')}
+                {/* <button onClick={() => selectType('visitor')}
                   style={{ padding: '16px 20px', borderRadius: 12, border: '1.5px solid #60A5FA30', background: '#60A5FA08', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#60A5FA60'; e.currentTarget.style.background = '#60A5FA12' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#60A5FA30'; e.currentTarget.style.background = '#60A5FA08' }}>
@@ -233,6 +234,81 @@ export default function LoginPage() {
                       <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Explore events, exhibitors & digital booths</div>
                     </div>
                     <svg style={{ marginLeft: 'auto', flexShrink: 0 }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </button> */}
+                <button
+                  onClick={() => {
+                    if (!isVisitorLoginEnabled) return;
+                    selectType('visitor');
+                  }}
+                  disabled={!isVisitorLoginEnabled}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: 12,
+                    border: '1.5px solid #60A5FA30',
+                    background: isVisitorLoginEnabled ? '#60A5FA08' : '#1f293720',
+                    cursor: isVisitorLoginEnabled ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                    opacity: isVisitorLoginEnabled ? 1 : 0.5
+                  }}
+                  onMouseEnter={e => {
+                    if (!isVisitorLoginEnabled) return;
+                    e.currentTarget.style.borderColor = '#60A5FA60';
+                    e.currentTarget.style.background = '#60A5FA12';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isVisitorLoginEnabled) return;
+                    e.currentTarget.style.borderColor = '#60A5FA30';
+                    e.currentTarget.style.background = '#60A5FA08';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 11,
+                      background: '#60A5FA20',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.3rem',
+                      flexShrink: 0
+                    }}>
+                      🎟️
+                    </div>
+
+                    <div>
+                      <div style={{
+                        fontFamily: 'Bricolage Grotesque, sans-serif',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        color: t.textPrimary,
+                        marginBottom: 2
+                      }}>
+                        Visitor Login
+                      </div>
+
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: t.textFaint
+                      }}>
+                        Explore events, exhibitors & digital booths
+                      </div>
+                    </div>
+
+                    <svg
+                      style={{ marginLeft: 'auto', flexShrink: 0 }}
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#60A5FA"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
                   </div>
                 </button>
               </div>
@@ -342,7 +418,7 @@ export default function LoginPage() {
               </h1>
               <p style={{ fontSize: '0.85rem', color: t.textFaint, marginBottom: '1.75rem', lineHeight: 1.6 }}>
                 Sent to <span style={{ color: t.textSecondary, fontWeight: 600 }}>+91 {mobile}</span>
-                <button onClick={() => { setStep(STEPS.MOBILE); setOtp(['','','','','','']); setError('') }}
+                <button onClick={() => { setStep(STEPS.MOBILE); setOtp(['', '', '', '', '', '']); setError('') }}
                   style={{ background: 'none', border: 'none', color: accent, fontSize: '0.82rem', cursor: 'pointer', marginLeft: 8 }}>
                   Change
                 </button>

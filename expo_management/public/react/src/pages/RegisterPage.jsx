@@ -17,17 +17,19 @@ const PURPOSES = [
 ]
 
 export default function RegisterPage() {
-  const t        = useThemeStyles()
+  const t = useThemeStyles()
   const navigate = useNavigate()
   const location = useLocation()
   const { register, registerVisitor } = useAuth()
 
+  const isVisitorLoginEnabled = false;
+
   // 'select' | 'exhibitor' | 'visitor'
-  const [mode, setMode]     = useState('select')
-  const [loading, setLoading]   = useState(false)
-  const [error, setError]       = useState('')
-  const [success, setSuccess]   = useState(false)
-  const [fieldErrors, setFE]    = useState({})
+  const [mode, setMode] = useState('select')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState(false)
+  const [fieldErrors, setFE] = useState({})
 
   // ── Exhibitor form ─────────────────────────────────────────
   const [ex, setEx] = useState({
@@ -51,9 +53,9 @@ export default function RegisterPage() {
   const validateEx = () => {
     const errs = {}
     if (!ex.exhibitor_name.trim()) errs.exhibitor_name = 'Required'
-    if (!ex.company_name.trim())   errs.company_name   = 'Required'
+    if (!ex.company_name.trim()) errs.company_name = 'Required'
     if (!ex.contact_person.trim()) errs.contact_person = 'Required'
-    if (!ex.mobile || ex.mobile.replace(/\D/g,'').length < 10) errs.mobile = 'Enter valid 10-digit number'
+    if (!ex.mobile || ex.mobile.replace(/\D/g, '').length < 10) errs.mobile = 'Enter valid 10-digit number'
     if (!ex.email || !/\S+@\S+\.\S+/.test(ex.email)) errs.email = 'Enter valid email'
     if (!ex.industry) errs.industry = 'Select industry'
     setFE(errs)
@@ -63,7 +65,7 @@ export default function RegisterPage() {
   const validateVi = () => {
     const errs = {}
     if (!vi.visitor_name.trim()) errs.visitor_name = 'Required'
-    if (!vi.mobile || vi.mobile.replace(/\D/g,'').length < 10) errs.mobile = 'Enter valid 10-digit number'
+    if (!vi.mobile || vi.mobile.replace(/\D/g, '').length < 10) errs.mobile = 'Enter valid 10-digit number'
     setFE(errs)
     return Object.keys(errs).length === 0
   }
@@ -101,7 +103,7 @@ export default function RegisterPage() {
   }
 
   const isExhibitor = mode === 'exhibitor'
-  const accent      = isExhibitor ? '#F59E0B' : '#60A5FA'
+  const accent = isExhibitor ? '#F59E0B' : '#60A5FA'
 
   // ── Success screen ─────────────────────────────────────────
   if (success) return (
@@ -169,11 +171,12 @@ export default function RegisterPage() {
                       <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: t.textPrimary, marginBottom: 2 }}>Register as Exhibitor</div>
                       <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Book stalls & showcase your products · Admin approval required</div>
                     </div>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
                   </div>
                 </button>
 
-                <button onClick={() => setMode('visitor')}
+                {/* register page visitor btn disable neeed this code  */}
+                {/* <button onClick={() => setMode('visitor')}
                   style={{ padding: '16px 20px', borderRadius: 12, border: '1.5px solid #60A5FA30', background: '#60A5FA08', cursor: 'pointer', textAlign: 'left', transition: 'all 0.2s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = '#60A5FA60'; e.currentTarget.style.background = '#60A5FA12' }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = '#60A5FA30'; e.currentTarget.style.background = '#60A5FA08' }}>
@@ -184,6 +187,83 @@ export default function RegisterPage() {
                       <div style={{ fontSize: '0.75rem', color: t.textFaint }}>Explore events & exhibitors · Instant access</div>
                     </div>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  </div>
+                </button> */}
+                <button
+                  onClick={() => {
+                    if (!isVisitorLoginEnabled) return;
+                    setMode('visitor');
+                  }}
+                  disabled={!isVisitorLoginEnabled}
+                  style={{
+                    padding: '16px 20px',
+                    borderRadius: 12,
+                    border: '1.5px solid #60A5FA30',
+                    background: isVisitorLoginEnabled ? '#60A5FA08' : '#1f293720',
+                    cursor: isVisitorLoginEnabled ? 'pointer' : 'not-allowed',
+                    textAlign: 'left',
+                    transition: 'all 0.2s',
+                    opacity: isVisitorLoginEnabled ? 1 : 0.5
+                  }}
+                  onMouseEnter={e => {
+                    if (!isVisitorLoginEnabled) return;
+                    e.currentTarget.style.borderColor = '#60A5FA60';
+                    e.currentTarget.style.background = '#60A5FA12';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isVisitorLoginEnabled) return;
+                    e.currentTarget.style.borderColor = '#60A5FA30';
+                    e.currentTarget.style.background = '#60A5FA08';
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+
+                    <div style={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: 11,
+                      background: '#60A5FA20',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1.3rem',
+                      flexShrink: 0
+                    }}>
+                      🎟️
+                    </div>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{
+                        fontFamily: 'Bricolage Grotesque, sans-serif',
+                        fontWeight: 800,
+                        fontSize: '0.95rem',
+                        color: t.textPrimary,
+                        marginBottom: 2
+                      }}>
+                        Register as Visitor
+                      </div>
+
+                      <div style={{
+                        fontSize: '0.75rem',
+                        color: t.textFaint
+                      }}>
+                        Explore events & exhibitors · Instant access
+                      </div>
+                    </div>
+
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#60A5FA"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <path d="M9 18l6-6-6-6" />
+                    </svg>
+
                   </div>
                 </button>
               </div>
@@ -232,7 +312,7 @@ export default function RegisterPage() {
                   <Field label="Mobile Number *" error={fieldErrors.mobile}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <div style={{ padding: '10px', background: t.bgElevated, border: `1px solid ${t.borderDefault}`, borderRadius: 8, fontSize: '0.82rem', color: t.textSecondary, flexShrink: 0, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>🇮🇳 +91</div>
-                      <Input t={t} type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={ex.mobile} onChange={v => setExField('mobile', v.replace(/\D/g,'').slice(0,10))} error={fieldErrors.mobile} style={{ flex: '1 1 0', minWidth: 0 }} />
+                      <Input t={t} type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={ex.mobile} onChange={v => setExField('mobile', v.replace(/\D/g, '').slice(0, 10))} error={fieldErrors.mobile} style={{ flex: '1 1 0', minWidth: 0 }} />
                     </div>
                   </Field>
                   <Field label="Email *" error={fieldErrors.email}>
@@ -249,7 +329,7 @@ export default function RegisterPage() {
                     <Input t={t} placeholder="22AAAAA0000A1Z5" value={ex.gst_number} onChange={v => setExField('gst_number', v.toUpperCase())} style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }} />
                   </Field>
                   <Field label="Annual Turnover">
-                    <Select t={t} value={ex.annual_turnover} onChange={v => setExField('annual_turnover', v)} placeholder="Select range" options={['Below 1 Cr','1-5 Cr','5-25 Cr','25-100 Cr','Above 100 Cr']} />
+                    <Select t={t} value={ex.annual_turnover} onChange={v => setExField('annual_turnover', v)} placeholder="Select range" options={['Below 1 Cr', '1-5 Cr', '5-25 Cr', '25-100 Cr', 'Above 100 Cr']} />
                   </Field>
                 </div>
                 <Field label="Website" style={{ marginBottom: 12 }}>
@@ -304,7 +384,7 @@ export default function RegisterPage() {
                   <Field label="Mobile Number *" error={fieldErrors.mobile}>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <div style={{ padding: '10px', background: t.bgElevated, border: `1px solid ${t.borderDefault}`, borderRadius: 8, fontSize: '0.82rem', color: t.textSecondary, flexShrink: 0, display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>🇮🇳 +91</div>
-                      <Input t={t} type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={vi.mobile} onChange={v => setViField('mobile', v.replace(/\D/g,'').slice(0,10))} error={fieldErrors.mobile} style={{ flex: '1 1 0', minWidth: 0 }} />
+                      <Input t={t} type="tel" inputMode="numeric" maxLength={10} placeholder="9876543210" value={vi.mobile} onChange={v => setViField('mobile', v.replace(/\D/g, '').slice(0, 10))} error={fieldErrors.mobile} style={{ flex: '1 1 0', minWidth: 0 }} />
                     </div>
                   </Field>
                   <Field label="Email">
@@ -373,7 +453,7 @@ function Input({ t, value, onChange, error, accent = '#F59E0B', style, ...props 
     <input value={value} onChange={e => onChange(e.target.value)}
       style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: `1px solid ${error ? '#F87171' : t.borderDefault}`, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, fontFamily: 'DM Sans, sans-serif', transition: 'border-color 0.2s', ...style }}
       onFocus={e => e.target.style.borderColor = error ? '#F87171' : `${accent}50`}
-      onBlur={e  => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}
+      onBlur={e => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}
       {...props}
     />
   )
@@ -384,7 +464,7 @@ function Select({ t, value, onChange, placeholder, options, error, accent = '#F5
     <select value={value} onChange={e => onChange(e.target.value)}
       style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: `1px solid ${error ? '#F87171' : t.borderDefault}`, borderRadius: 8, fontSize: '0.88rem', color: value ? t.textPrimary : t.textFaint, appearance: 'none', cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}
       onFocus={e => e.target.style.borderColor = `${accent}50`}
-      onBlur={e  => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}>
+      onBlur={e => e.target.style.borderColor = error ? '#F87171' : t.borderDefault}>
       <option value="">{placeholder}</option>
       {options.map(o => <option key={o} value={o}>{o}</option>)}
     </select>
@@ -396,7 +476,7 @@ function Textarea({ t, value, onChange, rows = 2, placeholder }) {
     <textarea value={value} onChange={e => onChange(e.target.value)} rows={rows} placeholder={placeholder}
       style={{ width: '100%', padding: '10px 14px', background: t.bgElevated, border: `1px solid ${t.borderDefault}`, borderRadius: 8, fontSize: '0.88rem', color: t.textPrimary, resize: 'none', fontFamily: 'DM Sans, sans-serif', lineHeight: 1.5 }}
       onFocus={e => e.target.style.borderColor = '#F59E0B50'}
-      onBlur={e  => e.target.style.borderColor = t.borderDefault}
+      onBlur={e => e.target.style.borderColor = t.borderDefault}
     />
   )
 }

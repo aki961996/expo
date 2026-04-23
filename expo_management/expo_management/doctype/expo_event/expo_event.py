@@ -479,3 +479,40 @@ def get_contact_info():
 			}
 		except Exception:
 			return {"name": "Expo Management Team", "phone": "", "email": "", "deposit_percent": 25, "gst_percent": 18}
+
+
+
+
+
+# API 7 — Get Categories (Dynamic)
+
+@frappe.whitelist(allow_guest=True)
+def get_event_categories():
+	"""
+	Returns unique category list from Expo Event
+	"""
+	categories = frappe.get_all(
+		"Expo Event",
+		fields=["DISTINCT category as name"],
+		filters={"is_published": 1},
+		order_by="category asc"
+	)
+
+	return {
+		"categories": [c["name"] for c in categories if c["name"]]
+	}
+
+
+# API 8 — Get Status List
+
+@frappe.whitelist(allow_guest=True)
+def get_event_status_list():
+	statuses = frappe.get_all(
+		"Expo Event",
+		fields=["DISTINCT status as name"],
+		order_by="status asc"
+	)
+
+	return {
+		"statuses": [s["name"] for s in statuses if s["name"]]
+	}

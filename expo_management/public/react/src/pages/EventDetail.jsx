@@ -723,12 +723,13 @@ function ServiceCard({ svc, isLoggedIn = false }) {
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         {isLoggedIn ? (
           <>
-            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '0.95rem' }}>₹{svc.price?.toLocaleString()}</div>
+            {/* <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '0.95rem' }}>₹{svc.price?.toLocaleString()}</div>
             <div style={{ fontSize: '0.62rem', color: t.textGhost, marginTop: 2 }}>+{svc.tax_percent}% GST</div>
-            {!!svc.is_mandatory && <div style={{ fontSize: '0.6rem', color: '#F87171', fontWeight: 700, marginTop: 3 }}>MANDATORY</div>}
+            {!!svc.is_mandatory && <div style={{ fontSize: '0.6rem', color: '#F87171', fontWeight: 700, marginTop: 3 }}>MANDATORY</div>} */}
+            <div style={{ fontSize: '0.72rem', color: t.textFaint, whiteSpace: 'nowrap' }}></div>
           </>
         ) : (
-          <div style={{ fontSize: '0.72rem', color: t.textFaint, whiteSpace: 'nowrap' }}>Login to see price</div>
+          <div style={{ fontSize: '0.72rem', color: t.textFaint, whiteSpace: 'nowrap' }}></div>
         )}
       </div>
     </div>
