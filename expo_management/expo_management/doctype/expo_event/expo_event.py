@@ -493,13 +493,15 @@ def get_event_categories():
 	"""
 	categories = frappe.get_all(
 		"Expo Event",
-		fields=["DISTINCT category as name"],
 		filters={"is_published": 1},
-		order_by="category asc"
+		pluck="category"
 	)
 
+	# remove duplicates + empty values
+	unique_categories = sorted(list(set([c for c in categories if c])))
+
 	return {
-		"categories": [c["name"] for c in categories if c["name"]]
+		"categories": unique_categories
 	}
 
 
