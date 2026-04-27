@@ -39,7 +39,6 @@ function numWords(n) {
   return w.trim() + ' Rupees Only'
 }
 
-// ── Invoice HTML generator ────────────────────────────────────
 function buildInvoiceHTML(b, exhibitor) {
   const stalls = b.stall_number?.split('|').map(s => s.trim()).filter(Boolean) || []
   const svcs   = b.services || []
@@ -116,7 +115,6 @@ function buildInvoiceHTML(b, exhibitor) {
       </span>
     </div>
   </div>
-
   <div class="parties">
     <div class="party-box">
       <h4>BILLED TO</h4>
@@ -134,36 +132,29 @@ function buildInvoiceHTML(b, exhibitor) {
       <p>Stalls: ${stalls.length}</p>
     </div>
   </div>
-
   <div class="section-label">STALL DETAILS</div>
   <table>
-    <thead>
-      <tr>
-        <th>Stall / Description</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Base Amount</th>
-        <th style="text-align:right">GST</th>
-        <th style="text-align:right">Total</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th>Stall / Description</th>
+      <th style="text-align:center">Qty</th>
+      <th style="text-align:right">Base Amount</th>
+      <th style="text-align:right">GST</th>
+      <th style="text-align:right">Total</th>
+    </tr></thead>
     <tbody>${rows}</tbody>
   </table>
-
   ${svcs.length > 0 ? `
   <div class="section-label">ADDITIONAL SERVICES</div>
   <table>
-    <thead>
-      <tr>
-        <th>Service</th>
-        <th style="text-align:center">Qty</th>
-        <th style="text-align:right">Amount</th>
-        <th style="text-align:right">GST</th>
-        <th style="text-align:right">Total</th>
-      </tr>
-    </thead>
+    <thead><tr>
+      <th>Service</th>
+      <th style="text-align:center">Qty</th>
+      <th style="text-align:right">Amount</th>
+      <th style="text-align:right">GST</th>
+      <th style="text-align:right">Total</th>
+    </tr></thead>
     <tbody>${svcRows}</tbody>
   </table>` : ''}
-
   <div class="totals">
     <div class="totals-box">
       <div class="totals-row"><span>Stall Amount (excl. GST)</span><span>₹${(b.base_amount||0).toLocaleString()}</span></div>
@@ -171,12 +162,10 @@ function buildInvoiceHTML(b, exhibitor) {
       ${svcTotal > 0 ? `<div class="totals-row"><span>Services Total</span><span>₹${svcTotal.toLocaleString()}</span></div>` : ''}
       <div class="totals-row grand"><span>Grand Total</span><span>₹${grandTotal.toLocaleString()}</span></div>
       <div class="totals-row deposit"><span>Deposit Paid (25%)</span><span>− ₹${(b.deposit_paid||0).toLocaleString()}</span></div>
-      <div class="totals-row balance"><span>Balance Due (incl. services)</span><span>₹${((b.balance_due||0) + svcTotal).toLocaleString()}</span></div>
+      <div class="totals-row balance"><span>Balance Due</span><span>₹${((b.balance_due||0) + svcTotal).toLocaleString()}</span></div>
     </div>
   </div>
-
   <div class="words">Amount in words: <strong>${numWords(Math.round(grandTotal))}</strong></div>
-
   <div class="footer">
     <p>This is a computer-generated invoice. Payment is subject to terms agreed at booking.</p>
     <p>For queries: contact your expo organizer · ExpoMgmt Platform</p>
@@ -210,10 +199,12 @@ export default function MyBookings() {
   const { exhibitor } = useAuth()
   const { isDark }    = useTheme()
 
-  const [bookings, setBookings] = useState([])
-  const [loading, setLoading]   = useState(true)
-  const [error, setError]       = useState(null)
-  const [expanded, setExpanded] = useState(null)
+  const [bookings, setBookings]       = useState([])
+  const [loading, setLoading]         = useState(true)
+  const [error, setError]             = useState(null)
+  const [expanded, setExpanded]       = useState(null)
+  const [filterStatus, setFilterStatus] = useState('All')
+  const [search, setSearch]           = useState('')
 
   const c = {
     bg:        isDark ? '#080808' : '#F8F7F4',
@@ -229,6 +220,7 @@ export default function MyBookings() {
     btnBg:     isDark ? '#141414' : '#F0EFEC',
     elevated:  isDark ? '#141414' : '#F8F7F4',
     shadow:    isDark ? '0 8px 32px rgba(0,0,0,0.4)' : '0 8px 32px rgba(0,0,0,0.08)',
+    inputBg:   isDark ? '#111' : '#fff',
   }
 
   useEffect(() => {
@@ -238,6 +230,33 @@ export default function MyBookings() {
       .catch(e   => { setError(e.message);    setLoading(false) })
   }, [exhibitor])
 
+  // ── Filter + Search logic ─────────────────────────────────
+  const filteredBookings = bookings.filter(b => {
+    const matchStatus = filterStatus === 'All' || b.payment_status === filterStatus
+    const q = search.trim().toLowerCase()
+    const matchSearch = !q
+      || b.name?.toLowerCase().includes(q)
+      || b.expo_event?.toLowerCase().includes(q)
+      || b.stall_number?.toLowerCase().includes(q)
+    return matchStatus && matchSearch
+  })
+
+  const counts = {
+    All:       bookings.length,
+    Pending:   bookings.filter(b => b.payment_status === 'Pending').length,
+    Paid:      bookings.filter(b => b.payment_status === 'Paid').length,
+    Partial:   bookings.filter(b => b.payment_status === 'Partial').length,
+    Cancelled: bookings.filter(b => b.payment_status === 'Cancelled').length,
+  }
+
+  const filterTabs = [
+    { key: 'All',       label: 'All',       color: c.textMuted },
+    { key: 'Pending',   label: 'Pending',   color: '#F59E0B'   },
+    { key: 'Paid',      label: 'Paid',      color: '#00FF87'   },
+    { key: 'Partial',   label: 'Partial',   color: '#60A5FA'   },
+    { key: 'Cancelled', label: 'Cancelled', color: '#F87171'   },
+  ].filter(t => t.key === 'All' || counts[t.key] > 0)
+
   return (
     <div style={{ minHeight: '100vh', background: c.bg, fontFamily: 'DM Sans, sans-serif' }}>
       <style>{`
@@ -246,6 +265,8 @@ export default function MyBookings() {
         @keyframes fadeUp  { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
         @keyframes shimmer { 0%{background-position:-400px 0} 100%{background-position:400px 0} }
         @keyframes spin    { to{transform:rotate(360deg)} }
+        .filter-tab:hover { opacity: 0.85; }
+        .search-input:focus { outline: none; border-color: #F59E0B !important; }
       `}</style>
 
       {/* NAVBAR */}
@@ -261,7 +282,8 @@ export default function MyBookings() {
 
       <div style={{ maxWidth: 780, margin: '0 auto', padding: '80px 1.5rem 4rem' }}>
 
-        <div style={{ marginBottom: 32, animation: 'fadeUp 0.4s ease both' }}>
+        {/* Header */}
+        <div style={{ marginBottom: 28, animation: 'fadeUp 0.4s ease both' }}>
           <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: 'clamp(1.6rem, 4vw, 2.4rem)', letterSpacing: '-0.03em', color: c.text, marginBottom: 6 }}>
             Your Stall Bookings
           </h1>
@@ -270,6 +292,67 @@ export default function MyBookings() {
           </p>
         </div>
 
+        {/* ── FILTER + SEARCH BAR ── */}
+        {!loading && !error && bookings.length > 0 && (
+          <div style={{ marginBottom: 20, animation: 'fadeUp 0.35s ease 0.05s both' }}>
+            {/* Search */}
+            <div style={{ position: 'relative', marginBottom: 12 }}>
+              <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+                width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={c.textFaint} strokeWidth="2.5" strokeLinecap="round">
+                <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+              </svg>
+              <input
+                className="search-input"
+                type="text"
+                placeholder="Search by booking ID, event, stall number…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                style={{ width: '100%', padding: '10px 12px 10px 34px', borderRadius: 10, border: `1px solid ${c.border}`, background: c.inputBg, color: c.text, fontSize: '0.85rem', fontFamily: 'DM Sans, sans-serif', transition: 'border-color 0.2s' }}
+              />
+              {search && (
+                <button onClick={() => setSearch('')}
+                  style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: c.textFaint, cursor: 'pointer', fontSize: '1rem', padding: '2px 6px' }}>
+                  ✕
+                </button>
+              )}
+            </div>
+
+            {/* Status filter tabs */}
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {filterTabs.map(tab => {
+                const isActive = filterStatus === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    className="filter-tab"
+                    onClick={() => setFilterStatus(tab.key)}
+                    style={{
+                      padding: '5px 14px', borderRadius: 100, cursor: 'pointer', fontSize: '0.75rem', fontWeight: 700,
+                      transition: 'all 0.15s', fontFamily: 'DM Sans, sans-serif',
+                      background: isActive ? (tab.key === 'All' ? c.text : tab.color) : c.card,
+                      border: `1.5px solid ${isActive ? (tab.key === 'All' ? c.text : tab.color) : c.border}`,
+                      color: isActive ? (tab.key === 'All' ? (isDark ? '#000' : '#fff') : '#000') : tab.color === c.textMuted ? c.textMuted : tab.color,
+                    }}>
+                    {tab.label}
+                    <span style={{ marginLeft: 5, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800 }}>
+                      {counts[tab.key]}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Results count */}
+            {(filterStatus !== 'All' || search) && (
+              <div style={{ marginTop: 8, fontSize: '0.72rem', color: c.textFaint }}>
+                {filteredBookings.length} booking{filteredBookings.length !== 1 ? 's' : ''} found
+                {search && <span> for "<span style={{ color: c.textMuted }}>{search}</span>"</span>}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Loading */}
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {[1,2,3].map(i => (
@@ -299,23 +382,22 @@ export default function MyBookings() {
           </div>
         )}
 
-        {!loading && !error && bookings.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            {/* Summary strip */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 4, animation: 'fadeUp 0.35s ease both' }}>
-              {[
-                ['Total',   bookings.length,                                           c.textMuted],
-                ['Pending', bookings.filter(b => b.payment_status === 'Pending').length, '#F59E0B'],
-                ['Paid',    bookings.filter(b => b.payment_status === 'Paid').length,    '#00FF87'],
-              ].map(([label, count, color]) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 12px', borderRadius: 100, background: c.card, border: `1px solid ${c.border}`, fontSize: '0.75rem' }}>
-                  <span style={{ color: c.textFaint }}>{label}</span>
-                  <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '0.85rem' }}>{count}</span>
-                </div>
-              ))}
-            </div>
+        {/* No results after filter */}
+        {!loading && !error && bookings.length > 0 && filteredBookings.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '4rem 2rem', animation: 'fadeUp 0.3s ease both' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: 12, opacity: 0.4 }}>🔍</div>
+            <h3 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.2rem', color: c.textDim, marginBottom: 8 }}>No results found</h3>
+            <p style={{ color: c.textFaint, fontSize: '0.82rem', marginBottom: 16 }}>Try changing the filter or search term</p>
+            <button onClick={() => { setFilterStatus('All'); setSearch('') }}
+              style={{ padding: '8px 20px', borderRadius: 8, background: c.btnBg, border: `1px solid ${c.border}`, fontSize: '0.82rem', color: c.textMuted, cursor: 'pointer' }}>
+              Clear filters
+            </button>
+          </div>
+        )}
 
-            {bookings.map((b, idx) => {
+        {!loading && !error && filteredBookings.length > 0 && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {filteredBookings.map((b, idx) => {
               const st     = STATUS_CONFIG[b.payment_status] || STATUS_CONFIG['Pending']
               const isOpen = expanded === b.name
               const stalls = b.stall_number?.split('|').map(s => s.trim()).filter(Boolean) || []
@@ -364,7 +446,6 @@ export default function MyBookings() {
                   {isOpen && (
                     <div style={{ borderTop: `1px solid ${c.border}`, padding: '16px 20px', background: c.elevated, animation: 'fadeUp 0.2s ease both' }}>
 
-                      {/* Payment breakdown */}
                       <div style={{ marginBottom: 16 }}>
                         <div style={{ fontSize: '0.6rem', color: c.textFaint, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 10 }}>STALL PAYMENT BREAKDOWN</div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -384,7 +465,6 @@ export default function MyBookings() {
                         </div>
                       </div>
 
-                      {/* Services with amount */}
                       {svcs.length > 0 && (
                         <div style={{ marginBottom: 16 }}>
                           <div style={{ fontSize: '0.6rem', color: c.textFaint, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 8 }}>ADDITIONAL SERVICES</div>
@@ -417,7 +497,6 @@ export default function MyBookings() {
                         </div>
                       )}
 
-                      {/* Grand total if services exist */}
                       {svcTotal > 0 && (
                         <div style={{ padding: '10px 14px', borderRadius: 10, background: '#F59E0B10', border: '1px solid #F59E0B30', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                           <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F59E0B' }}>Grand Total (Stall + Services)</div>
@@ -427,7 +506,6 @@ export default function MyBookings() {
                         </div>
                       )}
 
-                      {/* Balance due alert */}
                       {b.balance_due > 0 && b.payment_status !== 'Cancelled' && (
                         <div style={{ padding: '10px 14px', borderRadius: 10, background: '#F59E0B10', border: '1px solid #F59E0B30', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                           <div>
@@ -440,7 +518,6 @@ export default function MyBookings() {
                         </div>
                       )}
 
-                      {/* Actions */}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button onClick={() => navigate(`/event/${b.expo_event}`)}
                           style={{ flex: 1, minWidth: 100, padding: '9px 14px', borderRadius: 9, background: 'transparent', border: `1px solid ${c.border}`, fontSize: '0.78rem', fontWeight: 600, color: c.textMuted, cursor: 'pointer' }}>
