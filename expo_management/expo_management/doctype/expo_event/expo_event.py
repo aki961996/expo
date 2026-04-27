@@ -630,23 +630,49 @@ def get_event_categories():
 
 # API 8 — Get Status List
 
+# @frappe.whitelist(allow_guest=True)
+# def get_event_status_list():
+# 	meta = frappe.get_meta("Expo Event")
+
+# 	status_field = next(
+# 		(f for f in meta.fields if f.fieldname == "status"),
+# 		None
+# 	)
+
+# 	if not status_field:
+# 		return {"statuses": []}
+
+# 	statuses = status_field.options.split("\n")
+
+# 	return {
+# 		"statuses":  statuses
+# 	}
+
 @frappe.whitelist(allow_guest=True)
 def get_event_status_list():
-	meta = frappe.get_meta("Expo Event")
+    meta = frappe.get_meta("Expo Event")
 
-	status_field = next(
-		(f for f in meta.fields if f.fieldname == "status"),
-		None
-	)
+    status_field = next(
+        (f for f in meta.fields if f.fieldname == "status"),
+        None
+    )
 
-	if not status_field:
-		return {"statuses": []}
+    if not status_field:
+        return {"statuses": []}
 
-	statuses = status_field.options.split("\n")
+    statuses = status_field.options.split("\n")
 
-	return {
-		"statuses":  statuses
-	}
+    # Remove unwanted statuses
+    excluded_statuses = ["Draft", "Cancelled"]
+
+    filtered_statuses = [
+        status for status in statuses
+        if status.strip() not in excluded_statuses
+    ]
+
+    return {
+        "statuses": filtered_statuses
+    }
 
 
 # new api status for stall booking
