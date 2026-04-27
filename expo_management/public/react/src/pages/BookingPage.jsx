@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { useThemeStyles } from '../hooks/useThemeStyles'
-import { getEventDetail, createBooking } from '../api/frappe'
+import { getEventDetail, createBooking, getContactInfo } from '../api/frappe'
 
 const CAT_ACCENT = {
   'Trade Fair':     '#F59E0B',
@@ -28,26 +28,15 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// ── Normalize passedSelected ──────────────────────────────────
-// StallPickerModal returns flat objects: { dimension_label, hall, stall_number, ... }
-// EventDetail (old flow) returns nested: { dim: {...}, hall: {...} }
-// This function normalizes both into { dim, hall } format
 function normalizeSelected(raw) {
   return (raw || []).map(item => {
-    // Already nested format
     if (item.dim) return item
-    // Flat format from StallPickerModal — extract hall, rest is dim
     const { hall, stall_name, stall_number, stall_type, final_price, ...dimFields } = item
-    return {
-      dim: { ...dimFields, stall_name, stall_number, stall_type, final_price },
-      hall,
-    }
+    return { dim: { ...dimFields, stall_name, stall_number, stall_type, final_price }, hall }
   })
 }
 
 function getDimPrice(dim) {
-  // Use effective_price if set (base_price + premium%), else calculate from base
-  if (dim.effective_price) return dim.effective_price
   const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
   return (dim.base_price || 0) * area
 }
@@ -62,12 +51,8 @@ export default function BookingPage() {
   const { exhibitor } = useAuth()
   const t             = useThemeStyles()
 
-  // Normalize selected stalls — state so user can remove items
   const [passedSelected, setPassedSelected] = useState(() => normalizeSelected(location.state?.selected))
-
-  const removeStall = (index) => {
-    setPassedSelected(prev => prev.filter((_, i) => i !== index))
-  }
+  const removeStall = (index) => setPassedSelected(prev => prev.filter((_, i) => i !== index))
 
   const [detail, setDetail]             = useState(null)
   const [loading, setLoading]           = useState(true)
@@ -76,6 +61,7 @@ export default function BookingPage() {
   const [submitting, setSubmitting]     = useState(false)
   const [bookingDone, setBookingDone]   = useState(null)
   const [error, setError]               = useState(null)
+  const [contactInfo, setContactInfo]   = useState(null)
 
   useEffect(() => {
     if (!exhibitor) {
@@ -83,7 +69,13 @@ export default function BookingPage() {
       return
     }
     getEventDetail(code)
-      .then(d => { setDetail(d); setLoading(false) })
+      .then(d => {
+        setDetail(d)
+        setLoading(false)
+        if (d?.services) {
+          setServices(new Set(d.services.filter(s => s.is_mandatory).map(s => s.name)))
+        }
+      })
       .catch(() => setLoading(false))
   }, [code])
 
@@ -103,17 +95,18 @@ export default function BookingPage() {
   const { event, services = [] } = detail
   const accent = CAT_ACCENT[event.category] || '#F59E0B'
 
-  // ── Price calculations ────────────────────────────────────
+  // ── STALL-ONLY pricing ──────────────────────────────────────
+  // Frontend total = stall + GST only. Service price NOT shown, NOT in total.
+  // Backend fetches actual service price from Expo Service and saves to DB.
   const stallTotal   = passedSelected.reduce((s, x) => s + getDimPrice(x.dim), 0)
   const selectedSvcs = services.filter(s => selectedServices.has(s.name))
-  const svcTotal     = selectedSvcs.reduce((s, x) => s + (x.price || 0), 0)
-  const subTotal     = stallTotal + svcTotal
-  const taxAmount    = Math.round(subTotal * 0.18)
-  const grandTotal   = subTotal + taxAmount
-  // Deposit = sum of 25% of each individual stall price
-  const depositAmt   = passedSelected.reduce((s, x) => s + Math.round(getDimPrice(x.dim) * 0.25), 0)
+  const taxAmount    = Math.round(stallTotal * 0.18)
+  const grandTotal   = stallTotal + taxAmount
+  const depositAmt   = Math.round(stallTotal * 0.25)
+  const balanceDue   = grandTotal - depositAmt
 
   const toggleService = (name) => {
+    if (services.find(s => s.name === name)?.is_mandatory) return
     setServices(prev => {
       const next = new Set(prev)
       next.has(name) ? next.delete(name) : next.add(name)
@@ -126,8 +119,8 @@ export default function BookingPage() {
     setError(null)
     try {
       const payload = {
-        expo_event: code,
-        selected_dims: passedSelected.map(x => ({
+        expo_event:        code,
+        selected_dims:     passedSelected.map(x => ({
           dimension_label: x.dim.dimension_label,
           hall:            x.hall?.hall_name,
           area:            getDimArea(x.dim),
@@ -136,16 +129,19 @@ export default function BookingPage() {
           stall_number:    x.dim.stall_number || '',
           stall_name:      x.dim.stall_name   || '',
         })),
-        selected_services: selectedSvcs.map(s => ({ service: s.name, price: s.price })),
-        stall_amount:  stallTotal,
-        service_amount: svcTotal,
-        tax_amount:    taxAmount,
-        total_amount:  grandTotal,
-        deposit_paid:  depositAmt,
-        balance_due:   grandTotal - depositAmt,
+        // Only service name sent — backend fetches actual price from Expo Service
+        selected_services: selectedSvcs.map(s => ({ service: s.name })),
+        stall_amount:      stallTotal,
+        service_amount:    0,       // backend recalculates from Expo Service price
+        tax_amount:        taxAmount,
+        total_amount:      grandTotal,
+        deposit_paid:      depositAmt,
+        balance_due:       balanceDue,
       }
       const result = await createBooking(payload)
       setBookingDone(result)
+      // Fetch contact info for payment instructions
+      getContactInfo().then(setContactInfo).catch(() => {})
     } catch (e) {
       setError(e.message || 'Booking failed. Please try again.')
     } finally {
@@ -164,50 +160,107 @@ export default function BookingPage() {
           * { box-sizing: border-box; }
         `}</style>
         <div style={{ maxWidth: 500, width: '100%', textAlign: 'center', animation: 'fadeUp 0.4s ease both' }}>
-          <div style={{ width: 80, height: 80, borderRadius: '50%', background: accent + '20', border: `2px solid ${accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px', fontSize: '2rem', animation: 'popIn 0.4s ease both' }}>✓</div>
-          <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '2rem', color: t.textPrimary, marginBottom: 8 }}>Stall Blocked!</h1>
-          <p style={{ color: t.textMuted, marginBottom: 28 }}>Your booking has been confirmed. Pay the deposit to secure your stall.</p>
+          {/* Success icon */}
+          <div style={{ width: 72, height: 72, borderRadius: '50%', background: accent + '20', border: `2px solid ${accent}`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: '1.8rem', animation: 'popIn 0.4s ease both' }}>✓</div>
+          <h1 style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.8rem', color: t.textPrimary, marginBottom: 6 }}>Stall Blocked!</h1>
+          <p style={{ color: t.textMuted, marginBottom: 24, fontSize: '0.88rem' }}>Your booking is confirmed. Our team will contact you shortly.</p>
 
-          <div style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 16, padding: 24, marginBottom: 20, textAlign: 'left' }}>
-            <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>BOOKING SUMMARY</div>
-            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem', color: accent, marginBottom: 16 }}>{bookingDone.booking_id}</div>
+          {/* Booking summary card */}
+          <div style={{ background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, borderRadius: 16, padding: 20, marginBottom: 14, textAlign: 'left' }}>
+            <div style={{ fontSize: '0.6rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.12em', marginBottom: 10 }}>BOOKING SUMMARY</div>
+            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: accent, marginBottom: 14 }}>{bookingDone.booking_id}</div>
 
+            {/* Stall rows */}
             {passedSelected.map((x, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
+              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.8rem' }}>
                 <span style={{ color: t.textSecondary }}>
                   {x.dim.stall_number ? `${x.dim.stall_number} · ` : ''}{x.dim.dimension_label} m — {x.hall?.hall_name?.split('–')[0]?.trim()}
                 </span>
                 <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{getDimPrice(x.dim).toLocaleString()}</span>
               </div>
             ))}
-            {selectedSvcs.map((s, i) => (
-              <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
-                <span style={{ color: t.textSecondary }}>{s.service_name}</span>
-                <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+
+            {/* Services — name only */}
+            {selectedSvcs.length > 0 && (
+              <div style={{ padding: '8px 0', borderBottom: '1px solid ' + t.borderSubtle }}>
+                <div style={{ fontSize: '0.6rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 6 }}>SERVICES (INVOICE PENDING)</div>
+                {selectedSvcs.map((s, i) => (
+                  <div key={i} style={{ fontSize: '0.78rem', color: t.textSecondary, paddingTop: 4 }}>· {s.service_name}</div>
+                ))}
               </div>
-            ))}
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid ' + t.borderDefault, fontSize: '0.8rem' }}>
+            )}
+
+            {/* Totals */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontSize: '0.78rem' }}>
               <span style={{ color: t.textFaint }}>GST (18%)</span>
               <span style={{ color: t.textMuted }}>₹{taxAmount.toLocaleString()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', fontSize: '0.95rem', fontWeight: 700 }}>
-              <span style={{ color: t.textSecondary }}>Grand Total</span>
-              <span style={{ color: accent, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.2rem' }}>₹{grandTotal.toLocaleString()}</span>
-            </div>
-            <div style={{ background: accent + '10', border: `1px solid ${accent}30`, borderRadius: 10, padding: '10px 14px', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.78rem', color: t.textSecondary }}>Deposit to block stall now</span>
-              <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1rem' }}>₹{depositAmt.toLocaleString()}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0 0', fontSize: '0.9rem', fontWeight: 700 }}>
+              <span style={{ color: t.textSecondary }}>Stall Total</span>
+              <span style={{ color: accent, fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.1rem' }}>₹{grandTotal.toLocaleString()}</span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 10, flexDirection: 'column' }}>
-            <button style={{ padding: '14px', borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1rem', color: '#000', cursor: 'pointer' }}>
-              Pay Deposit ₹{depositAmt.toLocaleString()} →
-            </button>
-            <button onClick={() => navigate(`/booth/${code}/${exhibitor?.name}`)} style={{ padding: '12px', borderRadius: 12, background: 'transparent', border: `1px solid ${accent}40`, fontWeight: 600, fontSize: '0.88rem', color: accent, cursor: 'pointer' }}>
+          {/* Payment action card — dynamic from Expo Settings */}
+          <div style={{ background: accent + '08', border: `1.5px solid ${accent}40`, borderRadius: 14, padding: 20, marginBottom: 14, textAlign: 'left' }}>
+            {/* Deposit amounts */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: t.bgSurface, borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
+              <span style={{ fontSize: '0.8rem', color: t.textSecondary, fontWeight: 600 }}>Deposit to pay now</span>
+              <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.2rem' }}>₹{depositAmt.toLocaleString()}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 4px', fontSize: '0.75rem', marginBottom: 14 }}>
+              <span style={{ color: t.textFaint }}>Balance due before event</span>
+              <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{balanceDue.toLocaleString()}</span>
+            </div>
+
+            {/* Contact info */}
+            <div style={{ fontSize: '0.62rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 8 }}>CONTACT FOR PAYMENT</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {contactInfo?.phone && (
+                <a href={`tel:${contactInfo.phone}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, textDecoration: 'none', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>📞</span>
+                  <span>{contactInfo.phone}</span>
+                  {contactInfo.name && <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: t.textFaint }}>{contactInfo.name}</span>}
+                </a>
+              )}
+              {contactInfo?.whatsapp && (
+                <a href={`https://wa.me/${contactInfo.whatsapp.replace(/\D/g, '')}`} target="_blank" rel="noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: '#25D36615', border: '1px solid #25D36640', textDecoration: 'none', color: '#25D366', fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>💬</span>
+                  <span>WhatsApp us</span>
+                </a>
+              )}
+              {contactInfo?.email && (
+                <a href={`mailto:${contactInfo.email}?subject=Deposit Payment - ${bookingDone?.booking_id}`}
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, textDecoration: 'none', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 600 }}>
+                  <span style={{ fontSize: '1rem' }}>✉️</span>
+                  <span>{contactInfo.email}</span>
+                </a>
+              )}
+              {contactInfo?.upi_id && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px', borderRadius: 9, background: '#7C3AED15', border: '1px solid #7C3AED40', fontSize: '0.82rem' }}>
+                  <span style={{ fontSize: '1rem' }}>💳</span>
+                  <span style={{ color: '#7C3AED', fontWeight: 600 }}>UPI:</span>
+                  <span style={{ color: t.textSecondary, fontWeight: 700 }}>{contactInfo.upi_id}</span>
+                </div>
+              )}
+              {!contactInfo?.phone && !contactInfo?.email && (
+                <div style={{ padding: '9px 14px', borderRadius: 9, background: t.bgSurface, border: `1px solid ${t.borderSubtle}`, fontSize: '0.8rem', color: t.textMuted }}>
+                  📞 Our team will contact you shortly
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: 8, flexDirection: 'column' }}>
+            <button onClick={() => navigate(`/booth/${code}/${exhibitor?.name}`)}
+              style={{ padding: '13px', borderRadius: 12, background: `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '0.95rem', color: '#000', cursor: 'pointer' }}>
               🏪 Create Your Digital Booth
             </button>
-            <button onClick={() => navigate(`/event/${code}`)} style={{ padding: '10px', borderRadius: 10, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.82rem', color: t.textMuted, cursor: 'pointer' }}>
+            <button onClick={() => navigate(`/event/${code}`)}
+              style={{ padding: '11px', borderRadius: 10, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.82rem', color: t.textMuted, cursor: 'pointer' }}>
               ← Back to Event
             </button>
           </div>
@@ -216,7 +269,6 @@ export default function BookingPage() {
     )
   }
 
-  // ── MAIN BOOKING FLOW ─────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: t.bgBase, fontFamily: 'DM Sans, sans-serif' }}>
       <style>{`
@@ -229,7 +281,6 @@ export default function BookingPage() {
         ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 3px; }
       `}</style>
 
-      {/* ── NAVBAR ── */}
       <nav style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100, padding: '0 2rem', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.navBg, backdropFilter: 'blur(20px)', borderBottom: '1px solid ' + t.borderSubtle }}>
         <button onClick={() => navigate(`/event/${code}`)} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 8, border: '1px solid ' + t.borderDefault, background: 'transparent', color: t.textSecondary, fontSize: '0.82rem', fontWeight: 500, cursor: 'pointer', fontFamily: 'DM Sans, sans-serif' }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7" /></svg>
@@ -242,7 +293,6 @@ export default function BookingPage() {
 
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '80px 2rem 4rem' }}>
 
-        {/* ── STEP INDICATOR ── */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 36, animation: 'fadeUp 0.3s ease both' }}>
           {STEPS.map((s, i) => (
             <div key={s} style={{ display: 'flex', alignItems: 'center', flex: i < STEPS.length - 1 ? 1 : 'none' }}>
@@ -258,11 +308,9 @@ export default function BookingPage() {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 24, alignItems: 'start' }}>
-
-          {/* ── LEFT: STEP CONTENT ── */}
           <div style={{ animation: 'fadeUp 0.35s ease both' }}>
 
-            {/* STEP 0 — Stall Review */}
+            {/* STEP 0 */}
             {step === 0 && (
               <div>
                 <SectionTitle title="Your Selected Stalls" accent={accent} t={t} />
@@ -273,8 +321,7 @@ export default function BookingPage() {
                     <button onClick={() => navigate(`/event/${code}`)} style={{ marginTop: 16, padding: '8px 20px', borderRadius: 8, background: accent, border: 'none', fontWeight: 700, color: '#000', cursor: 'pointer' }}>← Select Stalls</button>
                   </div>
                 ) : passedSelected.map((x, i) => {
-                  const area  = getDimArea(x.dim)
-                  const price = getDimPrice(x.dim)
+                  const area = getDimArea(x.dim), price = getDimPrice(x.dim)
                   return (
                     <div key={i} style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 14, padding: 20, marginBottom: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -284,27 +331,17 @@ export default function BookingPage() {
                             {x.dim.dimension_label} m
                           </div>
                           <div style={{ fontSize: '0.78rem', color: t.textMuted }}>{x.hall?.hall_name}</div>
-                          {x.dim.stall_type && (
-                            <div style={{ marginTop: 4, fontSize: '0.68rem', fontWeight: 700, color: accent, background: accent + '15', padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>
-                              {x.dim.stall_type?.toUpperCase()}
-                              {x.dim.premium_percent > 0 && (
-                                <span style={{ marginLeft: 6, color: '#F59E0B' }}>+{x.dim.premium_percent}%</span>
-                              )}
-                            </div>
-                          )}
+                          {x.dim.stall_type && <div style={{ marginTop: 4, fontSize: '0.68rem', fontWeight: 700, color: accent, background: accent + '15', padding: '2px 8px', borderRadius: 4, display: 'inline-block' }}>{x.dim.stall_type?.toUpperCase()}</div>}
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{price.toLocaleString()}</div>
                             <div style={{ fontSize: '0.7rem', color: t.textFaint }}>₹{x.dim.base_price?.toLocaleString()}/sqft · {area} sqm</div>
                           </div>
-                          <button
-                            onClick={() => removeStall(i)}
-                            title="Remove stall"
-                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #F8717130', background: '#F8717108', color: '#F87171', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}
+                          <button onClick={() => removeStall(i)} title="Remove"
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 6, border: '1px solid #F8717130', background: '#F8717108', color: '#F87171', fontSize: '0.7rem', fontWeight: 600, cursor: 'pointer' }}
                             onMouseEnter={e => { e.currentTarget.style.background = '#F8717120'; e.currentTarget.style.borderColor = '#F87171' }}
-                            onMouseLeave={e => { e.currentTarget.style.background = '#F8717108'; e.currentTarget.style.borderColor = '#F8717130' }}
-                          >
+                            onMouseLeave={e => { e.currentTarget.style.background = '#F8717108'; e.currentTarget.style.borderColor = '#F8717130' }}>
                             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
                             Remove
                           </button>
@@ -321,14 +358,8 @@ export default function BookingPage() {
                     </div>
                   )
                 })}
-                <button onClick={() => navigate(`/event/${code}`, {
-                    state: {
-                      restoreSelected: passedSelected.map(x => ({
-                        hallCode: x.hall?.hall_code || x.hall?.name,
-                        dimLabel: x.dim?.dimension_label,
-                      }))
-                    }
-                  })} style={{ marginTop: 4, padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.78rem', color: t.textMuted, cursor: 'pointer' }}>
+                <button onClick={() => navigate(`/event/${code}`, { state: { restoreSelected: passedSelected.map(x => ({ hallCode: x.hall?.hall_code || x.hall?.name, dimLabel: x.dim?.dimension_label })) } })}
+                  style={{ marginTop: 4, padding: '8px 16px', borderRadius: 8, background: 'transparent', border: '1px solid ' + t.borderDefault, fontSize: '0.78rem', color: t.textMuted, cursor: 'pointer' }}>
                   + Add / Change Stalls
                 </button>
               </div>
@@ -337,37 +368,44 @@ export default function BookingPage() {
             {/* STEP 1 — Services */}
             {step === 1 && (
               <div>
-                <SectionTitle title="Add Services" accent={accent} t={t} />
-                <p style={{ fontSize: '0.82rem', color: t.textMuted, marginBottom: 20 }}>Optional services for your stall.</p>
+                <SectionTitle title="Additional Services" accent={accent} t={t} />
+                <p style={{ fontSize: '0.82rem', color: t.textMuted, marginBottom: 20 }}>
+                  Select services for your stall. Charges will be added to your final invoice.
+                </p>
                 {services.length === 0 ? (
                   <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 30, textAlign: 'center', color: t.textFaint }}>No services available for this event.</div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {services.map(svc => {
                       const checked = selectedServices.has(svc.name)
-                      const color   = SVC_COLOR[svc.category] || '#9CA3AF'
+                      const color = SVC_COLOR[svc.category] || '#9CA3AF'
                       return (
                         <div key={svc.name} onClick={() => !svc.is_mandatory && toggleService(svc.name)}
                           style={{ display: 'flex', gap: 14, alignItems: 'center', background: (checked || !!svc.is_mandatory) ? color + '08' : t.bgSurface, border: `1px solid ${(checked || !!svc.is_mandatory) ? color + '50' : t.borderSubtle}`, borderRadius: 12, padding: '14px 16px', cursor: svc.is_mandatory ? 'default' : 'pointer', transition: 'all 0.15s' }}>
                           <div style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${checked || !!svc.is_mandatory ? color : t.borderHover}`, background: checked || !!svc.is_mandatory ? color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            {(checked || !!svc.is_mandatory) ? <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800 }}>✓</span> : null}
+                            {(checked || !!svc.is_mandatory) && <span style={{ color: '#000', fontSize: '0.7rem', fontWeight: 800 }}>✓</span>}
                           </div>
                           <div style={{ width: 38, height: 38, borderRadius: 9, background: color + '15', border: `1px solid ${color}25`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.1rem', flexShrink: 0 }}>
                             {SVC_ICON[svc.category] || '🔧'}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: '0.88rem', color: t.textSecondary, marginBottom: 2 }}>
-                              {(svc.service_name || svc.name || '').replace(/^[A-Z0-9]+-/, '')}
+                              {svc.service_name}
                               {svc.is_mandatory && <span style={{ marginLeft: 8, fontSize: '0.62rem', fontWeight: 700, color: '#F87171', background: '#F8717115', padding: '2px 6px', borderRadius: 4 }}>MANDATORY</span>}
                             </div>
                             <div style={{ fontSize: '0.72rem', color: t.textFaint }}>
-                              <span style={{ color, fontWeight: 600 }}>{svc.category}</span> · {svc.charge_type}
+                              <span style={{ color, fontWeight: 600 }}>{svc.category}</span>{' · '}{svc.charge_type}
                               {svc.description && <span> · {svc.description}</span>}
                             </div>
                           </div>
-                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                            <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color, fontSize: '1rem' }}>₹{svc.price?.toLocaleString()}</div>
-                            <div style={{ fontSize: '0.65rem', color: t.textGhost }}>+{svc.tax_percent}% GST</div>
+                          <div style={{ flexShrink: 0 }}>
+                            {(checked || !!svc.is_mandatory) ? (
+                              <span style={{ fontSize: '0.7rem', fontWeight: 600, color, background: color + '15', padding: '3px 10px', borderRadius: 20 }}>
+                                {svc.is_mandatory ? 'Required' : 'Added'}
+                              </span>
+                            ) : (
+                              <span style={{ fontSize: '0.7rem', color: t.textGhost }}>Optional</span>
+                            )}
                           </div>
                         </div>
                       )
@@ -381,13 +419,12 @@ export default function BookingPage() {
             {step === 2 && (
               <div>
                 <SectionTitle title="Review & Checkout" accent={accent} t={t} />
+
                 <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 20, marginBottom: 16 }}>
                   <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>STALLS</div>
                   {passedSelected.map((x, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.83rem' }}>
-                      <span style={{ color: t.textSecondary }}>
-                        {x.dim.stall_number ? `${x.dim.stall_number} · ` : ''}{x.dim.dimension_label} m — {x.hall?.hall_name?.split('–')[0]?.trim()}
-                      </span>
+                      <span style={{ color: t.textSecondary }}>{x.dim.stall_number ? `${x.dim.stall_number} · ` : ''}{x.dim.dimension_label} m — {x.hall?.hall_name?.split('–')[0]?.trim()}</span>
                       <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{getDimPrice(x.dim).toLocaleString()}</span>
                     </div>
                   ))}
@@ -395,55 +432,54 @@ export default function BookingPage() {
 
                 {selectedSvcs.length > 0 && (
                   <div style={{ background: t.bgSurface, border: '1px solid ' + t.borderSubtle, borderRadius: 14, padding: 20, marginBottom: 16 }}>
-                    <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 12 }}>SERVICES</div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em' }}>ADDITIONAL SERVICES</div>
+                      <span style={{ fontSize: '0.65rem', color: t.textGhost, fontStyle: 'italic' }}>Billed in final invoice</span>
+                    </div>
                     {selectedSvcs.map((s, i) => (
-                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.83rem' }}>
+                      <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: i < selectedSvcs.length - 1 ? '1px solid ' + t.borderSubtle : 'none', fontSize: '0.83rem' }}>
                         <span style={{ color: t.textSecondary }}>{s.service_name}</span>
-                        <span style={{ color: t.textPrimary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+                        <span style={{ fontSize: '0.7rem', color: t.textFaint }}>—</span>
                       </div>
                     ))}
                   </div>
                 )}
 
                 <div style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 14, padding: 20, marginBottom: 20 }}>
-                  {[['Stalls', `₹${stallTotal.toLocaleString()}`], ['Services', `₹${svcTotal.toLocaleString()}`], ['GST (18%)', `₹${taxAmount.toLocaleString()}`]].map(([k, v]) => (
+                  {[['Stall Amount', `₹${stallTotal.toLocaleString()}`], ['GST (18%)', `₹${taxAmount.toLocaleString()}`]].map(([k, v]) => (
                     <div key={k} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid ' + t.borderSubtle, fontSize: '0.82rem' }}>
                       <span style={{ color: t.textFaint }}>{k}</span>
                       <span style={{ color: t.textSecondary }}>{v}</span>
                     </div>
                   ))}
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 0 4px' }}>
-                    <span style={{ color: t.textSecondary, fontWeight: 700 }}>Grand Total</span>
+                    <span style={{ color: t.textSecondary, fontWeight: 700 }}>Stall Total</span>
                     <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{grandTotal.toLocaleString()}</span>
                   </div>
-                  <div style={{ background: accent + '10', border: `1px solid ${accent}25`, borderRadius: 10, padding: '10px 14px', marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <div style={{ fontSize: '0.72rem', color: t.textSecondary, fontWeight: 600 }}>Pay now to block stall</div>
-                      <div style={{ fontSize: '0.68rem', color: t.textFaint }}>Balance payable before event</div>
+                  <div style={{ background: accent + '10', border: `1px solid ${accent}25`, borderRadius: 10, padding: '10px 14px', marginTop: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ fontSize: '0.72rem', color: t.textSecondary, fontWeight: 600 }}>Pay now to block stall</div>
+                        <div style={{ fontSize: '0.68rem', color: t.textFaint, marginTop: 2 }}>Service charges in final invoice</div>
+                      </div>
+                      <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.1rem' }}>₹{depositAmt.toLocaleString()}</span>
                     </div>
-                    <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.1rem' }}>₹{depositAmt.toLocaleString()}</span>
                   </div>
                 </div>
 
-                {error && (
-                  <div style={{ padding: '12px 16px', borderRadius: 10, background: '#F8717110', border: '1px solid #F8717130', color: '#F87171', fontSize: '0.82rem', marginBottom: 16 }}>
-                    ⚠ {error}
-                  </div>
-                )}
+                {error && <div style={{ padding: '12px 16px', borderRadius: 10, background: '#F8717110', border: '1px solid #F8717130', color: '#F87171', fontSize: '0.82rem', marginBottom: 16 }}>⚠ {error}</div>}
 
                 <div style={{ fontSize: '0.72rem', color: t.textGhost, lineHeight: 1.6, marginBottom: 20 }}>
                   By proceeding, you agree to the stall booking terms and cancellation policy of {event.event_name}.
                 </div>
 
-                <button onClick={handleBooking} disabled={submitting} style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? t.bgHover : `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.05rem', color: submitting ? t.textFaint : '#000', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
-                  {submitting ? (
-                    <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</>
-                  ) : `Confirm & Pay Deposit ₹${depositAmt.toLocaleString()}`}
+                <button onClick={handleBooking} disabled={submitting}
+                  style={{ width: '100%', padding: '15px', borderRadius: 12, background: submitting ? t.bgHover : `linear-gradient(135deg, ${accent}, ${accent}CC)`, border: 'none', fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.05rem', color: submitting ? t.textFaint : '#000', cursor: submitting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, transition: 'all 0.2s' }}>
+                  {submitting ? <><div style={{ width: 18, height: 18, borderRadius: '50%', border: '2px solid ' + t.borderHover, borderTopColor: accent, animation: 'spin 0.7s linear infinite' }} />Processing...</> : `Confirm & Express Interest ₹${depositAmt.toLocaleString()}`}
                 </button>
               </div>
             )}
 
-            {/* Navigation */}
             {step < 2 && (
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
                 <button onClick={() => setStep(s => s + 1)} disabled={passedSelected.length === 0}
@@ -459,37 +495,47 @@ export default function BookingPage() {
             )}
           </div>
 
-          {/* ── ORDER SUMMARY ── */}
+          {/* ORDER SUMMARY sidebar — stall total only, services listed as "Invoice" */}
           <div style={{ position: 'sticky', top: 80 }}>
             <div style={{ background: t.bgSurface, border: `1px solid ${accent}20`, borderRadius: 16, padding: 20, animation: 'fadeUp 0.4s ease 0.1s both' }}>
               <div style={{ fontSize: '0.65rem', color: t.textFaint, fontWeight: 700, letterSpacing: '0.1em', marginBottom: 14 }}>ORDER SUMMARY</div>
+
               {passedSelected.map((x, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.78rem' }}>
                   <span style={{ color: t.textMuted }}>{x.dim.stall_number || x.dim.dimension_label} m</span>
                   <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{getDimPrice(x.dim).toLocaleString()}</span>
                 </div>
               ))}
-              {selectedSvcs.map((s, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontSize: '0.78rem' }}>
-                  <span style={{ color: t.textMuted }}>{s.service_name}</span>
-                  <span style={{ color: t.textSecondary, fontWeight: 600 }}>₹{s.price?.toLocaleString()}</span>
+
+              {/* Services — name only, price NOT shown, total NOT affected */}
+              {selectedSvcs.length > 0 && (
+                <div style={{ borderTop: '1px dashed ' + t.borderSubtle, marginTop: 8, paddingTop: 8 }}>
+                  {selectedSvcs.map((s, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontSize: '0.75rem' }}>
+                      <span style={{ color: t.textFaint }}>{s.service_name}</span>
+                      <span style={{ fontSize: '0.65rem', color: t.textGhost, fontStyle: 'italic' }}>Invoice</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
               <div style={{ borderTop: '1px solid ' + t.borderSubtle, marginTop: 10, paddingTop: 10 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: 4 }}>
                   <span style={{ color: t.textFaint }}>GST (18%)</span>
                   <span style={{ color: t.textMuted }}>₹{taxAmount.toLocaleString()}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}>
-                  <span style={{ fontSize: '0.82rem', color: t.textSecondary, fontWeight: 600 }}>Total</span>
+                  <span style={{ fontSize: '0.82rem', color: t.textSecondary, fontWeight: 600 }}>Stall Total</span>
                   <span style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.1rem' }}>₹{grandTotal.toLocaleString()}</span>
                 </div>
               </div>
+
               <div style={{ borderTop: '1px solid ' + t.borderSubtle, marginTop: 12, paddingTop: 12 }}>
-                <div style={{ fontSize: '0.68rem', color: t.textFaint, marginBottom: 4 }}>Deposit to block <span style={{ color: accent, fontWeight: 700 }}>(25% of stall total)</span></div>
+                <div style={{ fontSize: '0.68rem', color: t.textFaint, marginBottom: 4 }}>Deposit <span style={{ color: accent, fontWeight: 700 }}>(25% of stall)</span></div>
                 <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, color: accent, fontSize: '1.3rem' }}>₹{depositAmt.toLocaleString()}</div>
-                <div style={{ fontSize: '0.65rem', color: t.textGhost, marginTop: 2 }}>Balance due: ₹{(grandTotal - depositAmt).toLocaleString()}</div>
+                <div style={{ fontSize: '0.65rem', color: t.textGhost, marginTop: 2 }}>Balance: ₹{balanceDue.toLocaleString()}</div>
               </div>
+
               <div style={{ marginTop: 14, padding: '10px 12px', background: t.bgElevated, borderRadius: 8, fontSize: '0.7rem', color: t.textFaint, lineHeight: 1.6 }}>
                 📅 {event.event_name}<br />
                 📍 {event.venue_name}, {event.city}<br />
