@@ -1747,6 +1747,7 @@ def _seed_expo_stalls():
             "status": stall["status"],
             "base_price": stall["base_price"],
             "final_price": stall["final_price"],
+            "premium_percent": {"Corner": 12, "Island": 20, "Entry": 5, "Premium": 15}.get(stall["stall_type"], 0),
             "tax_percent": 18,
         })
         doc.insert(ignore_permissions=True)
