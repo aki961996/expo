@@ -473,34 +473,91 @@ def get_my_bookings(expo_event=None):
 
 	return bookings
 
+# # ─────────────────────────────────────────────────────────────
+# #  API 5 — Get Available Stalls
+# # ─────────────────────────────────────────────────────────────
+
+# @frappe.whitelist()
+# def get_available_stalls(expo_event, expo_hall, dimension_label):
+# 	if not frappe.db.table_exists("Expo Stall"):
+# 		return []
+
+# 	dimension_label = dimension_label.replace('x', '×').strip()
+
+# 	stalls = frappe.get_all(
+# 		"Expo Stall",
+# 		filters={"expo_event": expo_event, "expo_hall": expo_hall, "dimension_label": dimension_label, "status": "Available"},
+# 		fields=["name", "stall_number", "stall_type", "dimension_label", "base_price", "final_price", "status", "expo_hall"],
+# 		order_by="stall_number asc",
+# 	)
+
+# 	if not stalls:
+# 		stalls = frappe.get_all(
+# 			"Expo Stall",
+# 			filters={"expo_event": expo_event, "expo_hall": expo_hall, "dimension_label": dimension_label.replace('×', 'x'), "status": "Available"},
+# 			fields=["name", "stall_number", "stall_type", "dimension_label", "base_price", "final_price", "status", "expo_hall"],
+# 			order_by="stall_number asc",
+# 		)
+
+# 	for stall in stalls:
+# 		stall["deposit"] = round(float(stall.get("base_price") or 0) * 0.25, 2)
+
+# 	return stalls
+
 # ─────────────────────────────────────────────────────────────
 #  API 5 — Get Available Stalls
 # ─────────────────────────────────────────────────────────────
 
 @frappe.whitelist()
 def get_available_stalls(expo_event, expo_hall, dimension_label):
+	"""Return available stalls for a specific hall + dimension combo."""
 	if not frappe.db.table_exists("Expo Stall"):
 		return []
 
+	# Normalize: 'x' → '×'
 	dimension_label = dimension_label.replace('x', '×').strip()
 
 	stalls = frappe.get_all(
 		"Expo Stall",
-		filters={"expo_event": expo_event, "expo_hall": expo_hall, "dimension_label": dimension_label, "status": "Available"},
-		fields=["name", "stall_number", "stall_type", "dimension_label", "base_price", "final_price", "status", "expo_hall"],
+		filters={
+			"expo_event":      expo_event,
+			"expo_hall":       expo_hall,
+			"dimension_label": dimension_label,
+			"status":          "Available",
+		},
+		fields=[
+			"name", "stall_number", "stall_type",
+			"dimension_label", "base_price", "final_price",
+			"status", "expo_hall", "premium_percent",
+		],
 		order_by="stall_number asc",
 	)
 
+	# Fallback: try with 'x'
 	if not stalls:
 		stalls = frappe.get_all(
 			"Expo Stall",
-			filters={"expo_event": expo_event, "expo_hall": expo_hall, "dimension_label": dimension_label.replace('×', 'x'), "status": "Available"},
-			fields=["name", "stall_number", "stall_type", "dimension_label", "base_price", "final_price", "status", "expo_hall"],
+			filters={
+				"expo_event":      expo_event,
+				"expo_hall":       expo_hall,
+				"dimension_label": dimension_label.replace('×', 'x'),
+				"status":          "Available",
+			},
+			fields=[
+				"name", "stall_number", "stall_type",
+				"dimension_label", "base_price", "final_price",
+				"status", "expo_hall", "premium_percent",
+			],
 			order_by="stall_number asc",
 		)
 
+	# Calculate effective_price (base + premium%) and deposit (25% of effective)
 	for stall in stalls:
-		stall["deposit"] = round(float(stall.get("base_price") or 0) * 0.25, 2)
+		base      = float(stall.get("base_price") or 0)
+		pct       = float(stall.get("premium_percent") or 0)
+		effective = round(base * (1 + pct / 100), 2)
+		stall["effective_price"] = effective
+		stall["deposit"]         = round(effective * 0.25, 2)
 
 	return stalls
 

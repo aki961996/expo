@@ -5,15 +5,29 @@
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
-  "stall_number", "expo_event", "expo_hall",
+  "stall_number",
+  "expo_event",
+  "expo_hall",
   "col_break_1",
-  "stall_type", "dimension_label", "status",
+  "stall_type",
+  "dimension_label",
+  "status",
   "section_pricing",
-  "base_price", "final_price", "col_break_2", "tax_percent", "deposit",
+  "base_price",
+  "premium_percent",
+  "final_price",
+  "col_break_2",
+  "tax_percent",
+  "deposit",
   "section_hold",
-  "hold_expiry", "booked_by",
+  "hold_expiry",
+  "booked_by",
   "section_map",
-  "map_x", "map_y", "col_break_3", "map_width", "map_height"
+  "map_x",
+  "map_y",
+  "col_break_3",
+  "map_width",
+  "map_height"
  ],
  "fields": [
   {
@@ -78,13 +92,22 @@
   {
    "fieldname": "base_price",
    "fieldtype": "Currency",
-   "label": "Base Price"
+   "label": "Base Price",
+   "description": "Price before any premium"
+  },
+  {
+   "fieldname": "premium_percent",
+   "fieldtype": "Percent",
+   "label": "Premium %",
+   "default": "0",
+   "description": "Extra charge for Corner/Island/Premium stall types (e.g. 10 = 10%)"
   },
   {
    "fieldname": "final_price",
    "fieldtype": "Currency",
    "label": "Final Price (incl. premium)",
-   "reqd": 1
+   "reqd": 1,
+   "description": "Auto-calculated: base_price \u00d7 (1 + premium%/100)"
   },
   {
    "fieldname": "col_break_2",
@@ -99,7 +122,8 @@
   {
    "fieldname": "deposit",
    "fieldtype": "Currency",
-   "label": "Deposit"
+   "label": "Deposit",
+   "description": "Auto-calculated: final_price \u00d7 25%"
   },
   {
    "fieldname": "section_hold",
@@ -149,16 +173,29 @@
   }
  ],
  "links": [],
- "modified": "2026-03-10 00:00:00.000000",
+ "modified": "2026-04-27 00:00:00.000000",
  "modified_by": "Administrator",
  "module": "Expo Management",
  "name": "Expo Stall",
  "naming_rule": "Expression (will fail if blank)",
  "owner": "Administrator",
  "permissions": [
-  {"role": "Expo Admin",    "read": 1, "write": 1, "create": 1, "delete": 1},
-  {"role": "Event Manager", "read": 1, "write": 1},
-  {"role": "All",           "read": 1}
+  {
+   "role": "Expo Admin",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Event Manager",
+   "read": 1,
+   "write": 1
+  },
+  {
+   "role": "All",
+   "read": 1
+  }
  ],
  "title_field": "stall_number",
  "track_changes": 1
