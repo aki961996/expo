@@ -80,10 +80,12 @@ export default function StallPickerModal({ open, onClose, selectedDims, eventCod
           result.push({
             ...dim,
             hall,
-            stall_name:   stall.name,
-            stall_number: stall.stall_number,
-            stall_type:   stall.stall_type || 'Standard',
-            final_price:  stall.final_price || ((dim.base_price || 0) * (dim.area || 0)),
+            stall_name:      stall.name,
+            stall_number:    stall.stall_number,
+            stall_type:      stall.stall_type || 'Standard',
+            final_price:     stall.final_price || ((dim.base_price || 0) * (dim.area || 0)),
+            effective_price: stall.effective_price || stall.final_price || ((dim.base_price || 0) * (dim.area || 0)),
+            premium_percent: stall.premium_percent || 0,
           })
         }
       })
