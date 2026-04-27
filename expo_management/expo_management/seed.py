@@ -1826,6 +1826,9 @@ def _seed_exhibitor_profiles():
         if frappe.db.exists("Exhibitor Profile", ex["email"]):
             print(f"   ⏭  Exhibitor '{ex['company_name']}' already exists, skipping.")
             continue
+        # Ensure contact_person is set (required field)
+        if not ex.get("contact_person"):
+            ex["contact_person"] = ex.get("exhibitor_name", "")
         doc = frappe.get_doc(ex)
         doc.insert(ignore_permissions=True)
     print(f"    Created {len(exhibitors)} Exhibitor Profiles")
