@@ -28,15 +28,9 @@ function fmtDate(d) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
-// ── Normalize passedSelected ──────────────────────────────────
-// StallPickerModal returns flat objects: { dimension_label, hall, stall_number, ... }
-// EventDetail (old flow) returns nested: { dim: {...}, hall: {...} }
-// This function normalizes both into { dim, hall } format
 function normalizeSelected(raw) {
   return (raw || []).map(item => {
-    // Already nested format
     if (item.dim) return item
-    // Flat format from StallPickerModal — extract hall, rest is dim
     const { hall, stall_name, stall_number, stall_type, final_price, effective_price, premium_percent, ...dimFields } = item
     return {
       dim: { ...dimFields, stall_name, stall_number, stall_type, final_price, effective_price, premium_percent },
@@ -46,7 +40,6 @@ function normalizeSelected(raw) {
 }
 
 function getDimPrice(dim) {
-  // Priority: effective_price (API calculated) → final_price (seed data) → base_price × area
   if (dim.effective_price) return dim.effective_price
   if (dim.final_price && dim.final_price > 0) return dim.final_price
   const area = dim.area || ((dim.width || 0) * (dim.depth || 0))
@@ -63,7 +56,6 @@ export default function BookingPage() {
   const { exhibitor } = useAuth()
   const t             = useThemeStyles()
 
-  // Normalize selected stalls — state so user can remove items
   const [passedSelected, setPassedSelected] = useState(() => normalizeSelected(location.state?.selected))
 
   const removeStall = (index) => {
@@ -105,9 +97,6 @@ export default function BookingPage() {
   const { event, services = [] } = detail
   const accent = CAT_ACCENT[event.category] || '#F59E0B'
 
-  // ── Price calculations — stall only ─────────────────────
-  // Service price is NOT shown to client. Only stall + GST.
-  // Backend fetches actual service price from Expo Service and saves to DB.
   const stallTotal   = passedSelected.reduce((s, x) => s + getDimPrice(x.dim), 0)
   const selectedSvcs = services.filter(s => selectedServices.has(s.name))
   const taxAmount    = Math.round(stallTotal * 0.18)
@@ -326,8 +315,13 @@ export default function BookingPage() {
                     <button onClick={() => navigate(`/event/${code}`)} style={{ marginTop: 16, padding: '8px 20px', borderRadius: 8, background: accent, border: 'none', fontWeight: 700, color: '#000', cursor: 'pointer' }}>← Select Stalls</button>
                   </div>
                 ) : passedSelected.map((x, i) => {
-                  const area  = getDimArea(x.dim)
-                  const price = getDimPrice(x.dim)
+                  const area     = getDimArea(x.dim)
+                  const price    = getDimPrice(x.dim)
+                  // ── Price breakdown ──────────────────────────────
+                  const baseTotal   = (x.dim.base_price || 0) * area
+                  const premiumAmt  = x.dim.premium_percent > 0
+                    ? Math.round(baseTotal * x.dim.premium_percent / 100)
+                    : 0
                   return (
                     <div key={i} style={{ background: t.bgSurface, border: `1px solid ${accent}30`, borderRadius: 14, padding: 20, marginBottom: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
@@ -349,7 +343,15 @@ export default function BookingPage() {
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{price.toLocaleString()}</div>
-                            <div style={{ fontSize: '0.7rem', color: t.textFaint }}>₹{x.dim.base_price?.toLocaleString()}/sqft · {area} sqm</div>
+                            {/* ── CHANGED: Base price + premium breakdown ── */}
+                            <div style={{ fontSize: '0.7rem', color: t.textFaint, lineHeight: 1.8 }}>
+                              Base Price: ₹{baseTotal.toLocaleString()}
+                              {premiumAmt > 0 && (
+                                <span style={{ color: '#F59E0B', marginLeft: 4 }}>
+                                  · {x.dim.stall_type || 'Premium'} (+{x.dim.premium_percent}%): ₹{premiumAmt.toLocaleString()}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <button
                             onClick={() => removeStall(i)}
