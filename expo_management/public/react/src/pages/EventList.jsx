@@ -4,6 +4,7 @@ import EventCard from '../components/EventCard'
 import { getPublishedEvents } from '../api/frappe'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../context/ThemeContext'
+import Footer from '../components/Footer'
 
 const STATUSES   = ['All', 'Upcoming', 'Ongoing', 'Completed']
 const CATEGORIES = ['All', 'Trade Fair', 'Expo', 'Conference', 'Product Launch', 'Seminar']
@@ -271,6 +272,10 @@ export default function EventList() {
             </div>
           )}
       </section>
+
+      {/* ── FOOTER ── */}
+
+       <Footer isDark={isDark} />  
     </div>
   )
 }
