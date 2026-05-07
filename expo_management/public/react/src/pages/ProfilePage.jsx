@@ -22,7 +22,7 @@ async function apiCall(method, body = {}) {
 
 export default function ProfilePage() {
   const navigate                       = useNavigate()
-  const { exhibitor, logout, loading } = useAuth()
+  const { exhibitor, logout, loading, refreshExhibitor } = useAuth()
   const fileRef                        = useRef(null)
   // ── HOOK MUST BE FIRST — before any conditional return ──
   const t                              = useThemeStyles()
@@ -94,6 +94,22 @@ export default function ProfilePage() {
         product_categories: form.product_categories,
         description:        form.description,
       })
+      // Refresh exhibitor in AuthContext so header section updates immediately (no page reload needed)
+      const updated = await refreshExhibitor()
+      if (updated) {
+        setForm(f => ({
+          ...f,
+          exhibitor_name:     updated.exhibitor_name     || f.exhibitor_name,
+          company_name:       updated.company_name       || f.company_name,
+          contact_person:     updated.contact_person     || f.contact_person,
+          industry:           updated.industry           || f.industry,
+          gst_number:         updated.gst_number         || f.gst_number,
+          annual_turnover:    updated.annual_turnover    || f.annual_turnover,
+          website:            updated.website            || f.website,
+          product_categories: updated.product_categories || f.product_categories,
+          description:        updated.description        || f.description,
+        }))
+      }
       setSaved(true)
       setEditing(false)
       setTimeout(() => setSaved(false), 3000)

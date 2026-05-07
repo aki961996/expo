@@ -100,6 +100,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  // ── ProfilePage save ശേഷം header section update ആക്കാൻ ──
+  const refreshExhibitor = async () => {
+    try {
+      const r = await fetch('/api/method/expo_management.expo_management.auth.get_current_exhibitor', {
+        credentials: 'include',
+      })
+      const d = await r.json()
+      if (d.message?.logged_in && d.message?.exhibitor) {
+        setExhibitor(d.message.exhibitor)
+        return d.message.exhibitor
+      }
+    } catch (_) {}
+    return null
+  }
+
   // Block render until auth resolved
   if (loading) return null
 
@@ -121,6 +136,7 @@ export function AuthProvider({ children }) {
       register,
       registerVisitor,
       logout,
+      refreshExhibitor,  // ← ProfilePage uses this after save
     }}>
       {children}
     </AuthContext.Provider>
