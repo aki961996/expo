@@ -315,9 +315,8 @@ export default function BookingPage() {
                     <button onClick={() => navigate(`/event/${code}`)} style={{ marginTop: 16, padding: '8px 20px', borderRadius: 8, background: accent, border: 'none', fontWeight: 700, color: '#000', cursor: 'pointer' }}>← Select Stalls</button>
                   </div>
                 ) : passedSelected.map((x, i) => {
-                  const area     = getDimArea(x.dim)
-                  const price    = getDimPrice(x.dim)
-                  // ── Price breakdown ──────────────────────────────
+                  const area        = getDimArea(x.dim)
+                  const price       = getDimPrice(x.dim)
                   const baseTotal   = (x.dim.base_price || 0) * area
                   const premiumAmt  = x.dim.premium_percent > 0
                     ? Math.round(baseTotal * x.dim.premium_percent / 100)
@@ -343,7 +342,6 @@ export default function BookingPage() {
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontFamily: 'Bricolage Grotesque, sans-serif', fontWeight: 800, fontSize: '1.4rem', color: accent }}>₹{price.toLocaleString()}</div>
-                            {/* ── CHANGED: Base price + premium breakdown ── */}
                             <div style={{ fontSize: '0.7rem', color: t.textFaint, lineHeight: 1.8 }}>
                               Base Price: ₹{baseTotal.toLocaleString()}
                               {premiumAmt > 0 && (
@@ -365,8 +363,10 @@ export default function BookingPage() {
                           </button>
                         </div>
                       </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                        {[['Area', `${area} sqm`], ['Available', `${x.dim.available_stalls ?? '—'} / ${x.dim.total_stalls ?? '—'}`], ['Deposit (25%)', `₹${Math.round(price * 0.25).toLocaleString()}`]].map(([k, v]) => (
+
+                      {/* ── 2 cards only — Deposit removed ── */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+                        {[['Area', `${area} sqm`], ['Available', `${x.dim.available_stalls ?? '—'} / ${x.dim.total_stalls ?? '—'}`]].map(([k, v]) => (
                           <div key={k} style={{ background: t.bgElevated, borderRadius: 8, padding: '10px 12px' }}>
                             <div style={{ fontSize: '0.65rem', color: t.textFaint, marginBottom: 3 }}>{k.toUpperCase()}</div>
                             <div style={{ fontSize: '0.88rem', color: t.textSecondary, fontWeight: 600 }}>{v}</div>
